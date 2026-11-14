@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>소풍 가는 길</title>
+<meta name="description" content="갈림길을 골라 퍼즐을 풀며 언덕을 오르는 소풍 모험">
+<meta name="theme-color" content="#DCF0FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161A35" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="소풍 가는 길">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:'Jua'; src:url(fonts/jua.woff2) format('woff2'); font-display:swap}
+@font-face{font-family:'Gowun Dodum'; src:url(fonts/gowun-dodum.woff2) format('woff2'); font-display:swap}
+:root{color-scheme:light; padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
+html{-webkit-text-size-adjust:100%; touch-action:manipulation}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<style>
+/* Layout: a walk up a hill under an open sky. One column: sign and hearts, the friends walking with you, then either the trail map with a place card under it, or one puzzle filling the screen. */
+:root{
+  /* 60% canvas: clear sky */
+  --canvas:#DCF0FB;
+  /* 30% surfaces */
+  --surface:#FFFFFF; --surface-top:#FFFFFF;
+  --ink:#24324A; --ink-2:#53627C;
+  --border:rgba(36,50,74,.13); --border-strong:rgba(36,50,74,.28);
+  /* 10% accent: strawberry milk, for where you can go and what to press */
+  --accent:#F25C8A; --on-accent:#3A0A1C;
+  --good:#3FAE6B; --hill:#BFE6B5; --tile:#E4F0F8; --tile-on:#BDE6C4; --trail:rgba(255,255,255,.9);
+  --scrim:rgba(36,50,74,.5);
+  --shadow:0 1px 3px rgba(36,50,74,.07);
+  --edge-light:0 0 0 rgba(255,255,255,0);
+
+  --font-sign:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --font-ui:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --text-meta:.75rem; --text-2:.875rem; --text-body:1rem; --text-h2:1.375rem; --text-h1:1.75rem;
+  --m100:100ms; --m150:150ms; --m200:200ms; --m300:300ms;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-in:cubic-bezier(.7,0,.84,0);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#161A35; --surface:#212648; --surface-top:#2A3058;
+    --ink:#EEF1FF; --ink-2:#A9B0D6;
+    --border:rgba(238,241,255,.13); --border-strong:rgba(238,241,255,.28);
+    --accent:#FF8FB0; --on-accent:#3A0A1C;
+    --good:#6FD39A; --hill:#2F5A45; --tile:#2C3260; --tile-on:#3F7458; --trail:rgba(220,240,230,.45);
+    --scrim:rgba(6,8,20,.72);
+    --shadow:0 0 0 rgba(0,0,0,0);
+    --edge-light:inset 0 1px 0 rgba(255,255,255,.05);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#161A35; --surface:#212648; --surface-top:#2A3058;
+  --ink:#EEF1FF; --ink-2:#A9B0D6;
+  --border:rgba(238,241,255,.13); --border-strong:rgba(238,241,255,.28);
+  --accent:#FF8FB0; --on-accent:#3A0A1C;
+  --good:#6FD39A; --hill:#2F5A45; --tile:#2C3260; --tile-on:#3F7458; --trail:rgba(220,240,230,.45);
+  --scrim:rgba(6,8,20,.72);
+  --shadow:0 0 0 rgba(0,0,0,0);
+  --edge-light:inset 0 1px 0 rgba(255,255,255,.05);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+html{font-size:16px}
+body{
+  margin:0; background:var(--canvas); color:var(--ink);
+  font-family:var(--font-ui); font-size:var(--text-body); font-weight:400; line-height:1.55; word-break:keep-all;
+  padding-block:12px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex; justify-content:center; overflow-x:hidden; overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+}
+button{font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+svg{display:block; width:100%; height:100%}
+
+.app{width:100%; max-width:460px; height:100%; min-height:0; display:flex; flex-direction:column; gap:10px}
+.top{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.top h1{margin:0; font-family:var(--font-sign); font-weight:400; font-size:1.5rem; line-height:1.2; white-space:nowrap}
+.top-r{display:flex; align-items:center; gap:10px; min-width:0}
+.hearts{display:flex; gap:1px}
+.hearts span{width:20px; height:20px}
+.text-btn{min-height:44px; padding:0 12px; border-radius:10px; background:transparent; border:1px solid var(--border-strong); font-size:var(--text-2); line-height:1.2}
+.view{flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; animation:view-in var(--m200) var(--ease-out)}
+@keyframes view-in{from{opacity:0}}
+
+/* first screen */
+.on-title .top{display:none}
+.title{justify-content:center; gap:14px; text-align:center; overflow-y:auto}
+.title-art{position:relative; flex:none; height:min(250px, 32vh); overflow:hidden}
+.t-cloud{position:absolute; left:50%; top:0; width:min(150px, 19vh); height:min(150px, 19vh); transform:translateX(-50%)}
+.title-pair{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+
+/* picnic notebook */
+.book{gap:12px}
+.book-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-top:4px}
+.book-head h2{margin:0; font-family:var(--font-sign); font-weight:400; font-size:var(--text-h1); line-height:1.2}
+.book-head p{margin:0; font-family:var(--font-sign); font-size:1.125rem; font-variant-numeric:tabular-nums}
+.book-body{flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:8px}
+.book-body h3{margin:10px 0 0; font-family:var(--font-sign); font-weight:400; font-size:1.25rem; line-height:1.25}
+.book-body h3:first-child{margin-top:0}
+.book-sub{margin:0; font-size:var(--text-2); color:var(--ink-2)}
+.stages, .perks{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+.stage-row{display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:8px 12px; text-align:left; border-radius:14px; background:var(--surface); border:1px solid var(--border-strong)}
+.stage-row.sel{border:2px solid var(--accent); padding:7px 11px}
+.stage-row[disabled]{opacity:.5; cursor:default}
+.stage-row .num{flex:none; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:var(--tile); font-family:var(--font-sign); font-variant-numeric:tabular-nums}
+.perk{display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; background:var(--surface); border:1px solid var(--border)}
+.stage-row .txt, .perk .txt{flex:1; min-width:0}
+.stage-row .txt b, .perk .txt b{display:block; font-family:var(--font-sign); font-weight:400; font-size:var(--text-body); line-height:1.3}
+.stage-row .txt span, .perk .txt span{display:block; font-size:var(--text-2); line-height:1.45; color:var(--ink-2)}
+.stage-row .state, .perk .state{flex:none; font-size:var(--text-meta); color:var(--ink-2)}
+.buy{flex:none; min-height:44px; padding:0 12px; border:0; border-radius:10px; background:var(--accent); color:var(--on-accent); font-family:var(--font-sign); font-size:var(--text-2)}
+.buy[aria-disabled="true"]{background:transparent; border:1px solid var(--border-strong); color:var(--ink-2)}
+.t-hill{position:absolute; left:-12%; right:-12%; bottom:-46px; height:150px; border-radius:50% 50% 0 0 / 100% 100% 0 0; background:var(--hill)}
+.t-buds{position:absolute; left:0; right:0; bottom:22px; display:flex; justify-content:center; gap:2px}
+.t-buds span{width:54px; height:54px}
+.wordmark{margin:0; font-family:var(--font-sign); font-weight:400; font-size:2.75rem; line-height:1.1}
+.title-sub{margin:0; font-size:var(--text-2); color:var(--ink-2); text-wrap:balance}
+.title-btns{display:flex; flex-direction:column; gap:8px; margin-top:6px}
+.title-btns .cta{margin-top:0}
+.title-tip{margin:0; min-height:1.4em; font-size:var(--text-meta); line-height:1.4; color:var(--ink-2); text-wrap:balance}
+
+/* the friends walking with you */
+.party{display:flex; align-items:center; gap:8px}
+.bud{position:relative; width:46px; height:46px; padding:3px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--edge-light)}
+.bud.none{background:transparent; border-style:dashed; border-color:var(--border-strong); font-family:var(--font-sign); font-size:var(--text-2); color:var(--ink-2)}
+.bud b{position:absolute; right:-5px; bottom:-5px; padding:0 5px; border-radius:8px; background:var(--ink); color:var(--surface); font-family:var(--font-sign); font-weight:400; font-size:var(--text-meta); line-height:1.4}
+.hints{margin-left:auto; display:flex; align-items:center; gap:5px; font-size:var(--text-2); font-variant-numeric:tabular-nums}
+.hints span{width:18px; height:18px; color:var(--ink-2)}
+
+/* trail map */
+.map{position:relative; flex:1; min-height:0; background:var(--surface); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow), var(--edge-light); overflow:hidden}
+.map::before{content:""; position:absolute; left:-25%; right:-25%; bottom:-34%; height:80%; border-radius:50%; background:var(--hill); opacity:.5}   /* the hill being climbed */
+.map-in{position:absolute; inset:44px 0 38px}
+.walker{position:absolute; left:0; top:0; z-index:2; width:30px; height:30px; pointer-events:none; transition:transform var(--m300) var(--ease-out)}
+.roads{position:absolute; inset:0; overflow:visible}
+.roads line{stroke:var(--border-strong); stroke-width:2; stroke-dasharray:5 6; vector-effect:non-scaling-stroke}
+.roads line.walked{stroke:var(--ink); stroke-dasharray:none}
+.node{position:absolute; width:50px; height:50px; padding:8px; transform:translate(-50%,-50%); border-radius:50%; background:var(--surface); border:2px solid var(--border-strong)}
+.node{transition:transform var(--m100) var(--ease-out)}
+.node:active{transform:translate(-50%,-50%) scale(.94)}
+.node.boss{width:72px; height:72px; padding:6px}
+.node.open{border:3px solid var(--accent); padding:7px}
+.node.done{opacity:.5}
+.node.here{opacity:1; border-color:var(--ink)}
+.node.sel{outline:3px solid var(--ink); outline-offset:2px}
+.node i{position:absolute; display:block; border-radius:50%}
+.node i.hot{right:-7px; top:-7px; width:24px; height:24px}
+.node i.tick{right:-4px; bottom:-4px; width:20px; height:20px; padding:4px; background:var(--good)}
+
+/* place card */
+.info{min-height:112px; padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--edge-light); display:flex; gap:12px; align-items:center}
+.info-txt{flex:1; min-width:0}
+.info h3{margin:0; font-family:var(--font-sign); font-weight:400; font-size:1.125rem; line-height:1.25}
+.info p{margin:2px 0 0; font-size:var(--text-2); color:var(--ink-2)}
+.go{flex:none; min-height:48px; padding:0 16px; border:0; border-radius:12px; background:var(--accent); color:var(--on-accent); font-family:var(--font-sign); font-size:var(--text-body)}
+
+/* puzzle screen */
+.phead{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding-top:8px; border-top:1px solid var(--border-strong)}
+.phead h2{margin:0; font-family:var(--font-sign); font-weight:400; font-size:var(--text-h2); line-height:1.2}
+.phead p{margin:0; font-size:var(--text-2); white-space:nowrap; font-variant-numeric:tabular-nums}
+.pgoal{display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:32px; font-size:var(--text-2); font-variant-numeric:tabular-nums}
+.pgoal > div{display:flex; align-items:center; gap:10px; color:var(--ink-2)}
+.pgoal p{margin:0; font-family:var(--font-sign); font-size:1.125rem}
+.pgoal p.low{color:var(--accent)}
+.gchip{display:flex; align-items:center; gap:3px}
+.gchip svg{width:28px; height:28px}
+.gchip b{font-family:var(--font-sign); font-weight:400; font-size:1.125rem; color:var(--ink)}
+.note-row{display:flex; align-items:center; gap:10px; min-height:3.1em}
+.who{flex:none; width:44px; height:44px}
+.note{flex:1; min-width:0; margin:0; font-size:var(--text-2); color:var(--ink-2)}
+.burst{position:absolute; left:50%; top:50%; width:0; height:0; z-index:6; pointer-events:none}
+.burst i{position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%}
+.board-wrap{flex:1; min-height:0; display:flex; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow), var(--edge-light); overflow:hidden}
+.board{position:relative}
+.tool{width:100%; min-height:48px; border-radius:12px; background:var(--surface); border:1px solid var(--border-strong); font-size:var(--text-2)}
+.ring::after{content:""; position:absolute; inset:6%; border-radius:28%; border:3px solid var(--ink); pointer-events:none}
+
+/* 별사탕 팡 */
+.pop{position:relative; overflow:hidden; border-radius:12px}
+.pt{position:absolute; left:0; top:0; padding:0; border:0; background:none; transition:transform var(--m200) var(--ease-out), opacity var(--m150) var(--ease-in)}
+.pt.still{transition:none}
+.pt svg{padding:9%; transition:transform var(--m150) var(--ease-in)}
+.pt.out{opacity:0}
+.pt.out svg{transform:scale(.3)}
+/* 꽃길 걷기 */
+.path{position:relative; touch-action:none}
+.pc, .pb{position:absolute}
+.pc::before, .pc::after{content:""; position:absolute; inset:5%; border-radius:26%; background:var(--tile)}
+.pc::after{background:var(--tile-on); opacity:0; transition:opacity var(--m200) var(--ease-out)}
+.pc.on::after{opacity:1}
+.trail{position:absolute; inset:0; pointer-events:none}
+.trail polyline{fill:none; stroke:var(--trail); stroke-width:.26; stroke-linecap:round; stroke-linejoin:round}
+.pb{padding:0; border:0; background:none; border-radius:26%}
+.pb svg{padding:13%; transform:scale(0); transition:transform var(--m200) var(--ease-out); pointer-events:none}
+.pb.on svg{transform:scale(1)}
+.head{position:absolute; left:0; top:0; pointer-events:none; transition:transform var(--m150) var(--ease-out)}
+.head svg{position:absolute; right:-8%; top:-14%; width:56%; height:56%}
+/* 탕후루 정리 */
+.sort{position:relative}
+.rail{position:absolute; z-index:3; border-radius:999px; background:var(--tile); border:1px solid var(--border)}
+.stick{position:absolute; z-index:1; border-radius:999px; background:#D8B57C}
+.fr{position:absolute; left:0; top:0; z-index:2; pointer-events:none; transition:transform var(--m200) var(--ease-out)}
+.fr.up{z-index:4}
+.glaze{opacity:0; transition:opacity var(--m300) var(--ease-out)}
+.fr.glazed .glaze{opacity:1}
+.sk{position:absolute; z-index:5; padding:0; border:0; background:none; border-radius:14px}
+.sk.from{outline:2px solid var(--ink); outline-offset:-3px}
+.sk.to{outline:2px dashed var(--ink); outline-offset:-3px}
+/* 볶음면 잇기 */
+.rot{display:grid}
+.rc{position:relative; padding:0; border:0; background:none; border-radius:10px}
+.rc::before{content:""; position:absolute; inset:2px; border-radius:10px; background:var(--tile)}
+.rr{position:absolute; inset:0; transition:transform var(--m150) var(--ease-out)}
+.hot-layer{opacity:0; transition:opacity var(--m200) var(--ease-out)}
+.rc.hot .hot-layer{opacity:1}
+.fire{position:absolute; inset:20%; pointer-events:none}
+/* 칩 뒤집기 */
+.flip{display:grid}
+.fc{position:relative; padding:0; border:0; background:none; border-radius:50%; perspective:320px}
+.chip{position:absolute; inset:5%; transform-style:preserve-3d; transform:rotateY(calc(var(--turns) * 180deg)); transition:transform var(--m300) var(--ease-out); transition-delay:var(--wait, 0ms)}
+.chip.still{transition:none}
+.face{position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden}
+.face.honey{transform:rotateY(180deg)}
+
+/* cards */
+.overlay{position:fixed; inset:0; z-index:20; background:var(--scrim); display:grid; place-items:center; padding:20px}
+.overlay[hidden]{display:none}
+.card{width:min(100%, 360px); max-height:100%; overflow:auto; background:var(--surface-top); border:1px solid var(--border-strong); border-radius:20px; padding:22px 18px 18px; box-shadow:var(--edge-light); animation:card-in var(--m200) var(--ease-out)}
+@keyframes card-in{from{opacity:0; transform:translateY(8px)}}
+.card h2{margin:0; font-family:var(--font-sign); font-weight:400; font-size:var(--text-h1); line-height:1.2; text-wrap:balance}
+.card p{margin:8px 0 0; color:var(--ink-2)}
+.card .pic{width:112px; height:112px; margin:0 auto 8px}
+.opts{display:flex; flex-direction:column; gap:8px; margin-top:16px}
+.opt{display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; text-align:left; border-radius:14px; background:var(--surface); border:1px solid var(--border-strong)}
+.opt:active{background:var(--canvas)}
+.opts .opt{animation:opt-in var(--m200) var(--ease-out) backwards; animation-delay:calc(var(--i, 0) * 30ms)}
+@keyframes opt-in{from{opacity:0; transform:translateY(4px)}}
+.hearts.hit{animation:shake var(--m300) var(--ease-out)}
+@keyframes shake{20%{transform:translateX(-4px)} 50%{transform:translateX(4px)} 80%{transform:translateX(-2px)}}
+.bud.grew{animation:grew var(--m300) var(--ease-out)}
+@keyframes grew{40%{transform:scale(1.14)}}
+.opt-pic{flex:none; width:48px; height:48px}
+.opt-txt{min-width:0}
+.opt-txt b{display:block; font-family:var(--font-sign); font-weight:400; font-size:var(--text-body); line-height:1.3}
+.opt-txt span{display:block; font-size:var(--text-2); line-height:1.45; color:var(--ink-2)}
+.cta{display:block; width:100%; min-height:52px; margin-top:18px; border:0; border-radius:12px; background:var(--accent); color:var(--on-accent); font-family:var(--font-sign); font-size:1.125rem}
+.cta:active, .go:active{opacity:.85}
+
+@media (prefers-reduced-motion: reduce){
+  .pt, .pt svg, .pb svg, .pc::after, .head, .fr, .rr, .hot-layer, .chip, .glaze, .walker, .node{transition:none}
+  .card, .view, .opt, .hearts.hit, .bud.grew{animation:none}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1>소풍 가는 길</h1>
+    <div class="top-r"><div class="hearts" id="hearts" role="img" aria-label="하트"></div><button class="text-btn" id="btnMenu" type="button">메뉴</button></div>
+  </header>
+
+  <section class="view title" id="viewTitle">
+    <div class="title-art" id="titleArt" aria-hidden="true"></div>
+    <h1 class="wordmark">소풍 가는 길</h1>
+    <p class="title-sub" id="titleSub"></p>
+    <div class="title-btns">
+      <button class="cta" id="btnContinue" type="button">이어서 하기</button>
+      <button class="tool" id="btnNew" type="button">새 소풍 떠나기</button>
+      <button class="tool" id="btnInstall" type="button" hidden>홈 화면에 앱으로 설치하기</button>
+      <div class="title-pair">
+        <button class="tool" id="btnBook" type="button">소풍 수첩 열기</button>
+        <button class="tool" id="btnSet" type="button">소리와 진동 바꾸기</button>
+      </div>
+    </div>
+    <p class="title-tip" id="titleTip"></p>
+  </section>
+
+  <section class="view book" id="viewBook" hidden>
+    <div class="book-head"><h2>소풍 수첩</h2><p id="stampCount"></p></div>
+    <div class="book-body" id="bookBody"></div>
+    <button class="tool" id="btnBookBack" type="button">처음 화면으로 돌아가기</button>
+  </section>
+
+  <section class="view" id="viewMap" hidden>
+    <div class="party" id="party"></div>
+    <div class="map" id="map"></div>
+    <div class="info" id="info"></div>
+  </section>
+
+  <section class="view" id="viewPuzzle" hidden>
+    <div class="phead"><h2 id="pName"></h2><p id="pRate"></p></div>
+    <div class="pgoal"><div id="pGoal"></div><p id="pLeft"></p></div>
+    <div class="note-row"><span class="who" id="who" hidden></span><p class="note" id="note" aria-live="polite"></p></div>
+    <div class="board-wrap" id="boardWrap" style="position:relative"><div class="board" id="board"></div></div>
+    <button class="tool" id="btnHint" type="button">힌트 쓰기</button>
+  </section>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="cardTitle"></div>
+</div>
+
+<script>
+const CONFIG = { name: '쪈이' };   // 소풍을 떠나는 사람
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const rnd = n => Math.floor(Math.random() * n);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/* ───── saved run (this browser only) ───── */
+const KEY = 'picnic-road-v1';
+let S = { muted: false, vib: true, wins: 0, run: null, meta: null };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+/* what stays between picnics: stamps, things bought with them, and how far up the weather ladder you have got */
+const META0 = { stamps: 0, perks: { lunch: 0, lens: 0, pal: 0, mat: 0, neat: 0, clover: 0 }, reach: 1, pick: 1, cleared: [], cloud: false };
+S.meta = Object.assign({}, META0, S.meta || {}); S.meta.perks = Object.assign({}, META0.perks, S.meta.perks || {});
+if (S.wins > 0 && !S.meta.cleared.length) { S.meta.cleared = [1]; S.meta.reach = S.meta.pick = 2; S.meta.cloud = true; S.meta.stamps += 20 * S.wins; }   // picnics won before this ladder existed
+
+const STAGES = [
+  { name: '맑은 날', rule: '기본 소풍이에요.' },
+  { name: '구름 낀 날', rule: '모든 퍼즐의 난이도가 1 올라요.' },
+  { name: '바람 부는 날', rule: '매운맛 칸이 하나 더 나와요.' },
+  { name: '소나기', rule: '힌트를 1개 덜 들고 출발해요.' },
+  { name: '장맛비', rule: '먹구름 대왕과 네 판을 겨뤄요.' },
+  { name: '천둥', rule: '모든 퍼즐의 난이도가 1 더 올라요.' },
+  { name: '우박', rule: '쉼터에서 하트를 1개 덜 회복해요.' },
+  { name: '태풍', rule: '모든 퍼즐의 횟수가 10% 줄어요.' }
+];
+/* a stage carries every rule below it too */
+const rulesFor = st => ({ bump: (st >= 2 ? 1 : 0) + (st >= 6 ? 1 : 0), elites: st >= 3 ? 3 : 2, hintCut: st >= 4 ? 1 : 0, rounds: st >= 5 ? 4 : 3, restCut: st >= 7 ? 1 : 0, squeeze: st >= 8 ? 0.9 : 1 });
+const PERKS = [
+  { id: 'lunch', name: '든든한 도시락', costs: [12, 30], desc: l => `하트 ${3 + l}개로 출발해요.` },
+  { id: 'lens', name: '돋보기 주머니', costs: [5, 10, 18], desc: l => `힌트를 ${l}개 더 들고 출발해요.` },
+  { id: 'pal', name: '단짝 친구', costs: [15], desc: () => '첫 친구가 Lv2로 함께 출발해요.' },
+  { id: 'mat', name: '폭신한 돗자리', costs: [10], desc: () => '쉼터에서 하트를 1개 더 회복해요.' },
+  { id: 'neat', name: '꼼꼼한 손', costs: [8], desc: () => '깔끔하게 풀면 힌트를 2개 받아요.' },
+  { id: 'clover', name: '네잎클로버', costs: [25], desc: () => '보상을 넷 중에서 골라요.' }
+];
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+let run = null;
+
+/* ───── art ───── */
+const svg = (inner, box) => `<svg viewBox="${box || '0 0 100 100'}" aria-hidden="true" focusable="false">${inner}</svg>`;
+function starPath(cx, cy, R, r) {
+  let d = '';
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; d += (i ? 'L' : 'M') + (cx + q * Math.cos(a)).toFixed(1) + ' ' + (cy + q * Math.sin(a)).toFixed(1); }
+  return d + 'Z';
+}
+function flowerArt(petal, mid) {
+  let s = '';
+  for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 2 / 5; s += `<circle cx="${(50 + 21 * Math.cos(a)).toFixed(1)}" cy="${(50 + 21 * Math.sin(a)).toFixed(1)}" r="16" fill="${petal}"/>`; }
+  return s + `<circle cx="50" cy="50" r="16" fill="${petal}"/><circle cx="50" cy="50" r="9" fill="${mid}"/>`;
+}
+const GLOSS = `<ellipse cx="33" cy="36" rx="6" ry="10" transform="rotate(28 33 36)" fill="#FFFFFF" opacity=".35"/>`;
+const CANDY = [
+  `<path d="${starPath(50, 52, 37, 20)}" fill="#FFC02E" stroke="#FFC02E" stroke-width="9" stroke-linejoin="round"/>${GLOSS}`,
+  `<path d="M50 85C22 65 12 49 12 35C12 22 22 14 33 14C41 14 47 18 50 25C53 18 59 14 67 14C78 14 88 22 88 35C88 49 78 65 50 85Z" fill="#FF6B9A"/>${GLOSS}`,
+  `<circle cx="50" cy="50" r="37" fill="#35C9A0"/><path d="M50 26C66 33 66 46 50 50C34 54 34 67 50 74" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity=".7"/>`,
+  `<path d="M58 11A39 39 0 1 0 89 64A34 34 0 0 1 58 11Z" fill="#4FA3FF"/>`,
+  flowerArt('#A678FF', '#FFFFFF')
+];
+const COMET = `<circle cx="50" cy="50" r="38" fill="#2B3350"/><path d="M50 22Q54 45 78 50Q54 55 50 78Q46 55 22 50Q46 45 50 22Z" fill="#FFD34D"/>`;
+const FLOWER = flowerArt('#FF8FC0', '#FFD84A');
+const FLY = `<ellipse cx="28" cy="38" rx="22" ry="25" transform="rotate(-18 28 38)" fill="#3FA7F5"/><ellipse cx="72" cy="38" rx="22" ry="25" transform="rotate(18 72 38)" fill="#3FA7F5"/><ellipse cx="33" cy="70" rx="15" ry="17" transform="rotate(20 33 70)" fill="#3FA7F5"/><ellipse cx="67" cy="70" rx="15" ry="17" transform="rotate(-20 67 70)" fill="#3FA7F5"/><circle cx="27" cy="36" r="8" fill="#C9E8FF"/><circle cx="73" cy="36" r="8" fill="#C9E8FF"/><rect x="46" y="26" width="8" height="52" rx="4" fill="#24324A"/>`;
+const FRUIT = [
+  `<path fill="#E8323C" d="M50 93C30 82 12 60 14 40C16 24 32 17 50 22C68 17 84 24 86 40C88 60 70 82 50 93Z"/><g fill="#FFE08A"><ellipse cx="34" cy="46" rx="2.5" ry="3.5"/><ellipse cx="50" cy="52" rx="2.5" ry="3.5"/><ellipse cx="66" cy="46" rx="2.5" ry="3.5"/><ellipse cx="42" cy="64" rx="2.5" ry="3.5"/><ellipse cx="58" cy="64" rx="2.5" ry="3.5"/><ellipse cx="50" cy="78" rx="2.5" ry="3.5"/></g><path fill="#4FA64A" d="M50 28L34 15L45 17L50 8L55 17L66 15Z"/>`,
+  `<circle cx="50" cy="53" r="39" fill="#FF9A1F"/><path fill="none" stroke="#D97A00" stroke-width="3" opacity=".55" d="M50 15Q26 53 50 91M50 15Q74 53 50 91M50 15V91"/><circle cx="50" cy="16" r="3.5" fill="#D97A00"/>`,
+  `<rect x="15" y="17" width="70" height="70" rx="18" fill="#FFD43B"/><path fill="none" stroke="#D9A300" stroke-width="3" stroke-linecap="round" opacity=".55" d="M27 47L57 77M43 27L73 57M73 47L43 77M57 27L27 57"/>`,
+  `<rect x="47" y="7" width="6" height="10" rx="3" fill="#7A9A2E"/><ellipse cx="50" cy="54" rx="33" ry="39" fill="#B9DD52"/>`,
+  `<circle cx="50" cy="54" r="38" fill="#4A5BC4"/><path fill="#2C377F" d="${starPath(50, 32, 12, 5)}"/>`,
+  `<circle cx="50" cy="55" r="38" fill="#FFA6B5"/><path fill="none" stroke="#EE7B93" stroke-width="4" stroke-linecap="round" d="M50 18Q36 55 50 92"/><ellipse cx="64" cy="15" rx="11" ry="5" transform="rotate(-28 64 15)" fill="#6BBF59"/>`
+].map(a => a + GLOSS + `<g class="glaze"><circle cx="50" cy="53" r="46" fill="rgba(255,214,140,.2)" stroke="rgba(255,198,104,.95)" stroke-width="3"/><path d="M21 46Q25 25 44 17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity=".9"/></g>`);
+const CHIP_OUT = 'M50 9C75 7 93 26 92 51C91 76 73 93 49 91C25 92 7 74 8 49C9 25 26 8 50 9Z', CHIP_RIDGE = 'M22 38Q50 28 78 38M18 54Q50 44 82 54M24 70Q50 60 76 70';
+const CHIP_PLAIN = `<path d="${CHIP_OUT}" fill="#F4E4B4" stroke="#D2B879" stroke-width="3"/><path d="${CHIP_RIDGE}" fill="none" stroke="#E2CC94" stroke-width="3" stroke-linecap="round"/>`;
+const CHIP_HONEY = `<path d="${CHIP_OUT}" fill="#F7B733" stroke="#BE7B0C" stroke-width="3"/><path d="${CHIP_RIDGE}" fill="none" stroke="#DC961A" stroke-width="3" stroke-linecap="round"/><path d="M19 47C29 30 38 62 48 45S66 30 81 52" fill="none" stroke="#FFE9A6" stroke-width="6" stroke-linecap="round"/><rect x="56" y="59" width="21" height="16" rx="3" fill="#FFF3B8" stroke="#E0BC4E" stroke-width="2" transform="rotate(-14 66 67)"/>`;
+const FLAME = `<path fill="#FF8A1F" d="M50 10C62 28 78 38 78 60C78 77 65 92 50 92C35 92 22 77 22 60C22 48 28 42 34 33C37 44 44 46 44 39C44 27 44 19 50 10Z"/><path fill="#FFD34D" d="M50 52C58 61 63 66 63 74C63 83 57 90 50 90C43 90 37 83 37 74C37 66 42 61 50 52Z"/>`;
+const HEART = 'M50 86C20 64 10 48 10 34C10 20 21 12 32 12C41 12 47 17 50 23C53 17 59 12 68 12C79 12 90 20 90 34C90 48 80 64 50 86Z';
+function cloudArt(step) {            // the boss: greyer and grumpier at the start, white and smiling once beaten
+  const c = ['#8F9BB8', '#AEB8CF', '#CBD3E3', '#FFFFFF'][step], happy = step >= 3;
+  const puffs = `<circle cx="34" cy="60" r="20"/><circle cx="56" cy="48" r="26"/><circle cx="76" cy="62" r="17"/><rect x="22" y="58" width="62" height="24" rx="12"/>`;
+  return `<path d="M42 24L46 12L53 21L60 10L64 24Z" fill="#FFD34D"/><g fill="#5B6785" stroke="#5B6785" stroke-width="5" stroke-linejoin="round">${puffs}</g><g fill="${c}">${puffs}</g>`
+    + `<circle cx="46" cy="58" r="3.5" fill="#24324A"/><circle cx="66" cy="58" r="3.5" fill="#24324A"/>`
+    + (happy ? `<path d="M50 67Q56 73 62 67" fill="none" stroke="#24324A" stroke-width="3" stroke-linecap="round"/><circle cx="40" cy="66" r="4" fill="#FF9DB0" opacity=".8"/><circle cx="72" cy="66" r="4" fill="#FF9DB0" opacity=".8"/>`
+             : `<path d="M40 50L50 54M72 50L62 54" stroke="#24324A" stroke-width="3" stroke-linecap="round"/><path d="M50 70Q56 65 62 70" fill="none" stroke="#24324A" stroke-width="3" stroke-linecap="round"/>`);
+}
+const ICON = {
+  pop: CANDY[0], path: FLOWER, sort: FRUIT[0],
+  rot: `<path d="M34 30Q28 18 38 10" fill="none" stroke="#4FA64A" stroke-width="8" stroke-linecap="round"/><path d="M24 34C50 20 86 44 84 90C58 88 30 68 24 34Z" fill="#E8323C"/>`,
+  flip: CHIP_HONEY,
+  rest: `<rect x="12" y="26" width="76" height="52" rx="9" fill="#FF7A8A"/><path d="M37 26V78M63 26V78M12 43H88M12 61H88" stroke="#FFFFFF" stroke-width="7" opacity=".7"/>`,
+  gift: `<rect x="18" y="42" width="64" height="44" rx="6" fill="#7CC4FF"/><rect x="12" y="30" width="76" height="18" rx="6" fill="#4FA3FF"/><rect x="44" y="30" width="12" height="56" fill="#FFD34D"/><path d="M50 30C40 10 22 16 34 30ZM50 30C60 10 78 16 66 30Z" fill="#FFD34D"/>`,
+  heart: `<path d="${HEART}" fill="var(--accent)"/>`,
+  heartOff: `<path d="${HEART}" fill="none" stroke="var(--border-strong)" stroke-width="8"/>`,
+  hint: `<circle cx="42" cy="42" r="25" fill="none" stroke="currentColor" stroke-width="10"/><path d="M61 61L86 86" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>`,
+  check: `<path d="M20 52L42 74L82 28" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+  cloud: cloudArt(3)
+};
+/* friends: a round little body with the thing they love on their head */
+const KINDS = ['pop', 'path', 'sort', 'rot', 'flip'];
+const BUD = {
+  pop: { name: '팡이', what: '별사탕 요정', color: '#FFE08A', power: l => `별사탕 팡을 시작할 때 혜성 ${l}개를 놓아 줘요.` },
+  path: { name: '나풀이', what: '꽃밭 나비', color: '#FFC2DD', power: l => `꽃길 걷기에서 처음 ${[0, 25, 45, 65][l]}%의 길을 알려 줘요.` },
+  sort: { name: '바삭이', what: '탕후루 장인', color: '#FFB8B8', power: l => ['', '탕후루 정리에 빈 꼬치 1개를 더 놓아 줘요.', '빈 꼬치 1개에, 옮길 수 있는 횟수도 25% 늘려 줘요.', '빈 꼬치 2개에, 옮길 수 있는 횟수도 25% 늘려 줘요.'][l] },
+  rot: { name: '매콤이', what: '꼬마 고추', color: '#FFB199', power: l => `볶음면 잇기에서 돌릴 수 있는 횟수를 ${l * 20}% 늘려 줘요.` },
+  flip: { name: '버터', what: '버터 조각', color: '#FFE9A8', power: l => `칩 뒤집기에서 누를 수 있는 횟수를 ${l * 2}번 늘려 줘요.` },
+  cloud: { name: '구름이', what: '마음을 고친 먹구름', color: '#E3EAF7', power: l => `퍼즐에 실패해도 하트를 지켜 줘요. 소풍 한 번에 ${l}번까지예요.` }
+};
+/* the friends you can meet: the five puzzle helpers, plus the cloud once the first picnic has been won */
+const buds = () => S.meta.cloud ? [...KINDS, 'cloud'] : KINDS;
+const R = () => rulesFor(run && run.stage || 1);
+const buddySvg = k => svg(`<ellipse cx="50" cy="64" rx="34" ry="29" fill="${BUD[k].color}" stroke="rgba(36,50,74,.25)" stroke-width="2"/><circle cx="39" cy="60" r="4" fill="#24324A"/><circle cx="61" cy="60" r="4" fill="#24324A"/><path d="M44 70Q50 75 56 70" fill="none" stroke="#24324A" stroke-width="3" stroke-linecap="round"/><circle cx="29" cy="69" r="5" fill="#FF8FA8" opacity=".7"/><circle cx="71" cy="69" r="5" fill="#FF8FA8" opacity=".7"/><g transform="translate(31 0) scale(.38)">${ICON[k]}</g>`);
+
+/* ───── sound: small synth voices layered per action ───── */
+let ac, bus, noiseBuf;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ac.createDynamicsCompressor();
+    bus = ac.createGain(); bus.gain.value = 0.9;
+    bus.connect(comp); comp.connect(ac.destination);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function voice(f, d, o = {}) {
+  const a = audio(), t0 = a.currentTime + (o.at || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, t0);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + d);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(o.vol || 0.12, t0 + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+  osc.connect(g); g.connect(bus);
+  osc.start(t0); osc.stop(t0 + d + 0.05);
+}
+function hiss(d, o = {}) {
+  const a = audio(), t0 = a.currentTime + (o.at || 0);
+  if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate, a.sampleRate); const ch = noiseBuf.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1; }
+  const src = a.createBufferSource(), flt = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = noiseBuf; src.loop = true;
+  flt.type = o.type || 'bandpass'; flt.Q.value = o.q || 0.8;
+  flt.frequency.setValueAtTime(o.f || 3000, t0);
+  if (o.to) flt.frequency.exponentialRampToValueAtTime(o.to, t0 + d);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(o.vol || 0.12, t0 + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+  src.connect(flt); flt.connect(g); g.connect(bus);
+  src.start(t0, Math.random() * 0.5); src.stop(t0 + d + 0.05);
+}
+function bell(f, d, o = {}) { const vol = o.vol || 0.1, at = o.at || 0; voice(f, d, { vol, at }); voice(f * 2.76, d * 0.6, { vol: vol * 0.35, at }); voice(f * 5.4, d * 0.3, { vol: vol * 0.15, at }); }
+function play(fn) { if (S.muted) return; try { fn(); } catch (e) { if (window.__soundDebug) throw e; } }
+const SCALE = [392, 440, 523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5];
+const noteAt = k => { const j = k % 18; return SCALE[j < 10 ? j : 18 - j]; };
+const fanfare = at => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => { voice(f, .45, { type: 'triangle', vol: .1, at: at + i * .11 }); voice(f * 2, .3, { vol: .04, at: at + i * .11 }); });
+const sfx = {
+  pop(n = 3) { play(() => { const c = Math.min(n, 9); for (let i = 0; i < c; i++) { const f = 500 + i * 75; voice(f * 1.7, .09, { to: f * .7, vol: .13, at: i * .035 }); } hiss(.04, { f: 2600, vol: .07 }); if (n >= 5) [4, 6, 8].forEach((k, i) => bell(SCALE[k], .4, { vol: .06, at: c * .035 + i * .07 })); }); },
+  boom(n = 6) { play(() => { voice(170, .45, { to: 45, vol: .26 }); hiss(.4, { type: 'lowpass', f: 3200, to: 260, vol: .18 }); for (let i = 0; i < Math.min(n, 10); i++) bell(SCALE[9 - i], .28, { vol: .05, at: .06 + i * .045 }); }); },
+  no() { play(() => { voice(200, .08, { to: 150, type: 'triangle', vol: .12 }); voice(160, .11, { to: 115, type: 'triangle', vol: .12, at: .09 }); }); },
+  step(k = 0, n = 1) { play(() => { for (let q = 0; q < n; q++) { const f = noteAt(k + q), at = q * .06; voice(f, .32, { vol: .15, at }); voice(f * 2, .13, { vol: .05, at }); hiss(.045, { f: 4200, vol: .04, at }); } }); },
+  back() { play(() => voice(520, .1, { to: 260, vol: .09 })); },
+  pick() { play(() => { voice(320, .09, { to: 660, vol: .11 }); hiss(.03, { f: 5000, vol: .035 }); }); },
+  place(n = 1) { play(() => { for (let i = 0; i < n; i++) { voice(250 - i * 12, .1, { to: 150, vol: .18, at: i * .07 }); hiss(.025, { type: 'lowpass', f: 1800, vol: .1, at: i * .07 }); } }); },
+  glaze() { play(() => { for (let i = 0; i < 6; i++) hiss(.03 + Math.random() * .03, { type: 'highpass', f: 3500 + Math.random() * 3500, vol: .13, at: .16 + i * .045 + Math.random() * .02 }); bell(2093, .7, { vol: .08, at: .2 }); }); },
+  turn(left = 99) { play(() => { hiss(.02, { type: 'highpass', f: 2600, vol: .12 }); voice(540, .06, { to: 330, type: 'triangle', vol: .11 }); if (left <= 3) voice(1500, .05, { vol: .06, at: .06 }); }); },
+  spread(frac = .5, added = 1) { play(() => { hiss(.2, { f: 3800, q: .6, vol: .1, at: .05 }); const base = SCALE[Math.min(7, Math.floor(frac * 8))], st = [1, 1.25, 1.5, 2]; for (let i = 0; i < Math.min(added, 4); i++) voice(base * st[i], .16, { vol: .09, at: .05 + i * .055 }); }); },
+  flip(n = 1, left = 99) { play(() => { for (let i = 0; i < n; i++) { hiss(.035, { type: 'highpass', f: 3000 + i * 350, vol: .14, at: i * .045 }); voice(720 + i * 60, .05, { to: 430, type: 'triangle', vol: .07, at: i * .045 }); } if (left <= 3) voice(1500, .05, { vol: .06, at: .02 }); }); },
+  honey(frac = .5) { play(() => bell(SCALE[Math.min(7, Math.floor(frac * 8))], .32, { vol: .06, at: .2 })); },
+  hint() { play(() => { bell(1174.66, .35, { vol: .07 }); bell(1568, .5, { vol: .07, at: .1 }); }); },
+  select() { play(() => voice(660, .06, { to: 880, vol: .07 })); },
+  walk() { play(() => { [0, .13, .26].forEach((at, i) => { voice(300 + i * 40, .07, { to: 200, vol: .12, at }); hiss(.03, { type: 'lowpass', f: 1200, vol: .07, at }); }); }); },
+  win() { play(() => { fanfare(0); bell(1568, 1, { vol: .08, at: .5 }); }); },
+  lose() { play(() => { [392, 349.23, 293.66].forEach((f, i) => voice(f, .34, { type: 'triangle', vol: .11, at: i * .17 })); }); },
+  reward() { play(() => { [783.99, 1046.5, 1318.5].forEach((f, i) => bell(f, .5, { vol: .08, at: i * .08 })); hiss(.4, { type: 'highpass', f: 6500, vol: .04, at: .1 }); }); },
+  boss() { play(() => { voice(110, .7, { to: 70, type: 'triangle', vol: .2 }); hiss(.8, { type: 'lowpass', f: 400, to: 1400, vol: .12 }); }); },
+  cheer() { play(() => { fanfare(0); fanfare(.5); bell(2093, 1.2, { vol: .08, at: 1 }); hiss(.9, { type: 'highpass', f: 6000, vol: .05, at: .5 }); }); }
+};
+
+/* a short buzz with each sound, on phones that can */
+const HAPTIC = { pop: 12, boom: [30, 30, 40], no: [20, 40, 20], step: 8, back: 10, pick: 8, place: 12, glaze: [15, 30, 25], turn: 8, flip: 10, hint: 15, select: 6, walk: [10, 60, 10, 60, 10], win: [20, 40, 20, 40, 60], lose: [60, 40, 60], reward: [15, 30, 30], boss: 80, cheer: [30, 50, 30, 50, 30, 50, 80] };
+function buzz(p) { if (!S.vib || !p || !navigator.vibrate) return; try { navigator.vibrate(p); } catch (e) {} }
+Object.keys(sfx).forEach(k => { const f = sfx[k]; sfx[k] = (...a) => { buzz(HAPTIC[k]); f(...a); }; });
+
+/* ───── the five puzzles. Each gets the board, a tier 0–9 and the helping friend's level, and reports win or lose ───── */
+const PUZ = {};
+
+PUZ.pop = {
+  name: '별사탕 팡', how: '같은 사탕이 2개 넘게 붙은 곳을 눌러 터뜨려요. 5개 넘게 터뜨리면 가로세로를 지우는 혜성이 나와요.',
+  make(api, tier, lv) {
+    const C = 6, R = 7, goalsN = tier < 2 ? 1 : tier < 5 ? 2 : 3, need = Math.min(8 + 2 * tier, 20);
+    let left = Math.max(9, Math.ceil(need * goalsN * (0.74 - 0.014 * tier) * api.squeeze));
+    const left0 = left;
+    const goals = shuffle([0, 1, 2, 3, 4]).slice(0, goalsN).map(k => ({ k, left: need }));
+    const cell = Math.floor(Math.min(api.w / C, api.h / R, 62));
+    const box = el('div', 'pop'); box.style.cssText = `width:${cell * C}px;height:${cell * R}px`; api.board.appendChild(box);
+    let g = Array.from({ length: R }, () => Array(C).fill(null)), busy = false, over = false;
+    const mk = (k, sp) => { const t = { k: sp ? -1 : k, sp: !!sp, el: el('button', 'pt', svg(sp ? COMET : CANDY[k])) }; t.el.type = 'button'; t.el.style.width = t.el.style.height = cell + 'px'; t.el._t = t; box.appendChild(t.el); return t; };
+    const put = (t, r, c) => { t.r = r; t.c = c; t.el.style.transform = `translate(${c * cell}px,${r * cell}px)`; };
+    const all = () => { const o = []; for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (g[r][c]) o.push(g[r][c]); return o; };
+    const grp = s => { const seen = new Set([s]), st = [s]; while (st.length) { const t = st.pop(); for (const [dr, dc] of D4) { const n = (g[t.r + dr] || [])[t.c + dc]; if (n && !n.sp && n.k === s.k && !seen.has(n)) { seen.add(n); st.push(n); } } } return [...seen]; };
+    const hasMove = () => all().some(t => t.sp || grp(t).length > 1);
+    do { box.innerHTML = ''; for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { g[r][c] = mk(rnd(5)); put(g[r][c], r, c); } } while (!hasMove());
+    for (let i = 0; i < lv; i++) { const pool = all().filter(t => !t.sp), t = pool[rnd(pool.length)], n = mk(0, true); t.el.remove(); g[t.r][t.c] = n; put(n, t.r, t.c); }
+    const show = () => { api.setGoal(goals.map(o => `<span class="gchip">${svg(CANDY[o.k])}<b>${o.left || '✓'}</b></span>`).join('')); api.setLeft(`${left}번 남음`, left <= 3); };
+    const drop = () => {
+      for (let c = 0; c < C; c++) {
+        let w = R - 1;
+        for (let r = R - 1; r >= 0; r--) { const t = g[r][c]; if (!t) continue; if (r !== w) { g[w][c] = t; g[r][c] = null; put(t, w, c); } w--; }
+        const n = w + 1;
+        for (let r = w; r >= 0; r--) { const t = mk(rnd(5)); t.el.classList.add('still'); put(t, r - n, c); g[r][c] = t; void t.el.offsetWidth; t.el.classList.remove('still'); put(t, r, c); }
+      }
+    };
+    const mix = () => { const ts = all(); for (let k = 0; k < 30; k++) { shuffle(ts); ts.forEach((t, i) => { const r = (i / C) | 0, c = i % C; g[r][c] = t; put(t, r, c); }); if (hasMove()) break; } };
+    const blast = s => { const out = new Set([s]), q = [s]; while (q.length) { const t = q.pop(), hit = []; for (let c = 0; c < C; c++) hit.push(g[t.r][c]); for (let r = 0; r < R; r++) hit.push(g[r][t.c]); for (const h of hit) if (h && !out.has(h)) { out.add(h); if (h.sp) q.push(h); } } return [...out]; };
+    const unring = () => box.querySelectorAll('.ring').forEach(e => e.classList.remove('ring'));
+    const clear = (tiles, born) => {
+      busy = true; left--;
+      tiles.forEach(t => { if (!t.sp) { const o = goals.find(o => o.k === t.k); if (o) o.left = Math.max(0, o.left - 1); } t.el.classList.add('out'); g[t.r][t.c] = null; });
+      show();
+      setTimeout(() => {
+        tiles.forEach(t => t.el.remove());
+        if (born) { const t = mk(0, true); put(t, born.r, born.c); g[born.r][born.c] = t; }
+        drop();
+        setTimeout(() => {
+          if (goals.every(o => !o.left)) { over = true; api.win(left / left0 >= 0.3); }
+          else if (left <= 0) { over = true; api.lose(); }
+          else { if (!hasMove()) { mix(); api.say('붙어 있는 사탕이 없어서 한 번 섞었어요.'); } busy = false; }
+        }, reduce ? 30 : 230);
+      }, reduce ? 30 : 150);
+    };
+    const tap = t => {
+      if (busy || over) return;
+      unring();
+      if (t.sp) { const hit = blast(t); sfx.boom(hit.length); clear(hit); return; }
+      const q = grp(t);
+      if (q.length < 2) { sfx.no(); api.say('2개 넘게 붙은 사탕만 터져요.'); return; }
+      sfx.pop(q.length); clear(q, q.length >= 5 ? { r: t.r, c: t.c } : null);
+    };
+    box.addEventListener('click', e => { const b = e.target.closest('.pt'); if (b) tap(b._t); });
+    const best = () => {
+      const sp = all().find(t => t.sp); if (sp) return [sp];
+      const want = goals.filter(o => o.left).map(o => o.k), seen = new Set(); let top1 = null, score = -1;
+      for (const t of all()) { if (seen.has(t)) continue; const q = grp(t); q.forEach(x => seen.add(x)); if (q.length < 2) continue; const sc = q.length + (want.includes(t.k) ? 100 : 0); if (sc > score) { score = sc; top1 = q; } }
+      return top1;
+    };
+    show();
+    return {
+      ready: () => !busy,
+      hint() { if (busy || over) return false; const q = best(); if (!q) return false; unring(); q.forEach(t => t.el.classList.add('ring')); api.say('테두리가 생긴 사탕을 눌러 봐요.'); return true; },
+      auto() { if (busy || over) return; const q = best(); if (q) tap(q[0]); }
+    };
+  }
+};
+
+PUZ.path = {
+  name: '꽃길 걷기', how: '나비를 끌거나 옆 칸을 눌러 모든 칸에 꽃을 피워요. 지나온 꽃을 누르면 되돌아가는데, 되돌리기 횟수가 정해져 있어요.',
+  make(api, tier, lv) {
+    const [W, H] = [[4, 4], [4, 5], [5, 5], [5, 5], [5, 6], [6, 6], [6, 6], [6, 7], [6, 7], [7, 7]][tier];
+    const near = i => { const r = (i / W) | 0, c = i % W, o = []; if (r > 0) o.push(i - W); if (r < H - 1) o.push(i + W); if (c > 0) o.push(i - 1); if (c < W - 1) o.push(i + 1); return o; };
+    const target = Math.round(W * H * (0.82 + Math.random() * 0.13));
+    let sol = [];
+    for (let t = 0; t < 2500 && sol.length < target; t++) {
+      const used = new Uint8Array(W * H); let cur = rnd(W * H); const p = [cur]; used[cur] = 1;
+      while (p.length < target) {
+        const open = near(cur).filter(x => !used[x]); if (!open.length) break;
+        let pick = open[rnd(open.length)];
+        if (Math.random() > 0.5) { let low = 9; for (const x of open) { const ex = near(x).filter(y => !used[y]).length; if (ex < low) { low = ex; pick = x; } } }
+        used[pick] = 1; p.push(pick); cur = pick;
+      }
+      if (p.length > sol.length) sol = p;
+    }
+    const tiles = new Set(sol), cell = Math.floor(Math.min(api.w / W, api.h / H, 70));
+    const box = el('div', 'path'); box.style.cssText = `width:${cell * W}px;height:${cell * H}px`; api.board.appendChild(box);
+    const sorted = [...tiles].sort((a, b) => a - b), bg = new Map(), btn = new Map();
+    const at = (e, i) => { e.style.cssText = `left:${(i % W) * cell}px;top:${((i / W) | 0) * cell}px;width:${cell}px;height:${cell}px`; };
+    sorted.forEach(i => { const e = el('div', 'pc'); at(e, i); box.appendChild(e); bg.set(i, e); });
+    box.insertAdjacentHTML('beforeend', `<svg class="trail" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points=""/></svg>`);
+    const line = box.querySelector('polyline');
+    sorted.forEach(i => { const b = el('button', 'pb', svg(FLOWER)); b.type = 'button'; b.dataset.i = i; at(b, i); box.appendChild(b); btn.set(i, b); });
+    const head = el('div', 'head', svg(FLY)); head.style.width = head.style.height = cell + 'px'; box.appendChild(head);
+    let path = [sol[0]], rew = 3 + (tier >= 5 ? 1 : 0) - (api.squeeze < 1 ? 1 : 0), over = false;
+    const rew0 = rew;
+    const guide = Math.round(sol.length * [0, .25, .45, .65][lv]);
+    const prefix = () => { let k = 0; while (k < path.length && path[k] === sol[k]) k++; return k; };
+    const unring = () => box.querySelectorAll('.ring').forEach(e => e.classList.remove('ring'));
+    const render = () => {
+      const on = new Set(path), h = path[path.length - 1];
+      btn.forEach((b, i) => { b.classList.toggle('on', on.has(i)); bg.get(i).classList.toggle('on', on.has(i)); b.setAttribute('aria-label', `${((i / W) | 0) + 1}번째 줄 ${i % W + 1}번째 칸, ${i === h ? '나비' : on.has(i) ? '꽃' : '빈 칸'}`); });
+      line.setAttribute('points', path.map(i => `${i % W + .5},${((i / W) | 0) + .5}`).join(' '));
+      head.style.transform = `translate(${(h % W) * cell}px,${((h / W) | 0) * cell}px)`;
+      api.setGoal(`꽃 ${path.length}/${sol.length}송이`); api.setLeft(`되돌리기 ${rew}번`, rew === 0);
+      unring();
+      if (!over && path.length < guide && prefix() === path.length) btn.get(sol[path.length]).classList.add('ring');
+    };
+    const rewind = (idx, free) => {
+      if (idx >= path.length - 1) return;
+      if (!free) { if (rew <= 0) { sfx.no(); api.say('되돌리기를 다 썼어요. 힌트를 쓰면 길이 갈라진 곳으로 돌아가요.'); return; } rew--; }
+      path.length = idx + 1; sfx.back(); render();
+    };
+    const step = (i, tap) => {
+      if (over) return;
+      const h = path[path.length - 1]; if (i === h) return;
+      const was = path.indexOf(i);
+      if (was >= 0) { if (tap) rewind(was); return; }
+      if (!tiles.has(i)) return;
+      const hr = (h / W) | 0, hc = h % W, r = (i / W) | 0, c = i % W;
+      if (hr !== r && hc !== c) return;
+      const dr = Math.sign(r - hr), dc = Math.sign(c - hc), run2 = [];
+      for (let rr = hr + dr, cc = hc + dc; ; rr += dr, cc += dc) { const k = rr * W + cc; if (!tiles.has(k) || path.includes(k)) return; run2.push(k); if (k === i) break; }
+      if (!tap && run2.length > 2) return;
+      const from = path.length - 1; run2.forEach(k => path.push(k)); sfx.step(from, run2.length); render();
+      if (path.length === sol.length) { over = true; unring(); api.win(rew === rew0); return; }
+      const last = path[path.length - 1];
+      if (!near(last).some(k => tiles.has(k) && !path.includes(k))) {
+        if (rew <= 0) { over = true; api.lose(); } else { sfx.no(); api.say('길이 막혔어요. 지나온 꽃을 눌러 되돌아가요.'); }
+      }
+    };
+    let drag = false;
+    const under = e => { const t = document.elementFromPoint(e.clientX, e.clientY), b = t && t.closest ? t.closest('.pb') : null; return b && box.contains(b) ? +b.dataset.i : -1; };
+    box.addEventListener('pointerdown', e => { drag = true; try { box.setPointerCapture(e.pointerId); } catch (_) {} const i = under(e); if (i >= 0) step(i, true); e.preventDefault(); });
+    box.addEventListener('pointermove', e => { if (!drag) return; const i = under(e); if (i >= 0) step(i, false); });
+    ['pointerup', 'pointercancel'].forEach(t => box.addEventListener(t, () => { drag = false; }));
+    box.addEventListener('click', e => { if (e.detail !== 0) return; const b = e.target.closest('.pb'); if (b) step(+b.dataset.i, true); });
+    render();
+    return {
+      ready: () => true,
+      hint() { if (over) return false; const k = prefix(); if (k < path.length) rewind(k - 1, true); unring(); btn.get(sol[k]).classList.add('ring'); api.say('테두리가 생긴 칸으로 가 봐요.'); return true; },
+      auto() { if (over) return; const k = prefix(); if (k < path.length) rewind(k - 1, true); step(sol[prefix()], true); }
+    };
+  }
+};
+
+PUZ.sort = {
+  name: '탕후루 정리', how: '꼬치를 눌러 맨 위 과일을 들고, 다른 꼬치를 눌러 꽂아요. 같은 과일 위나 빈 꼬치에만 꽂을 수 있어요.',
+  make(api, tier, lv) {
+    const CAP = 4, kn = [3, 3, 4, 4, 5, 5, 6, 6, 6, 6][tier], empties = 2 + (lv >= 1 ? 1 : 0) + (lv >= 3 ? 1 : 0);
+    const full = a => a.length === CAP && a.every(k => k === a[0]);
+    const solve = (start, budget) => {
+      const s = start.map(a => a.slice()), seen = new Set(), out = []; let nodes = 0;
+      const dfs = () => {
+        if (s.every(a => !a.length || full(a))) return true;
+        if (++nodes > budget) return false;
+        const key = s.map(a => a.join('')).sort().join('|'); if (seen.has(key)) return false; seen.add(key);
+        const mv = [];
+        for (let i = 0; i < s.length; i++) {
+          const a = s[i]; if (!a.length || full(a)) continue;
+          const t = a[a.length - 1]; let rn = 0; for (let q = a.length - 1; q >= 0 && a[q] === t; q--) rn++;
+          let usedEmpty = false;
+          for (let j = 0; j < s.length; j++) {
+            if (i === j) continue; const b = s[j], sp = CAP - b.length; if (sp <= 0) continue;
+            if (!b.length) { if (rn === a.length || usedEmpty) continue; usedEmpty = true; mv.push([i, j, 1, Math.min(rn, sp)]); }
+            else if (b[b.length - 1] === t) mv.push([i, j, 0, Math.min(rn, sp)]);
+          }
+        }
+        mv.sort((x, y) => x[2] - y[2]);
+        for (const [i, j, , cnt] of mv) {
+          for (let q = 0; q < cnt; q++) s[j].push(s[i].pop());
+          out.push([i, j]);
+          if (dfs()) return true;
+          out.pop(); for (let q = 0; q < cnt; q++) s[i].push(s[j].pop());
+          if (nodes > budget) return false;
+        }
+        return false;
+      };
+      return dfs() ? out : null;
+    };
+    const kinds = shuffle([0, 1, 2, 3, 4, 5]).slice(0, kn);
+    let st, first = null;
+    for (let t = 0; t < 200 && !first; t++) {
+      const bag = []; kinds.forEach(k => { for (let i = 0; i < CAP; i++) bag.push(k); }); shuffle(bag);
+      st = []; for (let i = 0; i < kn; i++) st.push(bag.slice(i * CAP, i * CAP + CAP)); for (let i = 0; i < empties; i++) st.push([]);
+      if (!st.some(full)) first = solve(st, 20000);
+    }
+    let left = first ? Math.ceil(first.length * Math.max(1.25, 1.45 - 0.02 * tier) * (lv >= 2 ? 1.25 : 1) * api.squeeze) + 2 : 60;
+    const left0 = left;
+    const n = st.length, rows = n <= 5 ? 1 : 2, per = Math.ceil(n / rows), gap = 10, U = CAP * 0.9 + 0.1 + 0.6 + 0.45;
+    const cw = Math.min(api.w / per, 80), Sz = Math.max(24, Math.floor(Math.min(cw * 0.84, (api.h - (rows - 1) * gap) / rows / U, 58))), rh = Sz * U;
+    const box = el('div', 'sort'); box.style.cssText = `width:${per * cw}px;height:${rows * rh + (rows - 1) * gap}px`; api.board.appendChild(box);
+    const cols = [], sk = [];
+    for (let r = 0; r < rows; r++) {
+      const f0 = r * per, cnt = Math.min(per, n - f0), x0 = (per * cw - cnt * cw) / 2, y0 = r * (rh + gap);
+      const rail = el('div', 'rail'); rail.style.cssText = `left:${x0 + cw * .08}px;top:${y0 + rh - Sz * .42}px;width:${cnt * cw - cw * .16}px;height:${Sz * .3}px`; box.appendChild(rail);
+      for (let c = 0; c < cnt; c++) {
+        const i = f0 + c, x = x0 + c * cw; cols[i] = { x, y: y0 };
+        const sw = Math.max(4, Math.round(Sz * .09)), stick = el('div', 'stick'); stick.style.cssText = `left:${x + (cw - sw) / 2}px;top:${y0 + Sz * .3}px;width:${sw}px;height:${rh - Sz * .5}px`; box.appendChild(stick);
+        const b = el('button', 'sk'); b.type = 'button'; b.dataset.i = i; b.style.cssText = `left:${x}px;top:${y0}px;width:${cw}px;height:${rh}px`; box.appendChild(b); sk[i] = b;
+      }
+    }
+    const stacks = st.map(a => a.map(k => { const e = el('div', 'fr', svg(FRUIT[k], '7 10 86 86')); e.style.width = e.style.height = Sz + 'px'; box.appendChild(e); return { k, el: e }; }));
+    const done = s => s.length === CAP && s.every(f => f.k === s[0].k);
+    let sel = null, over = false, plan = null, doneWas = 0;
+    const unmark = () => sk.forEach(b => b.classList.remove('from', 'to'));
+    const render = () => {
+      let dn = 0;
+      stacks.forEach((s, i) => {
+        const d = done(s); if (d) dn++;
+        s.forEach((f, k) => { const up = sel === i && k === s.length - 1; f.el.style.transform = `translate(${cols[i].x + (cw - Sz) / 2}px,${up ? cols[i].y + Sz * .02 : cols[i].y + Sz * .6 + (CAP - 1 - k) * Sz * .9}px)`; f.el.classList.toggle('up', up); f.el.classList.toggle('glazed', d); });
+        sk[i].setAttribute('aria-label', `${i + 1}번 꼬치, ${s.length ? (d ? '완성' : `과일 ${s.length}알`) : '비어 있음'}`);
+      });
+      if (dn > doneWas) sfx.glaze(); doneWas = dn;
+      api.setGoal(`탕후루 ${dn}/${kn}꼬치`); api.setLeft(`${left}번 남음`, left <= 3);
+      return dn;
+    };
+    const tap = i => {
+      if (over) return;
+      unmark();
+      const s = stacks[i];
+      if (sel === null) { if (!s.length || done(s)) return; sel = i; sfx.pick(); render(); return; }
+      if (sel === i) { sel = null; render(); return; }
+      const from = stacks[sel], t = from[from.length - 1].k;
+      if (!(s.length < CAP && (!s.length || s[s.length - 1].k === t))) {
+        if (s.length && !done(s)) { sel = i; sfx.pick(); render(); } else sfx.no();
+        api.say('같은 과일 위나 빈 꼬치에만 꽂을 수 있어요.'); return;
+      }
+      let rn = 0; for (let q = from.length - 1; q >= 0 && from[q].k === t; q--) rn++;
+      const cnt = Math.min(rn, CAP - s.length);
+      for (let q = 0; q < cnt; q++) s.push(from.pop());
+      if (plan && plan.length && plan[0][0] === sel && plan[0][1] === i) plan.shift(); else plan = null;
+      sel = null; left--; sfx.place(cnt);
+      render();
+      if (stacks.every(x => !x.length || done(x))) { over = true; api.win(left / left0 >= 0.3); }
+      else if (left <= 0) { over = true; api.lose(); }
+    };
+    box.addEventListener('click', e => { const b = e.target.closest('.sk'); if (b) tap(+b.dataset.i); });
+    const next = () => { if (!plan || !plan.length) plan = solve(stacks.map(s => s.map(f => f.k)), 40000); return plan && plan.length ? plan[0] : null; };
+    render();
+    return {
+      ready: () => true,
+      hint() { if (over) return false; sel = null; render(); const m = next(); if (!m) { api.say('지금 놓인 대로는 길이 안 보여요.'); return false; } unmark(); sk[m[0]].classList.add('from'); sk[m[1]].classList.add('to'); api.say('실선 꼬치의 맨 위 과일을 점선 꼬치로 옮겨 봐요.'); return true; },
+      auto() { if (over) return; sel = null; const m = next(); if (!m) { left = 1; tap(stacks.findIndex(s => s.length && !done(s))); return; } tap(m[0]); tap(m[1]); }
+    };
+  }
+};
+
+const turned = (m, k) => { k &= 3; return ((m << k) | (m >> (4 - k))) & 15; };
+const NOODLE = { plain: { fill: '#F7E2A0', line: '#C4953A', wave: '#D5AC52' }, hot: { fill: '#D9301E', line: '#8A160C', wave: '#A51F12' } };
+function noodleArms(mask, inner) { let s = ''; for (let d = 0; d < 4; d++) if (mask & (1 << d)) s += `<g transform="rotate(${d * 90} 50 50)">${inner}</g>`; return s; }
+function noodleLayer(mask, c) {
+  return noodleArms(mask, `<path d="M50 50V-1" fill="none" stroke="${c.line}" stroke-width="42"/>`) + `<circle cx="50" cy="50" r="21" fill="${c.line}"/>`
+    + noodleArms(mask, `<path d="M50 50V-1" fill="none" stroke="${c.fill}" stroke-width="34"/>`) + `<circle cx="50" cy="50" r="17" fill="${c.fill}"/>`
+    + noodleArms(mask, `<path d="M41 48Q36 36 41 24T41 0M50 48Q45 36 50 24T50 0M59 48Q54 36 59 24T59 0" fill="none" stroke="${c.wave}" stroke-width="2.5" stroke-linecap="round"/>`);
+}
+PUZ.rot = {
+  name: '볶음면 잇기', how: '면을 누르면 시계 방향으로 돌아요. 전부 불과 이어지면 소스가 다 묻어요.',
+  make(api, tier, lv) {
+    const [W, H] = [[3, 3], [4, 4], [4, 4], [4, 5], [5, 5], [5, 5], [5, 6], [6, 6], [6, 6], [6, 7]][tier], N = W * H;
+    const near = (i, d) => { const r = (i / W) | 0, c = i % W; return d === 0 ? (r > 0 ? i - W : -1) : d === 1 ? (c < W - 1 ? i + 1 : -1) : d === 2 ? (r < H - 1 ? i + W : -1) : (c > 0 ? i - 1 : -1); };
+    const mask = new Array(N).fill(0), seen = new Array(N).fill(false), f0 = rnd(N), active = [f0]; seen[f0] = true;
+    while (active.length) {
+      const a = Math.random() < 0.3 ? active.length - 1 : rnd(active.length), cur = active[a], open = [];
+      for (let d = 0; d < 4; d++) { const j = near(cur, d); if (j >= 0 && !seen[j]) open.push([d, j]); }
+      if (!open.length) { active.splice(a, 1); continue; }
+      const [d, j] = open[rnd(open.length)]; mask[cur] |= 1 << d; mask[j] |= 1 << ((d + 2) % 4); seen[j] = true; active.push(j);
+    }
+    const src = ((H / 2) | 0) * W + ((W / 2) | 0), cell = Math.floor(Math.min(api.w / W, api.h / H, 76));
+    const box = el('div', 'rot'); box.style.cssText = `grid-template-columns:repeat(${W},${cell}px);grid-auto-rows:${cell}px`; api.board.appendChild(box);
+    const tiles = mask.map((base, i) => {
+      let rot = rnd(4); if (base !== 15 && turned(base, rot) === base && Math.random() < 0.85) rot = 1;
+      const b = el('button', 'rc', `<span class="rr" style="transform:rotate(${rot * 90}deg)">${svg(`<g>${noodleLayer(base, NOODLE.plain)}</g><g class="hot-layer">${noodleLayer(base, NOODLE.hot)}</g>`)}</span>${i === src ? `<span class="fire">${svg(`<circle cx="50" cy="50" r="48" fill="#2A1712"/><g transform="translate(14 12) scale(.72)">${FLAME}</g>`)}</span>` : ''}`);
+      b.type = 'button'; b.dataset.i = i; box.appendChild(b);
+      return { base, rot, el: b, rr: b.firstElementChild, hot: false };
+    });
+    const now = i => turned(tiles[i].base, tiles[i].rot);
+    const minT = t => { for (let k = 0; k < 4; k++) if (turned(t.base, t.rot + k) === t.base) return k; return 0; };
+    const flow = () => {
+      const hot = new Array(N).fill(false), q = [src]; hot[src] = true; let cnt = 1;
+      while (q.length) { const i = q.pop(), m = now(i); for (let d = 0; d < 4; d++) { if (!(m & (1 << d))) continue; const j = near(i, d); if (j < 0 || hot[j] || !(now(j) & (1 << ((d + 2) % 4)))) continue; hot[j] = true; cnt++; q.push(j); } }
+      tiles.forEach((t, i) => { t.hot = hot[i]; t.el.classList.toggle('hot', hot[i]); }); return cnt;
+    };
+    const spin = (t, k) => { t.rot += k; t.rr.style.transform = `rotate(${t.rot * 90}deg)`; };
+    if (flow() === N) spin(tiles[0], 1);
+    let need = 0; tiles.forEach(t => { need += minT(t); });
+    let left = Math.ceil(need * Math.max(1.2, 1.35 - 0.015 * tier) * (1 + 0.2 * lv) * api.squeeze) + 3, over = false, was = flow();
+    const left0 = left;
+    const show = cnt => { api.setGoal(`소스 묻은 면 ${cnt}/${N}칸`); api.setLeft(`${left}번 남음`, left <= 5); };
+    const after = () => { const cnt = flow(); if (cnt > was) sfx.spread(cnt / N, cnt - was); was = cnt; show(cnt); if (cnt === N) { over = true; api.win(left / left0 >= 0.3); } else if (left <= 0) { over = true; api.lose(); } };
+    const turn = i => { if (over) return; tiles[i].el.classList.remove('ring'); spin(tiles[i], 1); left--; sfx.turn(left); after(); };
+    box.addEventListener('click', e => { const b = e.target.closest('.rc'); if (b) turn(+b.dataset.i); });
+    show(was);
+    return {
+      ready: () => true,
+      hint() {
+        if (over) return false;
+        const wrong = tiles.filter(t => minT(t)); if (!wrong.length) return false;
+        const touching = wrong.filter(t => [0, 1, 2, 3].some(d => { const j = near(tiles.indexOf(t), d); return j >= 0 && tiles[j].hot; })), t = (touching.length ? touching : wrong)[0];
+        spin(t, minT(t)); t.el.classList.add('ring'); setTimeout(() => t.el.classList.remove('ring'), 1200);
+        api.say('테두리가 생긴 면을 제자리로 돌려놨어요.'); after(); return true;
+      },
+      auto() { if (over) return; const i = tiles.findIndex(t => minT(t)); if (i >= 0) turn(i); }
+    };
+  }
+};
+
+PUZ.flip = {
+  name: '칩 뒤집기', how: '칩을 누르면 그 칩과 위아래 양옆 칩이 함께 뒤집혀요. 전부 꿀버터 면이 보이게 만들어요.',
+  make(api, tier, lv) {
+    const [W, H] = [[3, 3], [3, 3], [4, 4], [4, 4], [4, 4], [5, 5], [5, 5], [5, 5], [5, 5], [5, 5]][tier], N = W * H, k = [2, 2, 3, 3, 4, 4, 5, 5, 6, 7][tier];
+    const touched = i => { const r = (i / W) | 0, c = i % W, o = [i]; for (const [dr, dc] of D4) { const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < H && cc >= 0 && cc < W) o.push(rr * W + cc); } return o; };
+    let coated, need;
+    do { coated = new Array(N).fill(true); need = new Array(N).fill(false); shuffle(Array.from({ length: N }, (_, i) => i)).slice(0, k).forEach(i => { need[i] = true; touched(i).forEach(j => { coated[j] = !coated[j]; }); }); } while (coated.every(Boolean));
+    let left = k + 3 + 2 * lv - (api.squeeze < 1 ? 1 : 0), over = false;
+    const left0 = left;
+    const cell = Math.floor(Math.min(api.w / W, api.h / H, 84));
+    const box = el('div', 'flip'); box.style.cssText = `grid-template-columns:repeat(${W},${cell}px);grid-auto-rows:${cell}px`; api.board.appendChild(box);
+    const turns = coated.map(c => c ? 1 : 0);
+    const chips = coated.map((c, i) => { const b = el('button', 'fc', `<span class="chip still" style="--turns:${turns[i]}"><span class="face">${svg(CHIP_PLAIN)}</span><span class="face honey">${svg(CHIP_HONEY)}</span></span>`); b.type = 'button'; b.dataset.i = i; box.appendChild(b); return b.firstElementChild; });
+    void box.offsetWidth; chips.forEach(c => c.classList.remove('still'));
+    const count = () => coated.filter(Boolean).length;
+    const show = () => { api.setGoal(`꿀버터 칩 ${count()}/${N}장`); api.setLeft(`${left}번 남음`, left <= 3); };
+    const unring = () => box.querySelectorAll('.ring').forEach(e => e.classList.remove('ring'));
+    const press = i => {
+      if (over) return;
+      unring();
+      const before = count(), list = touched(i);
+      list.forEach((j, o) => { coated[j] = !coated[j]; turns[j]++; chips[j].style.setProperty('--wait', (reduce ? 0 : o * 45) + 'ms'); chips[j].style.setProperty('--turns', turns[j]); });
+      need[i] = !need[i]; left--; sfx.flip(list.length, left);
+      const cnt = count(); if (cnt > before) sfx.honey(cnt / N);
+      show();
+      if (cnt === N) { over = true; api.win(left / left0 >= 0.3); } else if (left <= 0) { over = true; api.lose(); }
+    };
+    box.addEventListener('click', e => { const b = e.target.closest('.fc'); if (b) press(+b.dataset.i); });
+    show();
+    return {
+      ready: () => true,
+      hint() { if (over) return false; const i = need.indexOf(true); if (i < 0) return false; unring(); chips[i].parentElement.classList.add('ring'); api.say('테두리가 생긴 칩을 눌러 봐요.'); return true; },
+      auto() { if (over) return; const i = need.indexOf(true); if (i >= 0) press(i); }
+    };
+  }
+};
+
+/* ───── the trail: three lanes, seven stops, then the cloud ───── */
+function genMap(minElite = 2) {
+  const ROWS = 7, on = Array.from({ length: ROWS }, () => [false, false, false]), E = new Set();
+  for (let p = 0; p < 4; p++) {
+    let c = p < 3 ? p : rnd(3);
+    for (let r = 0; r < ROWS; r++) {
+      on[r][c] = true; if (r === ROWS - 1) break;
+      let nc = Math.max(0, Math.min(2, c + rnd(3) - 1));
+      if (nc !== c && E.has(`${r},${nc}>${c}`)) nc = c;        // two trails never cross
+      E.add(`${r},${c}>${nc}`); c = nc;
+    }
+  }
+  const nodes = {};
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < 3; c++) if (on[r][c]) nodes[r * 3 + c] = { id: r * 3 + c, row: r, col: c, jx: rnd(9) - 4, type: 'puzzle', next: [] };
+  E.forEach(k => { const [a, b] = k.split('>'), [r, c] = a.split(',').map(Number); nodes[r * 3 + c].next.push((r + 1) * 3 + Number(b)); });
+  nodes[21] = { id: 21, row: 7, col: 1, jx: 0, type: 'boss', next: [] };
+  const list = Object.values(nodes);
+  list.forEach(n => {
+    if (n.row === 6) { n.type = 'rest'; n.next = [21]; return; }
+    if (n.row < 2 || n.type === 'boss') return;
+    const x = Math.random();
+    if (x < 0.24) n.type = 'elite'; else if (n.row <= 4 && x < 0.36) n.type = 'gift'; else if (n.row <= 4 && x < 0.47) n.type = 'rest';
+  });
+  const promote = (type, rows, min) => { let have = list.filter(n => n.type === type).length; const pool = shuffle(list.filter(n => n.type === 'puzzle' && rows.includes(n.row))); while (have < min && pool.length) { pool.pop().type = type; have++; } };
+  promote('elite', [2, 3, 4, 5], minElite); promote('gift', [1, 2, 3, 4], 1);
+  let bag = [];
+  list.forEach(n => { if (n.type === 'puzzle' || n.type === 'elite') { if (!bag.length) bag = shuffle(KINDS.slice()); n.kind = bag.pop(); } });
+  return { nodes };
+}
+const tierOf = n => Math.min(9, (n.type === 'elite' ? Math.min(8, n.row + 2) : n.row) + R().bump);
+const bossTier = st => Math.min(9, 10 - R().rounds + st + R().bump);
+const bossFace = st => Math.min(2, Math.floor(st * 3 / R().rounds));
+const canGo = id => { const n = run.map.nodes[id]; if (run.done.includes(id)) return false; return run.at == null ? n.row === 0 : run.map.nodes[run.at].next.includes(id); };
+const nodeTitle = n => n.type === 'boss' ? '먹구름 대왕' : n.type === 'rest' ? '돗자리 쉼터' : n.type === 'gift' ? '선물 상자' : (n.type === 'elite' ? '매운맛 ' : '') + PUZ[n.kind].name;
+const BASKET = `<path d="M22 46Q50 4 78 46" fill="none" stroke="#B9783F" stroke-width="8" stroke-linecap="round"/><path d="M14 46H86L78 88H22Z" fill="#D9A066" stroke="#B9783F" stroke-width="4" stroke-linejoin="round"/><path d="M19 62H81M23 76H77" stroke="#B9783F" stroke-width="4"/><path d="M14 46H86" stroke="#FF7A8A" stroke-width="11" stroke-linecap="round"/>`;
+function nodeDesc(n) {
+  if (n.type === 'boss') return `퍼즐 ${R().rounds}판을 연달아 풀어야 먹구름이 걷혀요. 난이도 ${bossTier(0) + 1}~10/10.`;
+  if (n.type === 'rest') return '하트를 회복하거나 친구 한 명의 레벨을 올려요.';
+  if (n.type === 'gift') return '퍼즐 없이 보상 셋 중 하나를 골라요.';
+  const lv = run.bud[n.kind], help = lv ? ` ${BUD[n.kind].name}(Lv${lv})가 도와줘요.` : '';
+  return n.type === 'elite' ? `난이도 ${tierOf(n) + 1}/10. 어려운 대신 강력한 보상을 주고 하트도 1개 회복해요.${help}` : `난이도 ${tierOf(n) + 1}/10. 풀면 보상 셋 중 하나를 골라요.${help}`;
+}
+const nodeIcon = n => n.type === 'boss' ? cloudArt(bossFace(run.bossStep)) : n.type === 'rest' ? ICON.rest : n.type === 'gift' ? ICON.gift : ICON[n.kind];
+const xy = n => [n.type === 'boss' ? 50 : [18, 50, 82][n.col] + n.jx, (1 - n.row / 7) * 100];
+
+/* ───── screens ───── */
+let picked = null;
+let screenNow = 'title';
+function show(v) {
+  screenNow = v;
+  $('#viewTitle').hidden = v !== 'title'; $('#viewBook').hidden = v !== 'book'; $('#viewMap').hidden = v !== 'map'; $('#viewPuzzle').hidden = v !== 'puzzle';
+  document.querySelector('.app').classList.toggle('on-title', v === 'title' || v === 'book');
+}
+function renderTop() {
+  const h = $('#hearts'); let s = '';
+  for (let i = 0; i < run.max; i++) s += `<span>${svg(i < run.hearts ? ICON.heart : ICON.heartOff)}</span>`;
+  h.innerHTML = s; h.setAttribute('aria-label', `하트 ${run.hearts}개, 최대 ${run.max}개`);
+}
+function renderParty() {
+  const mine = buds().filter(k => run.bud[k]), unmet = buds().length - mine.length;
+  $('#party').innerHTML = mine.map(k => `<button class="bud" type="button" data-bud="${k}" aria-label="${BUD[k].name} 레벨 ${run.bud[k]}">${buddySvg(k)}<b>Lv${run.bud[k]}</b></button>`).join('')
+    + (unmet ? `<button class="bud none" type="button" data-bud="" aria-label="아직 만나지 못한 친구 ${unmet}명">+${unmet}</button>` : '')
+    + `<div class="hints"><span>${svg(ICON.hint)}</span>힌트 ${run.hints}개</div>`;
+}
+function renderMap() {
+  const N = run.map.nodes; let lines = '';
+  Object.values(N).forEach(n => n.next.forEach(t => { const [a, b] = xy(n), [c, d] = xy(N[t]), walked = run.done.includes(n.id) && run.done.includes(t); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"${walked ? ' class="walked"' : ''}/>`; }));
+  const m = $('#map');
+  m.innerHTML = `<div class="map-in"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg></div>`;
+  Object.values(N).forEach(n => {
+    const [x, y] = xy(n), dn = run.done.includes(n.id);
+    const b = el('button', `node ${n.type}${dn ? ' done' : ''}${n.id === run.at ? ' here' : ''}${canGo(n.id) ? ' open' : ''}${n.id === picked ? ' sel' : ''}`,
+      svg(nodeIcon(n)) + (n.type === 'elite' ? `<i class="hot">${svg(FLAME)}</i>` : '') + (dn ? `<i class="tick">${svg(ICON.check)}</i>` : ''));
+    b.type = 'button'; b.dataset.id = n.id; b.style.left = x + '%'; b.style.top = y + '%';
+    b.setAttribute('aria-label', `${nodeTitle(n)}${dn ? ', 지나온 곳' : canGo(n.id) ? ', 지금 갈 수 있는 곳' : ''}`);
+    m.firstElementChild.appendChild(b);
+  });
+  m.firstElementChild.appendChild(el('div', 'walker', svg(BASKET)));
+  placeWalker(run.at);
+}
+/* the picnic basket marks where you are; it slides along the trail when you set off */
+function placeWalker(id) {
+  const inn = $('#map').firstElementChild, w = inn && inn.querySelector('.walker'); if (!w) return;
+  w.hidden = id == null;                 // nowhere yet: the basket shows up at the first stop
+  if (id == null) return;
+  const [x, y] = xy(run.map.nodes[id]), big = run.map.nodes[id].type === 'boss';
+  w.style.transform = `translate(${(x / 100 * inn.clientWidth - 15 - (big ? 44 : 32)).toFixed(1)}px, ${(y / 100 * inn.clientHeight - 15 + 16).toFixed(1)}px)`;
+}
+function renderInfo(html, goId) {
+  $('#info').innerHTML = `<div class="info-txt">${html}</div>${goId != null ? `<button class="go" type="button" id="btnGo" data-id="${goId}">들어가기</button>` : ''}`;
+}
+function showMap() {
+  show('map'); renderTop(); renderParty();
+  const open = Object.values(run.map.nodes).filter(n => canGo(n.id));
+  picked = open.length === 1 ? open[0].id : null;
+  renderMap();
+  if (picked != null) pickNode(picked, true);
+  else renderInfo(`<h3>${run.at == null ? '어느 길로 출발할까요?' : '다음엔 어디로 갈까요?'}</h3><p>분홍 테두리가 지금 갈 수 있는 곳이에요. 눌러 보면 어떤 곳인지 알려 줘요. 불꽃이 붙은 곳은 어렵지만 보상이 커요.</p>`);
+}
+function pickNode(id, quiet) {
+  picked = id; const n = run.map.nodes[id];
+  document.querySelectorAll('.node').forEach(b => b.classList.toggle('sel', +b.dataset.id === id));
+  if (!quiet) sfx.select();
+  renderInfo(`<h3>${nodeTitle(n)}</h3><p>${run.done.includes(id) ? '이미 지나온 곳이에요.' : nodeDesc(n)}</p>`, canGo(id) ? id : null);
+}
+$('#map').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
+$('#party').addEventListener('click', e => {
+  const b = e.target.closest('.bud'); if (!b) return;
+  const k = b.dataset.bud, lv = run.bud[k]; sfx.select(); picked = null; document.querySelectorAll('.node.sel').forEach(x => x.classList.remove('sel'));
+  renderInfo(lv ? `<h3>${BUD[k].name} Lv${lv}</h3><p>${BUD[k].what}. ${BUD[k].power(lv)}${lv < 3 ? ' 간식을 주면 레벨이 올라요.' : ' 가장 높은 레벨이에요.'}</p>` : `<h3>아직 만나지 못한 친구</h3><p>${buds().filter(x => !run.bud[x]).length}명이 더 있어요. 퍼즐을 풀고 받는 보상에서 만날 수 있어요.</p>`);
+});
+$('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) enter(+b.dataset.id); });
+
+/* cards */
+const overlay = $('#overlay'), card = $('#card');
+let onCard = null, escCloses = false, focusBack = null;
+function sheet(html, handler, canEsc) {
+  if (overlay.hidden) focusBack = document.activeElement;
+  card.innerHTML = html; overlay.hidden = false; onCard = handler; escCloses = !!canEsc;
+  const b = card.querySelector('button'); if (b) b.focus({ preventScroll: true });
+}
+function closeSheet() {
+  overlay.hidden = true; card.innerHTML = ''; onCard = null;
+  if (focusBack && document.contains(focusBack)) focusBack.focus({ preventScroll: true });
+  focusBack = null;
+}
+card.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && onCard) onCard(b.dataset.act, b); });
+/* keyboard: Tab stays inside an open card, Escape closes the ones that can simply be closed */
+document.addEventListener('keydown', e => {
+  if (overlay.hidden) return;
+  if (e.key === 'Escape' && escCloses) { closeSheet(); return; }
+  if (e.key !== 'Tab') return;
+  const f = [...card.querySelectorAll('button')]; if (!f.length) return;
+  const a = document.activeElement;
+  if (!card.contains(a)) { e.preventDefault(); f[0].focus(); }
+  else if (e.shiftKey && a === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && a === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
+
+/* ───── growing: friends, snacks, hearts, hints ───── */
+function describe(o) {
+  const B = o.k && BUD[o.k];
+  if (o.t === 'buddy') return { pic: buddySvg(o.k), title: `새 친구 ${B.name}${o.lv > 1 ? ` (Lv${o.lv})` : ''}`, desc: `${B.what}. ${B.power(o.lv)}` };
+  if (o.t === 'snack') { const to = Math.min(3, run.bud[o.k] + o.n); return { pic: buddySvg(o.k), title: `${B.name}에게 간식 주기 (Lv${run.bud[o.k]} → Lv${to})`, desc: B.power(to) }; }
+  if (o.t === 'heart') return { pic: svg(ICON.heart), title: o.n > 1 ? '하트 전부 회복' : `하트 ${o.n}개 회복`, desc: '퍼즐에 실패하면 하트가 1개 줄어요.' };
+  if (o.t === 'max') return { pic: svg(ICON.heart), title: '하트 칸 1개 늘리기', desc: '최대 하트가 1개 늘고, 하트를 전부 회복해요.' };
+  if (o.t === 'hint') return { pic: svg(ICON.hint), title: `힌트 ${o.n}개`, desc: '퍼즐에서 막혔을 때 다음 수를 알려 줘요.' };
+  return { pic: svg(ICON.gift), title: '큰 도시락 나눠 먹기', desc: '함께 있는 친구 모두의 레벨이 1씩 올라요.' };
+}
+/* after choosing: say what changed on the place card, and let the friend who grew give a little hop */
+function gained(o) {
+  const B = o.k && BUD[o.k];
+  const text = o.t === 'buddy' ? [`${B.name}와 친구가 됐어요`, B.power(run.bud[o.k])]
+    : o.t === 'snack' ? [`${B.name}가 Lv${run.bud[o.k]}이 됐어요`, B.power(run.bud[o.k])]
+    : o.t === 'heart' ? ['하트를 회복했어요', `지금 하트는 ${run.hearts}개예요.`]
+    : o.t === 'max' ? ['하트 칸이 늘었어요', `하트를 ${run.max}개까지 채울 수 있어요.`]
+    : o.t === 'hint' ? [`힌트 ${o.n}개를 얻었어요`, `지금 힌트는 ${run.hints}개예요.`]
+    : ['친구들이 모두 자랐어요', '함께 있는 친구의 레벨이 1씩 올랐어요.'];
+  picked = null; document.querySelectorAll('.node.sel').forEach(x => x.classList.remove('sel'));
+  renderInfo(`<h3>${text[0]}</h3><p>${text[1]} 다음에 갈 곳을 눌러 보세요.</p>`);
+  const grew = o.t === 'feast' ? buds() : o.k ? [o.k] : [];
+  grew.forEach(k => { const b = document.querySelector(`.bud[data-bud="${k}"]:not(.none)`); if (b) b.classList.add('grew'); });
+  if (o.t === 'heart' || o.t === 'max') { const h = $('#hearts'); h.classList.remove('hit'); }
+}
+function chosen(o) { apply(o); closeSheet(); persist(); sfx.reward(); showMap(); gained(o); }
+function optHtml(o, i) { const d = describe(o); return `<button class="opt" type="button" style="--i:${i}" data-act="pick" data-i="${i}"><span class="opt-pic">${d.pic}</span><span class="opt-txt"><b>${d.title}</b><span>${d.desc}</span></span></button>`; }
+function apply(o) {
+  if (o.t === 'buddy') run.bud[o.k] = o.lv;
+  else if (o.t === 'snack') run.bud[o.k] = Math.min(3, run.bud[o.k] + o.n);
+  else if (o.t === 'heart') run.hearts = Math.min(run.max, run.hearts + o.n);
+  else if (o.t === 'max') { run.max++; run.hearts = run.max; }
+  else if (o.t === 'hint') run.hints += o.n;
+  else buds().forEach(k => { if (run.bud[k]) run.bud[k] = Math.min(3, run.bud[k] + 1); });
+}
+function rewardPool(strong) {
+  const b = run.bud, out = [];
+  buds().forEach(k => { if (!b[k]) out.push({ t: 'buddy', k, lv: strong ? 2 : 1 }); else if (b[k] < 3) out.push({ t: 'snack', k, n: strong ? 2 : 1 }); });
+  if (run.hearts < run.max) out.push({ t: 'heart', n: strong ? 9 : 1 });
+  if (strong && run.max < 6) out.push({ t: 'max' });
+  out.push({ t: 'hint', n: strong ? 4 : 2 });
+  if (strong && buds().filter(k => b[k] && b[k] < 3).length >= 2) out.push({ t: 'feast' });
+  return shuffle(out).slice(0, 3 + S.meta.perks.clover);
+}
+function rewardSheet(kind, clean) {
+  const strong = kind === 'elite'; let extra = '';
+  if (strong && run.hearts < run.max) { run.hearts++; extra = '하트 1개를 회복했어요. '; renderTop(); }
+  const bonus = 1 + S.meta.perks.neat;
+  if (clean) { run.hints += bonus; extra += `횟수를 넉넉히 남기고 깔끔하게 풀어서 힌트 ${bonus}개를 더 받았어요. `; }
+  const opts = rewardPool(strong);
+  sheet(`<h2 id="cardTitle">${kind === 'gift' ? '선물 상자를 열었어요' : strong ? '매운맛 스테이지를 깼어요' : '퍼즐을 풀었어요'}</h2><p>${extra}${strong ? '강력한 보상 중 하나를 골라요.' : '보상 중 하나를 골라요.'}</p><div class="opts">${opts.map(optHtml).join('')}</div>`,
+    (act, b) => chosen(opts[+b.dataset.i]));
+}
+function restSheet() {
+  const opts = [];
+  if (run.hearts < run.max) opts.push({ t: 'heart', n: Math.max(1, 2 - R().restCut + S.meta.perks.mat) });
+  buds().forEach(k => { if (run.bud[k] && run.bud[k] < 3) opts.push({ t: 'snack', k, n: 1 }); });
+  opts.push({ t: 'hint', n: 2 });
+  sheet(`<div class="pic">${svg(ICON.rest)}</div><h2 id="cardTitle">돗자리 쉼터</h2><p>돗자리를 펴고 잠깐 쉬어요. 하나만 고를 수 있어요.</p><div class="opts">${opts.slice(0, 4).map(optHtml).join('')}</div>`,
+    (act, b) => chosen(opts[+b.dataset.i]));
+}
+
+/* ───── a run ───── */
+function newRun() {
+  const m = S.meta, st = Math.max(1, Math.min(m.pick || m.reach, m.reach)), r = rulesFor(st), hearts = 3 + m.perks.lunch;
+  run = S.run = { stage: st, map: genMap(r.elites), at: null, done: [], hearts, max: hearts, hints: Math.max(0, 2 - r.hintCut + m.perks.lens), bud: { pop: 0, path: 0, sort: 0, rot: 0, flip: 0, cloud: 0 }, shieldUsed: 0, bossStep: 0, bossKinds: shuffle(KINDS.slice()).slice(0, r.rounds), solved: 0 };
+  persist(); showMap();
+  const picks = shuffle(buds().slice()).slice(0, 3).map(k => ({ t: 'buddy', k, lv: m.perks.pal ? 2 : 1 }));
+  sheet(`<div class="pic">${svg(cloudArt(0))}</div><h2 id="cardTitle">소풍을 떠나요</h2><p>먹구름 대왕이 언덕 꼭대기 소풍 자리에 눌러앉았어요. 퍼즐을 풀며 언덕을 올라 먹구름을 걷어 내요.</p>${st > 1 ? `<p>이번 소풍은 ${st}단계 ${STAGES[st - 1].name}이에요. ${STAGES[st - 1].rule} 아래 단계의 규칙도 함께 적용돼요.</p>` : ''}<p>함께 갈 첫 친구를 골라요. 친구마다 도와주는 일이 달라요.</p><div class="opts">${picks.map(optHtml).join('')}</div>`,
+    (act, b) => chosen(picks[+b.dataset.i]));
+}
+function arrive(id) { run.at = id; run.done.push(id); persist(); }
+let walking = false;
+function enter(id) {
+  if (!canGo(id) || walking) return;
+  const n = run.map.nodes[id]; sfx.walk();
+  walking = true; placeWalker(id);                 // the basket walks there first, then the place opens
+  setTimeout(() => {
+    walking = false;
+    if (n.type === 'rest') { arrive(id); showMap(); restSheet(); }
+    else if (n.type === 'gift') { arrive(id); showMap(); rewardSheet('gift'); }
+    else if (n.type === 'boss') bossSheet();
+    else openPuzzle(n.kind, tierOf(n), { elite: n.type === 'elite', onWin: clean => { arrive(id); run.solved++; rewardSheet(n.type, clean); } });
+  }, reduce ? 0 : 320);
+}
+function bossSheet() {
+  const st = run.bossStep, rounds = R().rounds;
+  sfx.boss();
+  sheet(`<div class="pic">${svg(cloudArt(bossFace(st)))}</div><h2 id="cardTitle">${st === 0 ? '먹구름 대왕을 만났어요' : '먹구름이 옅어졌어요'}</h2><p>${st === 0 ? `소풍 자리 위에 먹구름 대왕이 버티고 있어요. 퍼즐 ${rounds}판을 풀면 구름이 걷혀요.` : `${rounds}판 중 ${st}판을 풀었어요. 조금만 더 하면 해가 나와요.`}</p><p>이번 판은 ${PUZ[run.bossKinds[st]].name}, 난이도 ${bossTier(st) + 1}/10이에요.</p><button class="cta" type="button" data-act="go">${st === 0 ? '도전하기' : '다음 판 하기'}</button>`,
+    () => { closeSheet(); openPuzzle(run.bossKinds[st], bossTier(st), { boss: true, onWin: () => { run.bossStep++; run.solved++; persist(); if (run.bossStep >= rounds) victory(); else bossSheet(); } }); });
+}
+/* the end of a picnic: stamps to keep, and on a win the next rung of the weather ladder */
+const afterRun = act => { closeSheet(); if (act === 'book') showBook(); else newRun(); };
+function victory() {
+  const m = S.meta, st = run.stage || 1, solved = run.solved, friends = buds().filter(k => run.bud[k]).length, firstTime = !m.cleared.includes(st);
+  const stamps = solved + 5 + 3 * st + (firstTime ? 5 : 0), news = [];
+  if (firstTime) m.cleared.push(st);
+  if (st === m.reach && m.reach < STAGES.length) { m.reach++; m.pick = m.reach; news.push(`${m.reach}단계 ${STAGES[m.reach - 1].name}이 열렸어요. ${STAGES[m.reach - 1].rule}`); }
+  else if (st === STAGES.length && firstTime) news.push('가장 높은 단계까지 성공했어요.');
+  if (!m.cloud) { m.cloud = true; news.push('먹구름 대왕이 마음을 고쳐 구름이가 됐어요. 다음 소풍부터 새 친구로 만날 수 있어요.'); }
+  m.stamps += stamps; S.wins++;
+  run = S.run = null; persist(); sfx.cheer();
+  sheet(`<div class="pic">${svg(cloudArt(3))}</div><h2 id="cardTitle">${st}단계 소풍 성공!</h2><p>먹구름 대왕이 하얀 구름이 되어 웃으며 물러났어요. ${CONFIG.name ? CONFIG.name + '와 ' : ''}친구 ${friends}명이 언덕 꼭대기에 돗자리를 폈어요.</p><p>도장 ${stamps}개를 받아서 모두 ${m.stamps}개가 됐어요.${firstTime ? ' 이 단계를 처음 성공해서 5개가 더 들어 있어요.' : ''}</p>${news.map(t => `<p>${t}</p>`).join('')}<button class="cta" type="button" data-act="book">소풍 수첩에서 준비물 마련하기</button><button class="tool" type="button" data-act="again" style="margin-top:8px">바로 새 소풍 떠나기</button>`, afterRun);
+}
+function gameOver() {
+  const solved = run.solved, m = S.meta; m.stamps += solved;
+  run = S.run = null; persist();
+  sheet(`<div class="pic">${svg(ICON.rest)}</div><h2 id="cardTitle">오늘은 집으로 돌아가요</h2><p>하트를 다 썼어요. 퍼즐 ${solved}판을 풀어서 도장 ${solved}개를 받았고, 모두 ${m.stamps}개가 됐어요.</p><p>도장으로 준비물을 마련하면 다음 소풍이 조금 수월해져요.</p><button class="cta" type="button" data-act="again">다시 소풍 떠나기</button><button class="tool" type="button" data-act="book" style="margin-top:8px">소풍 수첩 열기</button>`, afterRun);
+}
+
+/* ───── running one puzzle ───── */
+let cur = null, curArgs = null;
+function renderHint() { $('#btnHint').textContent = `힌트 쓰기 (${run.hints}개 남음)`; }
+function openPuzzle(kind, tier, ctx) {
+  curArgs = [kind, tier, ctx]; show('puzzle'); renderTop();
+  $('#pName').textContent = (ctx.elite ? '매운맛 ' : ctx.boss ? '먹구름 대왕의 ' : '') + PUZ[kind].name;
+  $('#pRate').textContent = (ctx.boss ? `${run.bossStep + 1}/${R().rounds}판, ` : '') + `난이도 ${Math.min(10, tier + 1)}/10`;
+  const board = $('#board'), wrap = $('#boardWrap'); board.innerHTML = ''; $('#pGoal').innerHTML = '';
+  wrap.querySelectorAll('.burst').forEach(b => b.remove());
+  const lv = run.bud[kind], who = $('#who');
+  // whoever is beside you for this puzzle: the cloud for a boss round, otherwise the friend who helps with it
+  who.innerHTML = ctx.boss ? svg(cloudArt(bossFace(run.bossStep))) : lv ? buddySvg(kind) : '';
+  who.hidden = !(ctx.boss || lv);
+  let cheered = false;
+  const api = {
+    board, w: wrap.clientWidth - 20, h: wrap.clientHeight - 20, squeeze: R().squeeze,
+    setGoal: h => { $('#pGoal').innerHTML = h; },
+    setLeft: (t, low) => {
+      const p = $('#pLeft'); p.textContent = t; p.classList.toggle('low', !!low);
+      if (low && !cheered && cur) { cheered = true; api.say(lv ? `${BUD[kind].name}: 얼마 안 남았어요. 천천히 골라 봐요!` : '얼마 안 남았어요. 천천히 골라 봐요.'); }
+    },
+    say: t => { $('#note').textContent = t; },
+    win: clean => endPuzzle(true, clean), lose: () => endPuzzle(false)
+  };
+  cur = PUZ[kind].make(api, tier, lv);
+  api.say(PUZ[kind].how + (ctx.boss ? ' 먹구름 대왕이 지켜보고 있어요.' : lv ? ` ${BUD[kind].name}(Lv${lv})가 도와주고 있어요.` : ''));
+  renderHint();
+}
+/* a quick scatter of candy-coloured dots from the middle of the board when a puzzle is solved */
+function burst() {
+  if (reduce) return;
+  const box = el('div', 'burst'); $('#boardWrap').appendChild(box);
+  const colours = ['#FFC02E', '#FF6B9A', '#35C9A0', '#4FA3FF', '#A678FF'];
+  for (let i = 0; i < 18; i++) {
+    const dot = el('i'), a = Math.PI * 2 * i / 18 + Math.random() * .3, far = 70 + Math.random() * 90;
+    dot.style.background = colours[i % 5]; box.appendChild(dot);
+    dot.animate([{ transform: 'translate(0,0) scale(1.2)', opacity: 1 }, { transform: `translate(${(Math.cos(a) * far).toFixed(0)}px,${(Math.sin(a) * far).toFixed(0)}px) scale(.5)`, opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' });
+  }
+  setTimeout(() => box.remove(), 400);
+}
+function endPuzzle(won, clean) {
+  const [kind, tier, ctx] = curArgs; cur = null;
+  if (won) { burst(); $('#note').textContent = run.bud[kind] && !ctx.boss ? `${BUD[kind].name}: 해냈어요!` : '해냈어요!'; }
+  setTimeout(() => {
+    if (won) { sfx.win(); ctx.onWin(clean); return; }
+    const guard = (run.bud.cloud || 0) - (run.shieldUsed || 0);
+    if (guard > 0) {              // the cloud friend takes the fall instead of a heart
+      run.shieldUsed = (run.shieldUsed || 0) + 1; persist(); sfx.hint();
+      sheet(`<div class="pic">${buddySvg('cloud')}</div><h2 id="cardTitle">구름이가 막아 줬어요</h2><p>횟수를 다 썼지만 구름이가 하트를 지켜 줬어요. 이번 소풍에서 ${guard - 1}번 더 지켜 줄 수 있어요. 같은 곳에서 새 판으로 다시 도전해요.</p><button class="cta" type="button" data-act="retry">다시 도전하기</button>`,
+        () => { closeSheet(); openPuzzle(kind, tier, ctx); });
+      return;
+    }
+    run.hearts--; persist(); renderTop(); sfx.lose();
+    const h = $('#hearts'); h.classList.remove('hit'); void h.offsetWidth; h.classList.add('hit');
+    if (run.hearts <= 0) { gameOver(); return; }
+    sheet(`<div class="pic">${svg(ICON.heartOff)}</div><h2 id="cardTitle">아쉬워요</h2><p>횟수를 다 써서 하트 1개를 잃었어요. 하트가 ${run.hearts}개 남았어요. 같은 곳에서 새 판으로 다시 도전해요.</p><button class="cta" type="button" data-act="retry">다시 도전하기</button>`,
+      () => { closeSheet(); openPuzzle(kind, tier, ctx); });
+  }, reduce ? 100 : 650);
+}
+$('#btnHint').addEventListener('click', () => {
+  if (!cur) return;
+  if (run.hints <= 0) { sfx.no(); $('#note').textContent = '힌트가 없어요. 보상이나 쉼터에서 얻을 수 있어요.'; return; }
+  if (cur.hint()) { run.hints--; persist(); sfx.hint(); renderHint(); }
+});
+
+/* ───── controls and start ───── */
+const isTopLevel = (() => { try { return window.self === window.parent; } catch (e) { return false; } })();
+const isInstalled = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let installEvt = null, newArmed = 0;
+
+function menuSheet() {
+  const row = (act, title, desc) => `<button class="opt" type="button" data-act="${act}"><span class="opt-txt"><b>${title}</b><span>${desc}</span></span></button>`;
+  const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">`
+    + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
+    + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
+    + (screenNow === 'map' ? row('home', '처음 화면으로 가기', '소풍은 저장돼 있어서 이어서 할 수 있어요.') : '')
+    + `</div><button class="cta" type="button" data-act="close">닫기</button>`,
+    act => {
+      if (act === 'sound') { S.muted = !S.muted; persist(); if (!S.muted) sfx.select(); draw(); }
+      else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); }
+      else if (act === 'home') { closeSheet(); showTitle(); }
+      else closeSheet();
+    }, true);
+  draw();
+}
+$('#btnMenu').addEventListener('click', menuSheet);
+$('#btnSet').addEventListener('click', menuSheet);
+
+function showTitle() {
+  show('title');
+  const going = !!(S.run && S.run.map && (S.run.at != null || buds().some(k => S.run.bud[k])));
+  $('#titleArt').innerHTML = `<div class="t-cloud">${svg(cloudArt(S.wins ? 3 : 0))}</div><div class="t-hill"></div><div class="t-buds">${buds().map(k => `<span>${buddySvg(k)}</span>`).join('')}</div>`;
+  const friends = going ? buds().filter(k => S.run.bud[k]).length : 0, m = S.meta, pick = Math.max(1, Math.min(m.pick || m.reach, m.reach)), on = going ? S.run.stage || 1 : pick;
+  $('#titleSub').textContent = (going ? `${on}단계 ${STAGES[on - 1].name} 소풍 중이에요. 친구 ${friends}명, 하트 ${S.run.hearts}개.`
+    : S.wins ? `다음 소풍은 ${pick}단계 ${STAGES[pick - 1].name}이에요.` : '퍼즐을 풀며 언덕을 올라, 꼭대기에 눌러앉은 먹구름 대왕을 걷어 내요.')
+    + (S.wins || m.stamps ? ` 소풍 성공 ${S.wins}번, 도장 ${m.stamps}개.` : '');
+  $('#btnContinue').hidden = !going;
+  const fresh = $('#btnNew'); fresh.className = going ? 'tool' : 'cta'; fresh.textContent = going ? '새 소풍 떠나기' : '소풍 떠나기';
+  clearTimeout(newArmed); newArmed = 0;
+  const tip = $('#titleTip'), ins = $('#btnInstall');
+  ins.hidden = !installEvt || isInstalled;
+  tip.textContent = !isTopLevel || isInstalled || installEvt ? ''
+    : /iPhone|iPad|iPod/.test(navigator.userAgent) ? '사파리의 공유 버튼에서 "홈 화면에 추가"를 누르면 앱처럼 쓸 수 있어요.'
+    : '브라우저 메뉴에서 "앱 설치"나 "홈 화면에 추가"를 누르면 앱처럼 쓸 수 있어요.';
+}
+/* the picnic notebook: pick the weather stage for the next picnic, and spend stamps on things that stay */
+function showBook() {
+  show('book');
+  const m = S.meta;
+  $('#stampCount').textContent = `도장 ${m.stamps}개`;
+  const stages = STAGES.map((s, i) => {
+    const n = i + 1, open = n <= m.reach, done = m.cleared.includes(n), sel = n === m.pick;
+    return `<li><button class="stage-row${sel ? ' sel' : ''}" type="button" data-stage="${n}"${open ? '' : ' disabled'}><span class="num">${n}</span><span class="txt"><b>${s.name}</b><span>${s.rule}</span></span><span class="state">${!open ? '잠김' : sel ? '다음 소풍' : done ? '성공함' : '고르기'}</span></button></li>`;
+  }).join('');
+  const perks = PERKS.map(p => {
+    const lv = m.perks[p.id], max = p.costs.length, full = lv >= max, cost = p.costs[lv], lack = full ? 0 : cost - m.stamps;
+    return `<li class="perk"><div class="txt"><b>${p.name}${max > 1 ? ` ${lv}/${max}` : ''}</b><span>${p.desc(full ? lv : lv + 1)}</span></div>`
+      + (full ? '<span class="state">마련했어요</span>' : `<button class="buy" type="button" data-perk="${p.id}"${lack > 0 ? ' aria-disabled="true"' : ''}>${lack > 0 ? `도장 ${cost}개 필요` : `도장 ${cost}개로 마련하기`}</button>`) + '</li>';
+  }).join('');
+  $('#bookBody').innerHTML = `<h3>날씨 단계</h3><p class="book-sub">소풍에 성공하면 다음 단계가 열려요. 높은 단계일수록 도장을 더 받고, 아래 단계의 규칙도 모두 함께 적용돼요.</p><ol class="stages">${stages}</ol>`
+    + `<h3>준비물</h3><p class="book-sub">도장으로 마련하면 다음 소풍부터 계속 적용돼요.${S.run ? ' 지금 하고 있는 소풍에는 적용되지 않아요.' : ''}</p><ul class="perks">${perks}</ul>`
+    + `<h3>친구</h3><p class="book-sub">${m.cloud ? '구름이까지 여섯 친구를 소풍에서 만날 수 있어요.' : '첫 소풍에 성공하면 여섯 번째 친구가 생겨요.'}</p>`;
+}
+$('#bookBody').addEventListener('click', e => {
+  const m = S.meta, row = e.target.closest('.stage-row'), buy = e.target.closest('.buy');
+  if (row && !row.disabled) { m.pick = +row.dataset.stage; persist(); sfx.select(); showBook(); }
+  if (buy) {
+    const p = PERKS.find(x => x.id === buy.dataset.perk), cost = p.costs[m.perks[p.id]];
+    if (cost == null || m.stamps < cost) { sfx.no(); return; }
+    m.stamps -= cost; m.perks[p.id]++; persist(); sfx.reward(); showBook();
+  }
+});
+$('#btnBook').addEventListener('click', () => { sfx.select(); showBook(); });
+$('#btnBookBack').addEventListener('click', showTitle);
+$('#btnContinue').addEventListener('click', () => { run = S.run; sfx.walk(); showMap(); });
+$('#btnNew').addEventListener('click', () => {
+  const b = $('#btnNew'), going = !$('#btnContinue').hidden;
+  if (going && !newArmed) {       // a run is in progress: ask once more, on the button itself
+    b.textContent = '한 번 더 누르면 지금 소풍을 버리고 새로 떠나요';
+    newArmed = setTimeout(() => { newArmed = 0; b.textContent = '새 소풍 떠나기'; }, 3000);
+    return;
+  }
+  clearTimeout(newArmed); newArmed = 0; sfx.walk(); newRun();
+});
+$('#btnInstall').addEventListener('click', () => { if (!installEvt) return; installEvt.prompt(); installEvt = null; $('#btnInstall').hidden = true; });
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (screenNow === 'title') showTitle(); });
+/* as an installed app: keep a copy on the phone so it opens without a connection */
+if (isTopLevel && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('gesturestart', e => e.preventDefault());
+if (window.ResizeObserver) new ResizeObserver(() => { if (screenNow === 'map' && run) placeWalker(run.at); }).observe($('#map'));
+
+showTitle();
+</script>
+</body>
+</html>
