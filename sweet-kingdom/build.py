@@ -4,18 +4,18 @@
 import hashlib, json, os, subprocess, sys, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__)); FONTS = os.path.join(HERE, '..', 'dev', '.fonts'); os.makedirs(FONTS, exist_ok=True)
 text = ''.join(open(os.path.join(HERE, f), encoding='utf-8').read() for f in ('index.html', 'game.js'))
-chars = set(text) | set('0123456789 .,!?:;()/%+-~"\'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+chars = set(text) | set('▶?0123456789 .,!?:;()/%+-~"\'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 tf = os.path.join(HERE, 'fonts', '_g.txt'); open(tf, 'w', encoding='utf-8').write(''.join(sorted(c for c in chars if c >= ' ')))
-for folder, name, out in (('jua', 'Jua-Regular.ttf', 'jua.woff2'), ('gowundodum', 'GowunDodum-Regular.ttf', 'gowun-dodum.woff2')):
+for name, out in (('Galmuri11.ttf', 'galmuri11.woff2'), ('Galmuri11-Bold.ttf', 'galmuri11-bold.woff2'), ('Galmuri9.ttf', 'galmuri9.woff2')):
     src = os.path.join(FONTS, name)
-    if not os.path.exists(src): urllib.request.urlretrieve(f'https://raw.githubusercontent.com/google/fonts/main/ofl/{folder}/{name}', src)
+    if not os.path.exists(src): urllib.request.urlretrieve(f'https://raw.githubusercontent.com/quiple/galmuri/main/dist/{name}', src)
     subprocess.run([sys.executable, '-m', 'fontTools.subset', src, f'--text-file={tf}', '--flavor=woff2', f'--output-file={os.path.join(HERE, "fonts", out)}'], check=True)
 os.remove(tf)
 json.dump({'name': '쪈이의 디저트 대작전', 'short_name': '디저트 대작전', 'lang': 'ko', 'start_url': './', 'scope': './', 'display': 'standalone', 'orientation': 'portrait',
-           'background_color': '#F6C983', 'theme_color': '#F6C983',
+           'background_color': '#1A0E22', 'theme_color': '#1A0E22',
            'icons': [{'src': 'icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'}]},
           open(os.path.join(HERE, 'manifest.webmanifest'), 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-files = ['./', 'index.html', 'game.js', 'manifest.webmanifest', 'fonts/jua.woff2', 'fonts/gowun-dodum.woff2', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'img/{n}.png' for n in ('hero', 'jelly', 'cookie', 'ice', 'donut', 'boss')] + ['img/bg.jpg']
+files = ['./', 'index.html', 'game.js', 'manifest.webmanifest', 'fonts/galmuri11.woff2', 'fonts/galmuri11-bold.woff2', 'fonts/galmuri9.woff2', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'img/{n}.png' for n in ('hero', 'jelly', 'cookie', 'ice', 'donut', 'boss')] 
 h = hashlib.sha256()
 for f in files[1:]: h.update(open(os.path.join(HERE, f), 'rb').read()) if f != 'manifest.webmanifest' else None
 open(os.path.join(HERE, 'sw.js'), 'w', encoding='utf-8').write('''/* Keeps a copy of the game on the phone so it opens instantly and works with no connection. */
