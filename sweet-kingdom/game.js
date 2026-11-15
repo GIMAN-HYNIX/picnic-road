@@ -36,6 +36,14 @@ let S = { muted: false, vib: true, wins: 0, run: null };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
 if (S.run && S.run.maxHp > 10) { const r = S.run, m = 3 + (r.relics || []).includes('apron'); r.hp = Math.max(1, Math.round(r.hp / r.maxHp * m)); r.maxHp = m; }
 if (false) { r.maxHp = m; }
+/* 난이도: 적이 나오는 수, 적 속도, 적 체력, 맞은 뒤 무적 시간, 엘리트·보스 공격 예고 시간 */
+const DIFF = {
+  easy: { name: '쉬움', spawn: 0.7, spd: 0.85, hp: 0.72, inv: 1.7, warn: 1.3, desc: '적이 적고 느려요. 맞은 뒤 무적 시간이 길어요.' },
+  normal: { name: '보통', spawn: 1, spd: 1, hp: 1, inv: 1.3, warn: 1, desc: '원래 난이도예요.' },
+  hard: { name: '어려움', spawn: 1.2, spd: 1.08, hp: 1.2, inv: 1.1, warn: 0.85, desc: '적이 많고 빨라요.' }
+};
+if (!DIFF[S.diff]) S.diff = 'easy';
+const DF = () => DIFF[S.diff] || DIFF.easy;
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 let run = null;
 
@@ -271,7 +279,7 @@ function toast(t) { if (headless) return; const e = $('#toast'); e.textContent =
 function spawnFoe(type, x, y) {
   const d = FOES[type], grow = 1 + 0.2 * B.floor + (B.t / 120) * 0.5;
   const big = type === 'donut' || type === 'boss';
-  const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow), spd: d.spd, dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : 0, vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
+  const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow) * DF().hp, spd: d.spd * DF().spd, dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : 0, vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   f.max = f.hp; B.foes.push(f); return f;
 }
 function spawnRing(type) {
@@ -321,7 +329,7 @@ function hurtPlayer(src) {
   const p = B.p; if (p.inv > 0 || B.over) return; if (window.__dbg) (window.__dbg.hits = window.__dbg.hits || {})[src || '?'] = ((window.__dbg.hits || {})[src || '?'] || 0) + 1;
   const push = (R, d) => B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < R && f !== B.big) { f.kx = dx / m * d; f.ky = dy / m * d; } });
   if (p.shield) { p.shield = false; p.inv = 0.8; textAdd(p.x, p.y - 50, '막음!', '#59B8FF', true); sfx.block(); push(120, 400); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 30, to: 120, life: 0.3, max: 0.3, col: '#59B8FF', w: 6 }); return; }
-  p.hp -= 1; p.inv = 1.3 * B.st.invK; B.shake = 0.35; B.hitstop = 0.12; B.slow = 0.35; B.flashScr = { col: '224,68,90', t: 0.35, max: 0.35 }; B.heartPop = 0.5;
+  p.hp -= 1; p.inv = DF().inv * B.st.invK; B.shake = 0.35; B.hitstop = 0.12; B.slow = 0.35; B.flashScr = { col: '224,68,90', t: 0.35, max: 0.35 }; B.heartPop = 0.5;
   push(130, 520); burst(p.x, p.y - 30, '#E0445A', 12, 220); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 38, to: 140, life: 0.32, max: 0.32, col: '#E0445A', w: 5 });
   sfx.hurt();
   if (p.hp <= 0) {
@@ -422,7 +430,7 @@ function bossThink(f, dt) {
   const p = B.p; f.stT -= dt;
   if (f.st === 0 && f.stT <= 0) {
     const r = Math.random();
-    if (r < 0.4) { f.st = 1; f.stT = 1.4; f.tx = p.x; f.ty = p.y; B.telegraphs.push({ k: 'circle', x: p.x, y: p.y, r: 92, life: 1.4, max: 1.4 }); sfx.warn(); }
+    if (r < 0.4) { const wt = 1.4 * DF().warn; f.st = 1; f.stT = wt; f.tx = p.x; f.ty = p.y; B.telegraphs.push({ k: 'circle', x: p.x, y: p.y, r: 92, life: wt, max: wt }); sfx.warn(); }
     else if (r < 0.75) { f.st = 2; f.stT = 1.0; B.telegraphs.push({ k: 'ring', f, r: f.r + 26, life: 1.0, max: 1.0 }); sfx.warn(); }
     else { f.st = 0; f.stT = 4; for (let i = 0; i < 6; i++) { const a = Math.random() * 6.283; spawnFoe('jelly', f.x + Math.cos(a) * 80, f.y + Math.sin(a) * 80); } }
   } else if (f.st === 1 && f.stT <= 0) {
@@ -435,7 +443,7 @@ function bossThink(f, dt) {
 }
 function eliteThink(f, dt) {
   const p = B.p; f.stT -= dt;
-  if (f.st === 0 && f.stT <= 0) { f.st = 1; f.stT = 0.8; const a = Math.atan2(p.y - f.y, p.x - f.x); f.da = a; B.telegraphs.push({ k: 'line', f, a, len: 230, life: 0.8, max: 0.8 }); sfx.warn(); }
+  if (f.st === 0 && f.stT <= 0) { const wt = 0.8 * DF().warn; f.st = 1; f.stT = wt; const a = Math.atan2(p.y - f.y, p.x - f.x); f.da = a; B.telegraphs.push({ k: 'line', f, a, len: 230, life: wt, max: wt }); sfx.warn(); }
   else if (f.st === 1 && f.stT <= 0) { f.st = 2; f.stT = 0.55; }
   else if (f.st === 2) { f.x += Math.cos(f.da) * 480 * dt; f.y += Math.sin(f.da) * 480 * dt; if (f.stT <= 0) { f.st = 0; f.stT = 4; } return true; }
   return f.st === 1;
@@ -453,7 +461,7 @@ function update(dt) {
   }
   if (p.inv > 0) p.inv -= dt;
   /* 적 등장 */
-  const rate = (0.85 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * (1 + 0.12 * B.floor) * (B.big ? 0.5 : 1);
+  const rate = (0.85 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * (1 + 0.12 * B.floor) * (B.big ? 0.5 : 1) * DF().spawn;
   B.spawnAcc += rate * dt;
   while (B.spawnAcc >= 1 && B.foes.length < 140) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
@@ -1040,8 +1048,9 @@ function menuSheet(home) {
   const row = (act, t, d) => `<button class="opt" type="button" data-act="${act}"><span class="tx"><b>${t}</b><span>${d}</span></span></button>`;
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
+    + row('diff', `난이도: ${DF().name}`, `${DF().desc} 누르면 바뀌어요. 다음 전투부터 적용돼요.`)
     + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
-    act => { if (act === 'sound') { S.muted = !S.muted; persist(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
+    act => { if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
 $('#btnMenu').addEventListener('click', () => menuSheet(true));
