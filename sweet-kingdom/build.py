@@ -12,10 +12,10 @@ for folder, name, out in (('jua', 'Jua-Regular.ttf', 'jua.woff2'), ('gowundodum'
     subprocess.run([sys.executable, '-m', 'fontTools.subset', src, f'--text-file={tf}', '--flavor=woff2', f'--output-file={os.path.join(HERE, "fonts", out)}'], check=True)
 os.remove(tf)
 json.dump({'name': '쪈이의 디저트 대작전', 'short_name': '디저트 대작전', 'lang': 'ko', 'start_url': './', 'scope': './', 'display': 'standalone', 'orientation': 'portrait',
-           'background_color': '#FFE1EA', 'theme_color': '#FFE1EA',
+           'background_color': '#F6C983', 'theme_color': '#F6C983',
            'icons': [{'src': 'icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'}]},
           open(os.path.join(HERE, 'manifest.webmanifest'), 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-files = ['./', 'index.html', 'game.js', 'manifest.webmanifest', 'fonts/jua.woff2', 'fonts/gowun-dodum.woff2', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'img/{n}.png' for n in ('hero', 'jelly', 'cookie', 'ice', 'donut', 'boss')]
+files = ['./', 'index.html', 'game.js', 'manifest.webmanifest', 'fonts/jua.woff2', 'fonts/gowun-dodum.woff2', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'img/{n}.png' for n in ('hero', 'jelly', 'cookie', 'ice', 'donut', 'boss')] + ['img/bg.jpg']
 h = hashlib.sha256()
 for f in files[1:]: h.update(open(os.path.join(HERE, f), 'rb').read()) if f != 'manifest.webmanifest' else None
 open(os.path.join(HERE, 'sw.js'), 'w', encoding='utf-8').write('''/* Keeps a copy of the game on the phone so it opens instantly and works with no connection. */

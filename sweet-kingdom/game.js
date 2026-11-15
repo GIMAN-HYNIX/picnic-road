@@ -463,11 +463,17 @@ function drawSprite(name, x, y, h, flip, sq, white) {
 function draw() {
   const p = B.p;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  ctx.fillStyle = '#FFE1EA'; ctx.fillRect(0, 0, vw, vh);
+  ctx.fillStyle = '#F7DCA6'; ctx.fillRect(0, 0, vw, vh);
   const sk = B.shake > 0 ? Math.min(1, B.shake * 3) * 8 : 0, shx = rand(-sk, sk), shy = rand(-sk, sk);
   const cx = p.x - vw / 2 + shx, cy = p.y - vh * 0.48 + shy;
   /* 바닥: 스프링클이 뿌려진 반죽판 */
   const T = 130, x0 = Math.floor(cx / T) - 1, y0 = Math.floor(cy / T) - 1, cols = ['#FFB3C9', '#BFE9D6', '#FFE9A8', '#C9CCFF'];
+  /* 비스킷 타일: 칸마다 색을 살짝 바꾸고 구멍 무늬를 찍어요 */
+  for (let gy = y0; gy < y0 + vh / T + 3; gy++) for (let gx = x0; gx < x0 + vw / T + 3; gx++) {
+    const X = gx * T - cx, Y = gy * T - cy; ctx.fillStyle = (gx + gy) & 1 ? '#F3CF8E' : '#F7DCA6'; ctx.fillRect(X, Y, T, T);
+    ctx.strokeStyle = 'rgba(176,112,48,.28)'; ctx.lineWidth = 3; ctx.strokeRect(X + 5, Y + 5, T - 10, T - 10);
+    ctx.fillStyle = 'rgba(176,112,48,.22)'; for (const [u, v] of [[.3, .3], [.7, .3], [.3, .7], [.7, .7]]) { ctx.beginPath(); ctx.arc(X + T * u, Y + T * v, 3.5, 0, 6.283); ctx.fill(); }
+  }
   for (let gy = y0; gy < y0 + vh / T + 3; gy++) for (let gx = x0; gx < x0 + vw / T + 3; gx++) {
     let h = (gx * 73856093) ^ (gy * 19349663);
     for (let k = 0; k < 3; k++) { h = (h * 1103515245 + 12345) | 0; const ox = (h >>> 8) % T, oy = (h >>> 16) % T, rot = ((h >>> 4) % 628) / 100; ctx.save(); ctx.translate(gx * T + ox - cx, gy * T + oy - cy); ctx.rotate(rot); ctx.fillStyle = cols[(h >>> 21) & 3]; ctx.fillRect(-7, -2.5, 14, 5); ctx.restore(); }
@@ -784,7 +790,7 @@ const isInstalled = matchMedia('(display-mode: standalone)').matches || navigato
 function renderTitle() {
   const going = !!(S.run && S.run.map);
   $('#btnContinue').hidden = !going;
-  const b = $('#btnNew'); b.className = going ? 'btn' : 'cta'; b.textContent = going ? '새 모험 떠나기' : '모험 떠나기';
+  const b = $('#btnNew'); b.className = going ? 'btn' : 'cta green'; b.textContent = going ? '새 모험 떠나기' : '모험 떠나기';
   $('#titleSub').textContent = going ? `${(S.run.floor || 0) + 1}층까지 왔어요. 하트 ${S.run.hp}/${S.run.maxHp}칸, 카드 ${S.run.deck.length}장.` : S.wins ? `간식 왕국을 ${S.wins}번 지켜 냈어요.` : '자동으로 공격하는 전투와, 길을 고르고 카드를 모으는 모험.';
   $('#btnInstall').hidden = !installEvt || isInstalled; clearTimeout(newArmed); newArmed = 0;
 }
