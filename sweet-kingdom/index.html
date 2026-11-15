@@ -93,6 +93,14 @@ svg{display:block; width:100%; height:100%}
 .lv{font-family:var(--font-sign); font-size:.9375rem; min-width:3em; text-shadow:0 1px 0 var(--paper)}
 .pause{pointer-events:auto; width:44px; height:44px; border-radius:12px; background:var(--paper); border:1.5px solid var(--ink); font-family:var(--font-sign)}
 .potion{width:26px; height:26px}
+.hearts{display:flex; gap:3px} .hearts i{display:block; width:26px; height:26px; filter:drop-shadow(0 1.5px 0 rgba(74,32,64,.35))}
+.hearts i.broke{animation:heartBreak .5s cubic-bezier(.2,.8,.3,1)}
+.hearts.shake{animation:hudShake .35s}
+.hud-gap{flex:1}
+.chip i.hrt{width:18px; height:18px} .chip i.hrt.off{opacity:.7}
+@keyframes heartBreak{0%{transform:scale(1.7) rotate(-12deg)}40%{transform:scale(.8) rotate(8deg)}100%{transform:scale(1)}}
+@keyframes hudShake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
+@media (prefers-reduced-motion: reduce){.hearts i.broke,.hearts.shake{animation:none}}
 .bossbar{margin-top:2px} .bossbar .meter i{background:#9B59D0}
 .bossname{font-family:var(--font-sign); font-size:.875rem; text-shadow:0 1px 0 var(--paper)}
 .toast{position:absolute; left:0; right:0; top:26%; text-align:center; font-family:var(--font-sign); font-size:1.5rem; text-shadow:0 2px 0 var(--paper); pointer-events:none}
@@ -148,7 +156,7 @@ svg{display:block; width:100%; height:100%}
 <section class="screen" id="battle" hidden>
   <canvas id="cv"></canvas>
   <div class="hud">
-    <div class="hud-row"><span class="timer" id="timer">2:00</span><div class="meter"><i id="hpBar"></i></div><span class="potion" id="potHud"></span><button class="pause" id="btnPause" type="button" aria-label="일시정지">II</button></div>
+    <div class="hud-row"><span class="timer" id="timer">2:00</span><div class="hearts" id="hearts" aria-label="하트"></div><span class="hud-gap"></span><span class="potion" id="potHud"></span><button class="pause" id="btnPause" type="button" aria-label="일시정지">II</button></div>
     <div class="hud-row"><span class="lv" id="lvText">Lv 1</span><div class="meter xp"><i id="xpBar"></i></div></div>
     <div class="bossbar" id="bossBar" hidden><span class="bossname" id="bossName"></span><div class="meter"><i id="bossHp"></i></div></div>
   </div>
