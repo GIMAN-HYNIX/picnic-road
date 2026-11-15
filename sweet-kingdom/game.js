@@ -654,7 +654,7 @@ function pstar(x, y, s, col) { ctx.fillStyle = col; ctx.fillRect(x - s, y, s * 2
 const FLOOR = (() => {
   const c = mk(64, 64), q = c.getContext('2d'), r = (col, x, y, w, h) => { q.fillStyle = col; q.fillRect(x, y, w, h); };
   for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) { const x = gx * 16, y = gy * 16; r((gx + gy) & 1 ? '#3A2030' : '#43263A', x, y, 16, 16); r('#2A1424', x, y + 15, 16, 1); r('#2A1424', x + 15, y, 1, 16); r('#5A3450', x + 1, y + 1, 4, 1); r('#5A3450', x + 1, y + 2, 1, 2); }
-  [[7, 8, '#FF4F9A'], [39, 24, '#7FE3FF'], [22, 44, '#FFD86B']].forEach(([x, y, col]) => { r(col, x, y, 2, 1); });
+  [[7, 8, '#6A3C58'], [39, 24, '#5A4466'], [22, 44, '#6A4A50']].forEach(([x, y, col]) => { r(col, x, y, 2, 1); });
   [[20, 10], [56, 36], [4, 30], [36, 52]].forEach(([x, y]) => { r('#2A1424', x, y, 3, 1); r('#2A1424', x + 2, y + 1, 2, 1); });
   return c;
 })();
@@ -668,8 +668,10 @@ function gemSprite(w, h, col, light, dark) {
   }
   q.fillStyle = '#FFFFFF'; q.fillRect(w, h - Math.ceil(h / 2), 1, 1); return c;
 }
-const GEM = { s: gemSprite(2, 3, '#59B8FF', '#CFEFFF', '#2C7FC4'), m: gemSprite(3, 4, '#5CD66A', '#D9FFD0', '#2E9A3C'), l: gemSprite(4, 5, '#FF5C9E', '#FFD0E4', '#C92E6E') };
-const GEM_COL = { s: '#59B8FF', m: '#5CD66A', l: '#FF5C9E' };
+const GEM = { s: gemSprite(3, 4, '#4FD8FF', '#E6FBFF', '#1E8FC9'), m: gemSprite(4, 5, '#6CFF6A', '#E8FFE0', '#2EA83A'), l: gemSprite(5, 6, '#FF5CB0', '#FFE0F0', '#C92E7E') };
+const GEM_COL = { s: '#4FD8FF', m: '#6CFF6A', l: '#FF5CB0' };
+/* 보석 뒤의 은은한 빛 (반짝일 때 크게) */
+const GEM_GLOW = Object.fromEntries(Object.entries(GEM_COL).map(([k, c]) => [k, [dDisc(7, 5, c, 5), dDisc(9, 7, c, 7)]]));
 const gemKey = v => v >= 5 ? 'l' : v >= 2 ? 'm' : 's';
 const MAC = (() => { const c = mk(9, 8), q = c.getContext('2d'), r = (col, x, y, w, h) => { q.fillStyle = col; q.fillRect(x, y, w, h); }; r(INK, 1, 0, 7, 8); r(INK, 0, 1, 9, 6); r('#FF8FB8', 2, 1, 5, 1); r('#FF8FB8', 1, 2, 7, 1); r('#FFD0E2', 2, 2, 2, 1); r('#FFF3E0', 1, 3, 7, 2); r('#FF8FB8', 1, 5, 7, 1); r('#D9578A', 2, 6, 5, 1); return c; })();
 let VIG = null;
@@ -698,10 +700,12 @@ function draw() {
   /* 보석 */
   for (const g of B.gems) {
     const key = gemKey(g.v), G = GEM[key], bob = g.pull ? 0 : Math.round(Math.sin(g.ph) * 1.2 + 1.5), z = Math.round((g.z || 0) / WP) + bob, gx = X(g.x), gy = Y(g.y);
-    R('rgba(14,6,20,.45)', gx - 2, gy + 2, 4, 1);
+    const pulse = Math.floor(B.t * 4 + g.x * 0.03) % 4 === 0, gl = GEM_GLOW[key][pulse ? 1 : 0];
+    ctx.drawImage(gl, gx - (gl.width >> 1), gy - z - (gl.height >> 1));
+    R('rgba(14,6,20,.55)', gx - 3, gy + 3, 6, 1);
     if (g.pull) { ctx.globalAlpha = 0.6; R(GEM_COL[key], X(g.px - (g.x - g.px)), Y(g.py - (g.y - g.py)) - z, 2, 2); R(GEM_COL[key], X(g.px), Y(g.py) - z, 2, 2); ctx.globalAlpha = 1; }
     ctx.drawImage(G, gx - (G.width >> 1), gy - z - (G.height >> 1));
-    if (Math.sin(g.ph * 0.7 + g.x) > 0.95) pstar(gx + 2, gy - z - 3, 1, '#FFFFFF');
+    if (pulse) { pstar(gx + 3, gy - z - 4, 2, '#FFFFFF'); }
   }
   /* 적과 나를 아래쪽에 있는 것부터 겹쳐 그려요 */
   const list = B.foes.slice(); list.push(p); list.sort((a, b) => a.y - b.y);
@@ -772,7 +776,7 @@ function draw() {
   }
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
   ctx.drawImage(vignette(), 0, 0);
-  for (let i = 0; i < 14; i++) { const sx = Math.round(((i * 53 + B.t * (4 + i % 5 * 2)) % (lw + 10)) - 5), sy = Math.round(((i * 91 - B.t * (7 + i % 4 * 3)) % lh + lh) % lh); if (Math.sin(B.t * 2 + i) > -0.3) R(i % 3 ? '#FFE7F0' : '#7FE3FF', sx, sy, 1, 1); }
+  for (let i = 0; i < 14; i++) { const sx = Math.round(((i * 53 + B.t * (4 + i % 5 * 2)) % (lw + 10)) - 5), sy = Math.round(((i * 91 - B.t * (7 + i % 4 * 3)) % lh + lh) % lh); if (Math.sin(B.t * 2 + i) > -0.3) R(i % 3 ? 'rgba(255,231,240,.45)' : 'rgba(201,182,217,.45)', sx, sy, 1, 1); }
   /* 글자, 번쩍임, 조이스틱은 위에 겹친 선명한 판에 그려요 */
   const d = cv2.width / innerWidth, U = PXS * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
   if (B.flashScr) { const fk = B.flashScr.t / B.flashScr.max; if (fk <= 0) B.flashScr = null; else { tx.fillStyle = `rgba(${B.flashScr.col},${0.4 * fk})`; tx.fillRect(0, 0, cv2.width, cv2.height); } }
