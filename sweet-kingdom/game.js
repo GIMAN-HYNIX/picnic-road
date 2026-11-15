@@ -44,8 +44,55 @@ const DIFF = {
 };
 S.diff = 'normal';                 // 난이도는 보통으로 고정
 const DF = () => DIFF.normal;
+if (S.run && S.run.deck && !S.run.wpn) {   // 예전 덱 저장을 새 무기 방식으로 옮겨요
+  const r = S.run, ids = [...new Set(r.deck.map(c => c.id))].filter(id => ['pin', 'cream', 'star', 'macaron', 'honey', 'lemon', 'skewer'].includes(id));
+  r.wpn = (ids.length ? ids : ['pin']).map(id => ({ id, lv: 1 })); r.lvl = 1; r.xp = 0; r.bonus = { spd: 0, dmg: 0, crit: 0 }; r.rerolls = 0; delete r.deck; delete r.equip;
+}
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 let run = null;
+
+/* ───── 성장 트리: 모험이 끝날 때마다 받는 설탕 별로 주인공의 기본 능력을 키워요 ───── */
+/* col 0~4, row 0~5. req: 먼저 1단계 이상 배워야 하는 칸 */
+const TREE = [
+  { id: 'atk', name: '단단한 팔', desc: '모든 피해 +5%', max: 5, cost: [1, 2, 2, 3, 3], col: 0, row: 0, icon: 'star' },
+  { id: 'hp', name: '포근한 앞치마', desc: '최대 하트 +1칸', max: 2, cost: [5, 10], col: 2, row: 0, icon: 'heart' },
+  { id: 'spd', name: '가벼운 신발', desc: '이동 속도 +4%', max: 5, cost: [1, 2, 2, 3, 3], col: 4, row: 0, icon: 'honey' },
+  { id: 'crit', name: '날카로운 눈', desc: '치명타 확률 +3%', max: 5, cost: [2, 2, 3, 3, 4], col: 0, row: 1, req: 'atk', icon: 'ench' },
+  { id: 'guard', name: '설탕 갑옷', desc: '맞은 뒤 무적 시간 +15%', max: 3, cost: [2, 3, 4], col: 2, row: 1, req: 'hp', icon: 'dough' },
+  { id: 'mag', name: '설탕 자석', desc: '보석 줍는 거리 +20%', max: 3, cost: [1, 2, 3], col: 4, row: 1, req: 'spd', icon: 'magnet' },
+  { id: 'critd', name: '치명 한 방', desc: '치명타 피해 +25%', max: 3, cost: [3, 4, 5], col: 1, row: 2, req: 'crit', icon: 'pin' },
+  { id: 'shield', name: '솜사탕 방패', desc: '전투마다 처음 맞는 공격 1번을 막아요', max: 1, cost: [6], col: 2, row: 2, req: 'guard', icon: 'cream' },
+  { id: 'xp', name: '계량 노트', desc: '경험치 +8%', max: 5, cost: [2, 2, 3, 3, 4], col: 3, row: 2, req: 'mag', icon: 'cup' },
+  { id: 'size', name: '큰 손', desc: '무기 범위 +8%', max: 3, cost: [3, 4, 5], col: 0, row: 3, req: 'critd', icon: 'glove' },
+  { id: 'start2', name: '두 번째 무기', desc: '무기 1개를 더 들고 출발해요', max: 1, cost: [8], col: 2, row: 3, req: 'shield', icon: 'chest' },
+  { id: 'gold', name: '행운 지갑', desc: '골드 +15%', max: 3, cost: [1, 2, 3], col: 4, row: 3, req: 'xp', icon: 'coin' },
+  { id: 'choice', name: '넓은 선택', desc: '레벨업 선택지가 4장이 돼요', max: 1, cost: [10], col: 1, row: 4, req: 'size', icon: 'event' },
+  { id: 'reroll', name: '다시 굽기', desc: '모험마다 레벨업 선택지를 다시 뽑는 기회 +2번', max: 2, cost: [4, 6], col: 3, row: 4, req: 'gold', icon: 'rest' },
+  { id: 'veteran', name: '숙련 제빵사', desc: '처음 무기가 Lv3으로 시작해요', max: 1, cost: [12], col: 2, row: 5, req: 'start2', icon: 'ench' }
+];
+if (!S.meta || typeof S.meta !== 'object' || !S.meta.n) S.meta = { pts: 0, total: 0, n: {} };
+const M = id => S.meta.n[id] || 0;
+const TNODE = Object.fromEntries(TREE.map(t => [t.id, t]));
+const canLearn = t => M(t.id) < t.max && (!t.req || M(t.req) > 0);
+/* 모험이 끝나면 설탕 별을 받아요: 올라간 층, 잡은 적, 엘리트, 승리 */
+function sugarStars(r, won) { return Math.max(1, Math.round((run.floor + 1) * 2 + (run.kills || 0) / 60 + (run.elites || 0) * 3 + (won ? 15 : 0))); }
+function treeSheet(back) {
+  let sel = null;
+  const cell = 64, W = 5 * cell, H = 6 * 78 + 20, pos = t => [t.col * cell + cell / 2, t.row * 78 + 40];
+  const draw = () => {
+    let lines = ''; TREE.forEach(t => { if (!t.req) return; const [a, b] = pos(TNODE[t.req]), [c, d] = pos(t); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="${M(t.req) ? 'on' : ''}"/>`; });
+    const nodes = TREE.map(t => { const [x, y] = pos(t), r = M(t.id), st = r >= t.max ? 'max' : canLearn(t) ? 'can' : 'lock'; return `<button class="tn ${st}${r ? ' got' : ''}${sel === t.id ? ' sel' : ''}" type="button" data-act="node" data-id="${t.id}" style="left:${x}px; top:${y}px" aria-label="${t.name}"><span class="ti">${svg(ICON[t.icon])}</span><span class="tr">${r}/${t.max}</span></button>`; }).join('');
+    const t = sel && TNODE[sel], r = t ? M(t.id) : 0, cost = t && r < t.max ? t.cost[r] : 0;
+    const detail = t ? `<div class="td"><b>${t.name} ${r}/${t.max}</b><span>${t.desc}${t.max > 1 ? ` (1단계마다)` : ''}.${t.req && !M(t.req) ? ` 먼저 '${TNODE[t.req].name}'을 배워야 해요.` : ''}</span>${r < t.max ? `<button class="cta" type="button" data-act="learn"${canLearn(t) && S.meta.pts >= cost ? '' : ' aria-disabled="true"'}>배우기 · 설탕 별 ${cost}개</button>` : `<em>다 배웠어요</em>`}</div>` : `<div class="td"><span>칸을 눌러 보면 무엇을 키우는지 알려 줘요. 위에서부터 이어진 길을 따라 배워요.</span></div>`;
+    sheet(`<h2 id="cardTitle">성장 트리</h2><p class="pts">설탕 별 <b>${S.meta.pts}</b>개</p><div class="tree" style="width:${W}px; height:${H}px"><svg class="tl" viewBox="0 0 ${W} ${H}" aria-hidden="true">${lines}</svg>${nodes}</div>${detail}<button class="btn" type="button" data-act="close">닫기</button>`,
+      (act, b) => {
+        if (act === 'close') { closeSheet(); if (back) back(); return; }
+        if (act === 'node') { sel = b.dataset.id; sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; return; }
+        if (act === 'learn') { const t2 = TNODE[sel], c = t2.cost[M(sel)]; if (!canLearn(t2) || S.meta.pts < c) { sfx.no(); return; } S.meta.pts -= c; S.meta.n[sel] = M(sel) + 1; persist(); sfx.rare(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; const n = cardEl.querySelector('.tn.sel'); if (n) { const q = n.getBoundingClientRect(); sparkle(q.left + q.width / 2, q.top + q.height / 2, 12); } }
+      });
+  };
+  draw();
+}
 
 /* ───── 그림 ───── */
 const IMG = {};
@@ -142,6 +189,10 @@ const sfx = {
   rare() { play('rare', () => { arp([1047, 1319, 1568, 2093, 2637], .05, .3, .07, 'p12'); hiss(.3, { type: 'highpass', f: 7000, vol: .05 }); }); buzz([10, 20, 30]); },
   coinTick() { play('coinTick', () => { voice(1976, .04, { type: 'p25', vol: .05 }); voice(2637, .1, { type: 'p25', vol: .05, at: .04 }); }, 45); },
   fanfare() { play('fanfare', () => { arp([523, 523, 523], .1, .09, .1, 'p25'); voice(698, .12, { type: 'p25', vol: .1, at: .32 }); voice(784, .12, { type: 'p25', vol: .1, at: .44 }); voice(1047, .6, { type: 'p25', vol: .1, at: .56, vib: 1, sus: 1 }); [262, 330, 392].forEach((f, i) => voice(f, .7, { type: 'triangle', vol: .12, at: .56 })); hiss(.4, { type: 'highpass', f: 6000, vol: .05, at: .56 }); }); buzz([20, 30, 20, 30, 80]); },
+  magnet() { play('magnet', () => { voice(300, .5, { to: 1200, type: 'p25', vol: .08 }); arp([784, 988, 1175, 1568], .05, .15, .06, 'p12', .3); hiss(.4, { f: 800, to: 5000, vol: .06 }); }); buzz([20, 20, 40]); },
+  zap() { play('zap', () => { hiss(.12, { type: 'highpass', f: 3000, to: 8000, vol: .1 }); voice(1800, .1, { to: 300, type: 'p12', vol: .08 }); voice(120, .08, { to: 50, type: 'triangle', vol: .18 }); }, 90); },
+  boom() { play('boom', () => { hiss(.25, { type: 'lowpass', f: 2200, to: 150, vol: .2 }); voice(120, .22, { to: 35, type: 'triangle', vol: .32 }); }, 60); buzz(10); },
+  thud() { play('thud', () => { voice(600, .06, { to: 200, type: 'p25', vol: .08 }); voice(140, .16, { to: 40, type: 'triangle', vol: .3 }); hiss(.1, { f: 1200, vol: .12 }); }, 60); },
   tap() { play('tap', () => voice(880, .035, { to: 1320, type: 'p25', vol: .06 })); buzz(6); },
   coin() { play('coin', () => { voice(1976, .06, { type: 'p25', vol: .07 }); voice(2637, .25, { type: 'p25', vol: .07, at: .06 }); }); },
   good() { play('good', () => arp([784, 988, 1175, 1568], .055, .16, .07, 'p25')); buzz([15, 30, 30]); },
@@ -219,27 +270,30 @@ const ICON = {
   rest: `<path d="M12 78H88" stroke="#4A2040" stroke-width="6" stroke-linecap="round"/><path d="M24 78V50A26 26 0 0 1 76 50V78Z" fill="#FFF3E0" stroke="#4A2040" stroke-width="4"/><path d="M40 30Q36 20 42 12M58 30Q54 20 60 12" fill="none" stroke="#8A5F7C" stroke-width="4" stroke-linecap="round"/>`,
   event: `<circle cx="50" cy="50" r="38" fill="#C9B6FF"/><path d="M38 40A12 12 0 1 1 54 52C50 54 50 58 50 62" fill="none" stroke="#4A2040" stroke-width="7" stroke-linecap="round"/><circle cx="50" cy="76" r="4.5" fill="#4A2040"/>`,
   chest: `<rect x="14" y="40" width="72" height="44" rx="6" fill="#D9A066" stroke="#4A2040" stroke-width="4"/><path d="M14 44A36 30 0 0 1 86 44Z" fill="#E9B878" stroke="#4A2040" stroke-width="4"/><rect x="43" y="46" width="14" height="18" rx="3" fill="#FFC83D" stroke="#4A2040" stroke-width="3"/>`,
-  ench: `<path d="M50 8L60 40L92 50L60 60L50 92L40 60L8 50L40 40Z" fill="#B58CFF" stroke="#6A3FC0" stroke-width="3" stroke-linejoin="round"/>`
+  ench: `<path d="M50 8L60 40L92 50L60 60L50 92L40 60L8 50L40 40Z" fill="#B58CFF" stroke="#6A3FC0" stroke-width="3" stroke-linejoin="round"/>`,
+  choco: `<circle cx="48" cy="58" r="32" fill="#6B3A1E" stroke="#3B1C0A" stroke-width="5"/><circle cx="36" cy="46" r="9" fill="#A0663C"/><path d="M64 30Q72 14 86 16" stroke="#FFD23F" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="88" cy="14" r="6" fill="#FF6B3D"/>`,
+  cotton: `<path d="M20 58a16 16 0 0 1 8-30a20 20 0 0 1 38-4a16 16 0 0 1 14 34Z" fill="#FFB3D9" stroke="#C2507E" stroke-width="4"/><path d="M52 52L40 74H54L46 96L70 66H56L64 52Z" fill="#FFE45C" stroke="#B5651D" stroke-width="3" stroke-linejoin="round"/>`,
+  cane: `<path d="M40 94V40a16 16 0 0 1 32 0v8" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/><path d="M40 94V40a16 16 0 0 1 32 0v8" fill="none" stroke="#E8323C" stroke-width="14" stroke-dasharray="9 9"/>`,
+  cup: `<path d="M22 28H78L70 86H30Z" fill="#DDF0FF" stroke="#2F74C0" stroke-width="5" stroke-linejoin="round"/><path d="M28 50H72M30 66H70" stroke="#2F74C0" stroke-width="4"/>`
 };
-/* type w = 무기, p = 패시브. rar 0 일반 / 1 고급 / 2 희귀 */
-const CARDS = {
-  pin: { name: '롤링핀 휘두르기', type: 'w', rar: 0, desc: '가까운 적 쪽으로 롤링핀을 크게 휘둘러요.' },
-  cream: { name: '휘핑크림 분사', type: 'w', rar: 0, desc: '가장 가까운 적에게 크림을 쏴요.' },
-  star: { name: '별사탕 산탄', type: 'w', rar: 0, desc: '움직이는 방향으로 별사탕 3알을 뿌려요.' },
-  macaron: { name: '마카롱 회전', type: 'w', rar: 1, desc: '마카롱 2개가 몸 주위를 돌며 부딪혀요.' },
-  honey: { name: '꿀 장판', type: 'w', rar: 1, desc: '3초마다 발밑에 꿀을 깔아요. 적이 느려지고 다쳐요.' },
-  lemon: { name: '레몬즙 물총', type: 'w', rar: 1, desc: '가까운 적에게 쏴서 산성을 2 쌓아요. 산성은 계속 피해를 줘요.' },
-  skewer: { name: '탕후루 꼬치', type: 'w', rar: 2, desc: '움직이는 방향으로 적을 전부 꿰뚫는 꼬치를 던져요.' },
-  hands: { name: '날쌘 손', type: 'p', rar: 1, desc: '쏘는 무기의 발사 수가 1 늘어요.' },
-  sour: { name: '새콤 촉진', type: 'p', rar: 2, desc: '산성이 2배로 쌓여요.' },
-  dough: { name: '든든한 반죽', type: 'p', rar: 1, desc: '전투 중 하트가 1칸 늘어요.' },
-  magnet: { name: '설탕 자석', type: 'p', rar: 0, desc: '경험치 보석을 더 멀리서 끌어와요.' },
-  glove: { name: '오븐 장갑', type: 'p', rar: 0, desc: '맞은 뒤 무적 시간이 50% 늘어요.' }
+/* ───── 무기 10가지: 레벨이 오를 때마다 투사체가 1개씩 늘어요. Lv5와 Lv10에 특별한 힘 ───── */
+const WMAX = 10;
+const WEAPONS = {
+  pin: { name: '롤링핀', desc: '가까운 적 쪽으로 롤링핀을 크게 휘둘러요.', more: '휘두르는 방향이 1개 늘어요.', s5: '휘두르는 범위가 넓어지고 적을 더 멀리 밀쳐요.', s10: '한 바퀴 빙 돌며 휘두르고 충격파가 퍼져요.' },
+  cream: { name: '휘핑크림', desc: '가장 가까운 적에게 크림을 쏴요.', more: '크림이 1발 늘어요.', s5: '맞은 자리에 크림 웅덩이가 생겨 적이 느려져요.', s10: '크림이 커지고 적을 전부 꿰뚫어요.' },
+  star: { name: '별사탕', desc: '움직이는 방향으로 별사탕을 흩뿌려요.', more: '별사탕이 1알 늘어요.', s5: '별사탕이 옆 적으로 1번 튕겨요.', s10: '사방으로 흩뿌리고 3번까지 튕겨요.' },
+  macaron: { name: '마카롱', desc: '마카롱이 몸 주위를 돌며 부딪혀요.', more: '마카롱이 1개 늘어요.', s5: '더 넓게, 더 빠르게 돌아요.', s10: '2초마다 마카롱이 한꺼번에 터져요.' },
+  honey: { name: '꿀 장판', desc: '꿀을 깔아 적을 느리게 하고 다치게 해요.', more: '장판이 1개 늘어요.', s5: '장판이 넓어지고 오래가요.', s10: '커다란 꿀 웅덩이가 나를 따라다녀요.' },
+  lemon: { name: '레몬즙', desc: '가까운 적에게 쏴서 산성을 쌓아요. 산성은 계속 피해를 줘요.', more: '물총이 1발 늘어요.', s5: '산성이 2배로 쌓여요.', s10: '산성 쌓인 적이 죽으면 터지며 주변에 옮아요.' },
+  skewer: { name: '탕후루 꼬치', desc: '가까운 적 쪽으로 적을 전부 꿰뚫는 꼬치를 던져요.', more: '꼬치가 1개 늘어요.', s5: '더 빠르고 멀리 날아가요.', s10: '꼬치가 부메랑처럼 돌아오며 또 꿰뚫어요.' },
+  choco: { name: '초코 폭탄', desc: '근처 적에게 초코볼을 던져 터뜨려요.', more: '폭탄이 1개 늘어요.', s5: '폭발 범위가 넓어져요.', s10: '터질 때 작은 초코볼 3개가 더 튀어 터져요.' },
+  cotton: { name: '솜사탕 번개', desc: '가까운 적에게 번개가 치고 옆 적으로 이어져요.', more: '번개 줄기가 1개 늘어요.', s5: '번개가 2마리 더 이어져요.', s10: '번개가 자주 치고 맞은 적이 잠깐 멈춰요.' },
+  cane: { name: '지팡이 사탕', desc: '하늘에서 지팡이 사탕이 떨어져 주변 적을 내리쳐요.', more: '사탕이 1개 더 떨어져요.', s5: '내리치는 범위가 넓어져요.', s10: '떨어진 자리에서 별 파편이 사방으로 튀어요.' }
 };
-const ENCH = {
-  pierce: { name: '관통', desc: '쏘는 무기는 적을 2마리 더 뚫고, 그 밖의 무기는 범위가 넓어져요.' },
-  split: { name: '분열', desc: '이 무기로 적을 잡으면 파편 2개가 튀어 나가요.' },
-  acid: { name: '산성 부여', desc: '이 무기에 맞은 적에게 산성이 1 쌓여요.' }
+const STATS = {
+  spd: { name: '이동 속도 +5%', icon: 'honey' },
+  dmg: { name: '공격력 +10%', icon: 'star' },
+  crit: { name: '치명타 확률 +5%', icon: 'ench' }
 };
 const RELICS = {
   cape: { name: '슈크림 망토', desc: '하트가 1칸 남으면 더 빨리 달려요.', icon: 'cream' },
@@ -253,33 +307,15 @@ const RELICS = {
   jar: { name: '꿀단지', desc: '엘리트 전투를 이기면 하트를 1칸 더 채워요.', icon: 'honey' },
   cloud: { name: '솜사탕 구름', desc: '전투마다 처음 맞는 공격 한 번을 막아 줘요.', icon: 'cream' }
 };
-const cardLabel = c => CARDS[c.id].name + (c.plus ? '+' : '') + (c.ench ? ` (${ENCH[c.ench].name})` : '');
-/* Lv5 각성: 무기마다 모양과 효과가 바뀌어요 */
-const AWAKE = {
-  pin: '한 바퀴 빙 돌며 휘두르고 충격파가 퍼져요.',
-  cream: '맞은 자리에 크림 웅덩이가 생겨 적이 느려져요.',
-  star: '별사탕이 적에 맞으면 옆 적으로 2번 튕겨요.',
-  macaron: '2.5초마다 마카롱이 터져 주변에 피해를 줘요.',
-  honey: '꿀 장판이 나를 따라다니고 더 넓어져요.',
-  lemon: '산성이 쌓인 적이 죽으면 터지며 주변에 산성이 옮아요.',
-  skewer: '꼬치가 부메랑처럼 돌아오며 한 번 더 꿰뚫어요.'
-};
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
-const AW = 5, WMAX = 8, awake = w => w.lv >= AW;
-const cardDesc = c => CARDS[c.id].desc + (c.plus ? ' 강화돼서 더 세요.' : '') + (c.ench ? ' ' + ENCH[c.ench].desc : '') + (AWAKE[c.id] ? ` 각성(전투 중 Lv5): ${AWAKE[c.id]}` : '');
-const TYPE = { w: '무기', p: '패시브' }, RAR = ['일반', '고급', '희귀'];
-function cardOpt(c, i, o = {}) {
-  const d = CARDS[c.id];
-  return `<button class="opt r${d.rar}${o.on ? ' on' : ''}" type="button" data-act="${o.act || 'pick'}" data-i="${i}"${o.off ? ' aria-disabled="true"' : ''}${o.pref ? ' data-pref' : ''}><span class="ic">${svg(ICON[c.id])}</span><span class="tx"><b>${cardLabel(c)}</b><span>${RAR[d.rar]} ${TYPE[d.type]}. ${cardDesc(c)}</span></span>${o.price != null ? `<em>${o.price}골드</em>` : ''}</button>`;
+const wLv = id => { const w = run.wpn.find(x => x.id === id); return w ? w.lv : 0; };
+const wDescFull = id => { const W = WEAPONS[id]; return `${W.desc} Lv5: ${W.s5} Lv10: ${W.s10}`; };
+function wOpt(id, i, o = {}) {      // 무기 선택 줄
+  const W = WEAPONS[id], lv = wLv(id), nx = lv + 1, sp = nx === 5 ? W.s5 : nx === 10 ? W.s10 : '';
+  const title = lv ? `${W.name} Lv${lv} → Lv${nx}${nx === 5 || nx === 10 ? ' ★' : ''}` : `새 무기: ${W.name}`;
+  const desc = lv ? (sp ? `특별 효과! ${sp} ${W.more}` : W.more) : wDescFull(id);
+  return `<button class="opt${nx === 10 ? ' r2' : nx === 5 ? ' r1' : ''}" type="button" data-act="${o.act || 'pick'}" data-i="${i}"${o.off ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON[id])}</span><span class="tx"><b>${title}</b><span>${desc}</span></span>${o.price != null ? `<em>${o.price}골드</em>` : ''}</button>`;
 }
-function rollCard(minRar = 0) {
-  const have = new Set(run.deck.filter(c => CARDS[c.id].type === 'p').map(c => c.id));
-  const x = Math.random(), rar = Math.max(minRar, x < 0.6 ? 0 : x < 0.9 ? 1 : 2);
-  const pool = Object.keys(CARDS).filter(id => CARDS[id].rar === rar && !have.has(id));
-  const all = Object.keys(CARDS).filter(id => !have.has(id));
-  return { id: pick(pool.length ? pool : all), plus: false, ench: null };
-}
-function rollCards(n, minRar) { const out = []; for (let g = 0; out.length < n && g < 40; g++) { const c = rollCard(minRar); if (!out.some(o => o.id === c.id)) out.push(c); } return out; }
 function rollRelic() { const pool = Object.keys(RELICS).filter(id => id !== 'cape' && !run.relics.includes(id)); return pool.length ? pick(pool) : null; }
 function gainRelic(id) { run.relics.push(id); if (id === 'apron') { run.maxHp += 1; run.hp += 1; } }
 const HEART_EMPTY = `<path d="M50 86C20 64 10 48 10 34C10 20 21 12 32 12C41 12 47 17 50 23C53 17 59 12 68 12C79 12 90 20 90 34C90 48 80 64 50 86Z" fill="#4A2A4A"/>`;
@@ -299,35 +335,37 @@ const FOES = {
 /* ═════ 전투 ═════ */
 let B = null;                    // 지금 전투
 const cv = $('#cv'), ctx = cv.getContext('2d'), cv2 = $('#cv2'), tx = cv2.getContext('2d');
-let vw = 390, vh = 780, PXS = 2, lw = 195, lh = 390;      // PXS: 픽셀 한 칸의 화면 크기, lw·lh: 낮은 해상도 화면 크기
+let vw = 390, vh = 780, PXS = 2, PZ = 2, ZOOM = 1, lw = 195, lh = 390;      // PXS: 픽셀 한 칸의 화면 크기, PZ: 줌을 적용한 크기, lw·lh: 낮은 해상도 화면 크기
 function resize() {
   const w = window.innerWidth, h = window.innerHeight, d = Math.min(2, window.devicePixelRatio || 1);
-  PXS = Math.max(2, Math.round(w / 195)); lw = Math.ceil(w / PXS); lh = Math.ceil(h / PXS);
-  cv.width = lw; cv.height = lh; cv.style.width = lw * PXS + 'px'; cv.style.height = lh * PXS + 'px'; ctx.imageSmoothingEnabled = false;
+  PXS = Math.max(2, Math.round(w / 195)); PZ = PXS * ZOOM; lw = Math.ceil(w / PZ); lh = Math.ceil(h / PZ);
+  if (cv.width !== lw || cv.height !== lh) { cv.width = lw; cv.height = lh; } cv.style.width = lw * PZ + 'px'; cv.style.height = lh * PZ + 'px'; ctx.imageSmoothingEnabled = false;
   vw = lw * 2; vh = lh * 2; cv2.width = Math.round(w * d); cv2.height = Math.round(h * d);
 }
 addEventListener('resize', resize);
 
 function battleStats() {
-  const eq = run.equip.map(i => run.deck[i]).filter(Boolean), n = id => eq.filter(c => c.id === id).reduce((s, c) => s + (c.plus ? 1.5 : 1), 0);
+  const b = run.bonus || { spd: 0, dmg: 0, crit: 0 };
   return {
-    dmg: has('whisk') ? 1.15 : 1, xp: has('cup') ? 1.25 : 1, spd: has('boots') ? 1.12 : 1,
-    proj: Math.round(n('hands')), acid: n('sour') ? 2 * (n('sour') > 1 ? 1.5 : 1) : 1, hpAdd: Math.floor(n('dough')),
-    pickup: 58 * (1 + 0.6 * n('magnet')), invK: 1 + 0.5 * n('glove')
+    dmg: (has('whisk') ? 1.15 : 1) * (1 + 0.1 * b.dmg) * (1 + 0.05 * M('atk')),
+    crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit'), critMul: 1.8 + 0.25 * M('critd'),
+    spd: (has('boots') ? 1.12 : 1) * (1 + 0.05 * b.spd) * (1 + 0.04 * M('spd')),
+    xp: (has('cup') ? 1.25 : 1) * (1 + 0.08 * M('xp')), pickup: 88 * (1 + 0.2 * M('mag')), invK: 1 + 0.15 * M('guard'), area: 1 + 0.08 * M('size')
   };
 }
+const needOf = lvl => Math.round(4 + 3 * (lvl - 1) + 0.06 * (lvl - 1) ** 2);
 function startBattle(kind, floor, onEnd) {
   const st = battleStats(), dur = kind === 'boss' ? 300 : 180;
   B = {
     kind, floor, onEnd, t: 0, dur, st, paused: false, over: false,
-    p: { x: 0, y: 0, hp: run.hp + st.hpAdd, max: run.maxHp + st.hpAdd, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: has('cloud') },
-    foes: [], shots: [], foeShots: [], gems: [], zones: [], fx: [], texts: [], telegraphs: [],
-    weapons: run.equip.map(i => run.deck[i]).filter(c => c && CARDS[c.id].type === 'w').map(c => ({ id: c.id, lv: 1 + (c.plus ? 1 : 0), ench: c.ench, cd: Math.random() * 0.5, ang: 0 })),
-    lvl: 1, xp: 0, need: 5, kills: 0, spawnAcc: 0, shake: 0, buffDmg: 1, buffSpd: 1, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
+    p: { x: 0, y: 0, hp: run.hp, max: run.maxHp, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: has('cloud') || M('shield') > 0 },
+    foes: [], shots: [], foeShots: [], gems: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
+    weapons: run.wpn.map(x => ({ id: x.id, lv: x.lv, src: x, cd: 0.3 + Math.random() * 0.6, ang: 0 })),
+    lvl: run.lvl, xp: run.xp, need: needOf(run.lvl), kills: 0, spawnAcc: 0, shake: 0, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
     eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? 180 : -1, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
   };
   if (!headless) {
-    show('battle'); resize();
+    ZOOM = 1; show('battle'); resize();
     $('#bossBar').hidden = true; $('#potHud').innerHTML = run.potion ? svg(ICON.cocoa) : '';
     toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
     if (window.__dbg.autoAll) B.auto = true;
@@ -337,10 +375,12 @@ function startBattle(kind, floor, onEnd) {
 let toastTimer = 0;
 function toast(t) { if (headless) return; const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { e.hidden = true; }, 2200); }
 
+/* 판이 지날수록(층이 오를수록) 적이 확실히 많아져요: 첫 판 1배 → 보스 판 약 5배 */
+const stageMul = () => 0.8 + 0.5 * B.floor;
 function spawnFoe(type, x, y) {
-  const d = FOES[type], grow = 1 + 0.2 * B.floor + (B.t / 120) * 0.5;
+  const d = FOES[type], grow = 1 + 0.6 * B.floor + (B.t / 120) * 0.6;
   const big = type === 'donut' || type === 'boss';
-  const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow) * DF().hp, spd: d.spd * DF().spd, dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : 0, vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
+  const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow) * DF().hp, spd: d.spd * DF().spd * (0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : 0, vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   f.max = f.hp; B.foes.push(f); return f;
 }
 function spawnRing(type) {
@@ -356,13 +396,12 @@ function spark(x, y, a, col = '#FFFFFF', big) { fxAdd({ k: 'flash', x, y, r: big
 const FOE_COL = { jelly: '#3FCF7A', cookie: '#B9783F', ice: '#9FDBFF', donut: '#FF8FB8', boss: '#C77DFF' };
 function hitStop(t) { if (!headless && B.hsCool <= 0) { B.hitstop = Math.max(B.hitstop, t); B.hsCool = 0.12; } }
 
-function hurtFoe(f, d, w, ax, ay) {
+function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (f.dead) return;
-  const crit = Math.random() < 0.12; if (crit) d *= 1.8;
-  d *= B.st.dmg * B.buffDmg; f.hp -= d; f.flash = 0.08; f.sq = 0.35;
-  if (w && w.ench === 'acid') f.acid += B.st.acid;
+  const crit = Math.random() < B.st.crit; if (crit) d *= B.st.critMul;
+  d *= B.st.dmg; f.hp -= d; f.flash = 0.08; f.sq = 0.35;
   /* 맞은 방향으로 밀려나요 (큰 적은 조금만) */
-  let dx = ax, dy = ay; if (dx == null) { dx = f.x - B.p.x; dy = f.y - B.p.y; } const m = Math.hypot(dx, dy) || 1, kb = (f === B.big ? 40 : 230) * (crit ? 1.5 : 1);
+  let dx = ax, dy = ay; if (dx == null) { dx = f.x - B.p.x; dy = f.y - B.p.y; } const m = Math.hypot(dx, dy) || 1, kb = (f === B.big ? 40 : 230) * (crit ? 1.5 : 1) * kbm;
   f.kx = dx / m * kb; f.ky = dy / m * kb;
   if (!headless) { const a = Math.atan2(dy, dx); spark(f.x - dx / m * f.r * 0.5, f.y - FOES[f.type].h * 0.35 - dy / m * f.r * 0.3, a, crit ? '#FFE066' : '#FFFFFF', crit); }
   textAdd(f.x, f.y - FOES[f.type].h * 0.8, Math.round(d) + (crit ? '!' : ''), crit ? '#FF9A1F' : '#4A2040', crit);
@@ -372,6 +411,8 @@ function hurtFoe(f, d, w, ax, ay) {
 function killFoe(f, w) {
   f.dead = true; B.kills++;
   const d = FOES[f.type], col = FOE_COL[f.type], big = f === B.big;
+  if (!big && !B.magnet && Math.random() < 1 / 90) B.magnet = { x: f.x, y: f.y, ph: 0 };      // 가끔 자석을 떨어뜨려요
+  if (big && !B.magnet) B.magnet = { x: f.x + 20, y: f.y, ph: 0 };
   if (d.xp) { const n = big ? 6 : 1; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = big ? rand(60, 160) : rand(20, 60); B.gems.push({ x: f.x, y: f.y, v: big ? Math.ceil(d.xp / n) + 1 : d.xp, pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); } }
   burst(f.x, f.y - d.h * 0.3, col, big ? 40 : 10, big ? 320 : 190); burst(f.x, f.y - d.h * 0.3, '#FFFFFF', big ? 14 : 4, 120);
   fxAdd({ k: 'ghost', img: d.img, x: f.x, y: f.y + f.r * 0.7, h: d.h, flip: f.x > B.p.x ? -1 : 1, life: big ? 0.5 : 0.2, max: big ? 0.5 : 0.2 });
@@ -379,11 +420,10 @@ function killFoe(f, w) {
   fxAdd({ k: 'pop', x: f.x, y: f.y - d.h * 0.35, r: big ? 30 : 12, life: big ? 0.35 : 0.2, max: big ? 0.35 : 0.2, col: col });
   if (big) { sfx.bigKill(); B.hitstop = 0.18; B.slow = 0.6; B.shake = 0.6; B.flashScr = { col: '255,255,255', t: 0.25, max: 0.25 }; }
   else { sfx.kill(f.type); hitStop(f.type === 'cookie' ? 0.035 : 0.02); B.shake = Math.max(B.shake, f.type === 'cookie' ? 0.1 : 0.05); }
-  if (f.acid > 0 && B.weapons.some(x => x.id === 'lemon' && awake(x))) {   // 레몬 각성: 산성 폭발이 옮아요
-    for (const g of B.foes) if (!g.dead && g !== f && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 80 * 80) { g.acid += 3 * B.st.acid; g.flash = 0.06; }
+  if (f.acid > 0 && B.weapons.some(x => x.id === 'lemon' && x.lv >= 10)) {   // 레몬 각성: 산성 폭발이 옮아요
+    for (const g of B.foes) if (!g.dead && g !== f && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 80 * 80) { g.acid += 4; g.flash = 0.06; }
     fxAdd({ k: 'ring', x: f.x, y: f.y - d.h * 0.3, r: 10, to: 80, life: 0.3, max: 0.3, col: '#B9DD52', w: 6 }); burst(f.x, f.y - d.h * 0.3, '#C8F06A', 8, 160);
   }
-  if (w && w.ench === 'split') for (let i = 0; i < 2; i++) { const a = Math.random() * 6.283; B.shots.push({ k: 'shard', x: f.x, y: f.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 5, dmg: 7, pierce: 0, life: 0.7, w: null, hit: new Set([f]) }); }
   if (big) { B.bigDead = true; if (B.kind === 'boss') endBattle(true); else toast('엘리트를 잡았어요!'); }
 }
 /* 하트 3칸: 무엇에 맞든 한 번에 1칸 */
@@ -403,73 +443,94 @@ function hurtPlayer(src) {
     } else { p.hp = 0; endBattle(false); }
   }
 }
-function nearestFoe(range) { let best = null, bd = range * range; const p = B.p; for (const f of B.foes) { if (f.dead) continue; const d = (f.x - p.x) ** 2 + (f.y - p.y) ** 2; if (d < bd) { bd = d; best = f; } } return best; }
-const wDmg = (w, base) => base * (1 + 0.28 * (w.lv - 1));
-const area = w => w.ench === 'pierce' ? 1.25 : 1;
-
+function nearestFoe(range, from) { let best = null, bd = range * range; const p = from || B.p; for (const f of B.foes) { if (f.dead) continue; const d = (f.x - p.x) ** 2 + (f.y - p.y) ** 2; if (d < bd) { bd = d; best = f; } } return best; }
+function nearFoes(range, n) { const p = B.p, r2 = range * range, l = B.foes.filter(f => !f.dead && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < r2); l.sort((a, b) => ((a.x - p.x) ** 2 + (a.y - p.y) ** 2) - ((b.x - p.x) ** 2 + (b.y - p.y) ** 2)); return l.slice(0, n); }
+const ar = () => B.st.area;
+/* 폭발: 범위 안 적을 모두 때려요 */
+function blast(x, y, r, dmg, w, col) {
+  for (const f of B.foes) if (!f.dead && (f.x - x) ** 2 + (f.y - y) ** 2 < (r + f.r) ** 2) hurtFoe(f, dmg, w, f.x - x, f.y - y);
+  fxAdd({ k: 'ring', x, y, r: r * 0.3, to: r, life: 0.25, max: 0.25, col, w: 6 }); fxAdd({ k: 'flash', x, y, r: r * 0.5, life: 0.08, max: 0.08, col: '#FFFFFF' }); burst(x, y, col, 8, 180);
+}
 function fireWeapons(dt) {
   const p = B.p;
   for (const w of B.weapons) {
-    w.cd -= dt;
-    if (w.id === 'macaron') {            // 늘 돌고 있어요
-      w.ang += dt * (awake(w) ? 4 : 3.2); const n = 2 + (w.lv >= 3 ? 1 : 0) + (w.lv >= 5 ? 1 : 0) + (w.lv >= 7 ? 1 : 0) + B.st.proj, R = (awake(w) ? 66 : 58) * area(w);
-      if (awake(w)) { w.burstT = (w.burstT ?? 2.5) - dt; }
+    const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10; w.cd -= dt;
+    if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
+      w.ang += dt * (s5 ? 4.2 : 3.2); const n = 1 + lv, R = (s5 ? 74 : 58) * ar();
+      if (s10) w.burstT = (w.burstT ?? 2) - dt;
       w.orbs = [];
       for (let i = 0; i < n; i++) {
         const a = w.ang + i * 6.283 / n, ox = p.x + Math.cos(a) * R, oy = p.y + Math.sin(a) * R; w.orbs.push([ox, oy]);
-        for (const f of B.foes) { if (f.dead) continue; if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.45; hurtFoe(f, wDmg(w, 8), w, f.x - ox, f.y - oy); } }
-        if (awake(w) && w.burstT <= 0) { for (const f of B.foes) if (!f.dead && (f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 52) ** 2) hurtFoe(f, wDmg(w, 10), w, f.x - ox, f.y - oy); fxAdd({ k: 'ring', x: ox, y: oy, r: 8, to: 56, life: 0.28, max: 0.28, col: '#FF8FB8', w: 6 }); fxAdd({ k: 'flash', x: ox, y: oy, r: 18, life: 0.1, max: 0.1, col: '#FFFFFF' }); }
+        for (const f of B.foes) { if (f.dead) continue; if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.4; hurtFoe(f, 9, w, f.x - ox, f.y - oy); } }
+        if (s10 && w.burstT <= 0) blast(ox, oy, 46 * ar(), 14, w, '#FF8FB8');
       }
-      if (awake(w) && w.burstT <= 0) { w.burstT = 2.5; sfx.swing(); B.shake = Math.max(B.shake, 0.06); }
+      if (s10 && w.burstT <= 0) { w.burstT = 2; sfx.swing(); B.shake = Math.max(B.shake, 0.08); }
       continue;
     }
     if (w.cd > 0) continue;
     if (w.id === 'pin') {
-      const aw = awake(w), R = (72 + 6 * w.lv) * area(w) * (aw ? 1.1 : 1), t = nearestFoe(R + 30);
+      const R = 82 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
       if (!t) { w.cd = 0.15; continue; }
-      const a = Math.atan2(t.y - p.y, t.x - p.x); w.cd = 1.05;
-      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); if (m < R + f.r) { let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = 6.283 - da; if (aw || da < 1.25) hurtFoe(f, wDmg(w, 15), w, dx, dy); } else if (aw && m < R * 1.6 + f.r) hurtFoe(f, wDmg(w, 6), w, dx, dy); }
-      if (aw) { fxAdd({ k: 'spin', x: p.x, y: p.y, a, r: R, life: 0.3, max: 0.3 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: R * 0.8, to: R * 1.6, life: 0.3, max: 0.3, col: '#FFE1A8', w: 6 }); }
-      else fxAdd({ k: 'arc', x: p.x, y: p.y, a, r: R, life: 0.22, max: 0.22 }); B.shake = Math.max(B.shake, 0.04); sfx.swing();
+      const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = Array.from({ length: lv }, (_, i) => a + i * 6.283 / lv); w.cd = 0.8;
+      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); if (m > R + f.r && !(s10 && m < R * 1.7 + f.r)) continue; const fa = Math.atan2(dy, dx); const inArc = s10 || dirs.some(d => { let da = Math.abs(fa - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da < 1.1; }); if (m <= R + f.r && inArc) hurtFoe(f, 16, w, dx, dy, s5 ? 1.6 : 1); else if (s10) hurtFoe(f, 8, w, dx, dy); }
+      if (s10) { fxAdd({ k: 'spin', x: p.x, y: p.y, a, r: R, life: 0.3, max: 0.3 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: R * 0.8, to: R * 1.7, life: 0.3, max: 0.3, col: '#FFE1A8', w: 6 }); }
+      else dirs.forEach(d => fxAdd({ k: 'arc', x: p.x, y: p.y, a: d, r: R, life: 0.22, max: 0.22 }));
+      B.shake = Math.max(B.shake, 0.04); sfx.swing();
     } else if (w.id === 'cream' || w.id === 'lemon') {
-      const t = nearestFoe(300); if (!t) { w.cd = 0.2; continue; }
-      const a = Math.atan2(t.y - p.y, t.x - p.x), n = 1 + B.st.proj; w.cd = w.id === 'cream' ? 0.78 : 0.95;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.16; if (i === 0) fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: w.id === 'cream' ? '#FFFFFF' : '#F4E04D' }); B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 330, vy: Math.sin(aa) * 330, r: 7, dmg: wDmg(w, w.id === 'cream' ? 10 : 5), acid: w.id === 'lemon' ? 2 : 0, pierce: w.ench === 'pierce' ? 2 : 0, life: 1.2, w, hit: new Set(), aw: awake(w), puddle: w.id === 'cream' && awake(w) }); }
+      const t = nearestFoe(320); if (!t) { w.cd = 0.2; continue; }
+      const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv, cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
+      fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: cream ? '#FFFFFF' : '#F4E04D' });
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 7, acid: cream ? 0 : (s5 ? 6 : 3), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5 }); }
       sfx.shot();
     } else if (w.id === 'star') {
-      const a = Math.atan2(p.dirY, p.dirX), n = 3 + B.st.proj + (w.lv >= 4 ? 1 : 0); w.cd = 1.25;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.22; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 300, vy: Math.sin(aa) * 300, r: 7, dmg: wDmg(w, 7), pierce: w.ench === 'pierce' ? 2 : 0, life: 0.9, w, hit: new Set(), aw: awake(w), bounce: awake(w) ? 2 : 0 }); }
+      const a = Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 1.2;
+      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: 7, dmg: 8, pierce: 0, life: 0.9, w, hit: new Set(), aw: s10, bounce: s10 ? 3 : s5 ? 1 : 0 }); }
       sfx.shot();
     } else if (w.id === 'skewer') {
-      const a = Math.atan2(p.dirY, p.dirX), n = 1 + B.st.proj; w.cd = 1.5;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.14; B.shots.push({ k: 'skewer', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 430, vy: Math.sin(aa) * 430, r: 9, dmg: wDmg(w, 17), pierce: 99, life: awake(w) ? 1.5 : 0.9, w, hit: new Set(), a: aa, aw: awake(w), boom: awake(w) }); }
+      const tg = nearestFoe(360), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = lv, sp = s5 ? 560 : 430; w.cd = 1.4;
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.12; B.shots.push({ k: 'skewer', x: p.x, y: p.y - 10, vx: Math.cos(aa) * sp, vy: Math.sin(aa) * sp, r: 9, dmg: 18, pierce: 99, life: s10 ? 1.5 : s5 ? 1.1 : 0.9, w, hit: new Set(), a: aa, aw: s10, boom: s10 }); }
       sfx.shot();
     } else if (w.id === 'honey') {
-      w.cd = 3; B.zones.push({ x: p.x, y: p.y, r: (52 + 4 * w.lv) * area(w) * (awake(w) ? 1.35 : 1), life: 3, tick: 0, dmg: wDmg(w, 5), w, follow: awake(w) });
+      w.cd = 3; const r = (s5 ? 64 : 50) * ar(), life = s5 ? 4 : 3;
+      for (let i = 0; i < lv; i++) { let x = p.x, y = p.y; if (i) { const t = pick(nearFoes(220, 8)) || null; if (t) { x = t.x; y = t.y; } else { const a = Math.random() * 6.283, d = rand(60, 150); x += Math.cos(a) * d; y += Math.sin(a) * d; } } B.zones.push({ x, y, r, life, tick: 0, dmg: 6, w }); }
+      if (s10 && !B.zones.some(z => z.follow)) B.zones.push({ x: p.x, y: p.y, r: 92 * ar(), life: 1e9, tick: 0, dmg: 8, w, follow: true });
+    } else if (w.id === 'choco') {
+      const ts = nearFoes(280, lv); if (!ts.length) { w.cd = 0.3; continue; } w.cd = 1.6;
+      for (let i = 0; i < lv; i++) { const t = ts[i % ts.length], j = i >= ts.length ? 30 : 0; B.lobs.push({ k: 'bomb', x0: p.x, y0: p.y - 10, x: t.x + rand(-j, j), y: t.y + rand(-j, j), t: 0, dur: 0.45 + i * 0.04, r: (s5 ? 60 : 44) * ar(), dmg: 20, w, cluster: s10 }); }
+      sfx.swing();
+    } else if (w.id === 'cotton') {
+      const ts = nearFoes(260, lv); if (!ts.length) { w.cd = 0.25; continue; } w.cd = s10 ? 0.75 : 1.3;
+      const chain = s10 ? 8 : s5 ? 4 : 2;
+      for (const t of ts) {
+        const pts = [[p.x, p.y - 30]], hit = new Set(); let cur = t;
+        for (let k = 0; k <= chain && cur; k++) { hit.add(cur); pts.push([cur.x, cur.y - FOES[cur.type].h * 0.4]); hurtFoe(cur, 12, w, cur.x - pts[pts.length - 2][0], cur.y - pts[pts.length - 2][1]); if (s10) cur.stun = 0.6; let nb = null, nd = 120 * 120; for (const g of B.foes) { if (g.dead || hit.has(g)) continue; const d2 = (g.x - cur.x) ** 2 + (g.y - cur.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } } cur = nb; }
+        fxAdd({ k: 'bolt', pts, life: 0.16, max: 0.16 });
+      }
+      sfx.zap();
+    } else if (w.id === 'cane') {
+      w.cd = 2; const ts = B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw / 2 && Math.abs(f.y - p.y) < vh / 2);
+      for (let i = 0; i < lv; i++) { const t = ts.length ? pick(ts) : null, x = t ? t.x : p.x + rand(-150, 150), y = t ? t.y : p.y + rand(-200, 200); B.lobs.push({ k: 'cane', x, y, t: -i * 0.07, dur: 0.38, r: (s5 ? 50 : 36) * ar(), dmg: 22, w, shards: s10 }); }
     }
   }
 }
-
-function awakenFx(w) {
-  if (headless) return; const p = B.p;
-  toast(`${CARDS[w.id].name} 각성!`); sfx.rare();
-  fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.7, max: 0.7 });
-  for (let i = 0; i < 20; i++) { const a = i / 20 * 6.283, sp = rand(140, 260); fxAdd({ k: 'star', x: p.x, y: p.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.7, max: 0.7, col: i % 2 ? '#FFD23F' : '#FFFFFF', r: 6 }); }
-  fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.5, max: 0.5, col: '#FFD23F', w: 8 });
+/* 던진 폭탄과 떨어지는 사탕: 정해진 시간 뒤에 터져요 */
+function updateLobs(dt) {
+  for (const L of B.lobs) {
+    L.t += dt; if (L.t < L.dur) continue; L.done = true;
+    if (L.k === 'bomb') {
+      blast(L.x, L.y, L.r, L.dmg, L.w, '#8B5A3C'); sfx.boom();
+      if (L.cluster && !L.mini) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, d = rand(40, 70); B.lobs.push({ k: 'bomb', mini: true, x0: L.x, y0: L.y, x: L.x + Math.cos(a) * d, y: L.y + Math.sin(a) * d, t: 0, dur: 0.3, r: L.r * 0.55, dmg: 10, w: L.w }); }
+    } else {
+      blast(L.x, L.y, L.r, L.dmg, L.w, '#E8323C'); sfx.thud(); B.shake = Math.max(B.shake, 0.06);
+      if (L.shards) for (let i = 0; i < 6; i++) { const a = i * 1.047 + Math.random() * 0.3; B.shots.push({ k: 'star', x: L.x, y: L.y, vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, r: 6, dmg: 9, pierce: 1, life: 0.5, w: L.w, hit: new Set() }); }
+    }
+  }
+  B.lobs = B.lobs.filter(L => !L.done);
 }
 function levelUp() {
-  B.lvl++; B.xp -= B.need; B.need = Math.round(5 + 2.6 * (B.lvl - 1));
+  B.lvl++; B.xp -= B.need; B.need = needOf(B.lvl); run.lvl = B.lvl;
   if (has('sprinkle')) { B.foes.forEach(f => { if (!f.dead && (f.x - B.p.x) ** 2 + (f.y - B.p.y) ** 2 < 130 * 130) hurtFoe(f, 30, null); }); fxAdd({ k: 'ring', x: B.p.x, y: B.p.y, r: 10, to: 130, life: 0.3, max: 0.3, col: '#FF8FB8', w: 6 }); }
-  const ups = B.weapons.filter(w => w.lv < WMAX).map(w => w.lv + 1 === AW ? { t: 'up', w, aw: true, title: `${CARDS[w.id].name} 각성!`, desc: `Lv${w.lv} → Lv${AW}. ${AWAKE[w.id]}`, icon: w.id } : { t: 'up', w, title: `${CARDS[w.id].name} 강화`, desc: `이번 전투 동안 Lv${w.lv} → Lv${w.lv + 1}. 더 세져요.${w.lv + 2 === AW ? ' 한 번 더 올리면 각성해요!' : ''}`, icon: w.id });
-  ups.sort((a, b) => (b.aw ? 1 : 0) - (a.aw ? 1 : 0));
-  const buffs = [
-    ...(B.p.hp < B.p.max ? [{ t: 'heal', title: '달콤한 한 입', desc: '하트를 1칸 채워요.', icon: 'heart' }] : []),
-    { t: 'dmg', title: '설탕 폭주', desc: '이번 전투 동안 주는 피해가 12% 늘어요.', icon: 'star' },
-    { t: 'spd', title: '가벼운 발걸음', desc: '이번 전투 동안 10% 빨리 달려요.', icon: 'honey' }
-  ];
-  const aws = ups.filter(u => u.aw), rest = shuffle(ups.filter(u => !u.aw)); rest.sort((a, b) => b.w.lv - a.w.lv + (Math.random() - 0.5) * 1.5); const opts = aws.slice(0, 1).concat(rest).slice(0, 2).concat(shuffle(buffs)).slice(0, 3);
-  const apply = o => { if (o.t === 'up') { o.w.lv++; if (o.w.lv === AW) awakenFx(o.w); } else if (o.t === 'heal') B.p.hp = Math.min(B.p.max, B.p.hp + 1); else if (o.t === 'dmg') B.buffDmg *= 1.12; else B.buffSpd *= 1.1; };
-  if (headless) { apply(opts[0]); return; }
+  if (headless) { const o = rollLevelOpts(); applyLevel(o[0]); return; }
   /* 빛기둥, 고리, 별가루, 큰 글자. 주변 적은 밀려나고 잠깐 느려져요 */
   const p = B.p; B.lvlPending = true; sfx.level(); B.slow = 1.1; p.inv = Math.max(p.inv, 1.4);
   fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.9, max: 0.9 });
@@ -479,15 +540,42 @@ function levelUp() {
   B.flashScr = { col: '255,230,140', t: 0.4, max: 0.4 };
   const ban = el('div', 'lvl-ban', `<b>LEVEL UP!</b><span>Lv ${B.lvl}</span>`); fxLayer.appendChild(ban); setTimeout(() => ban.remove(), 760);
   const lv = $('#lvText'); lv.classList.remove('pop'); void lv.offsetWidth; lv.classList.add('pop');
-  setTimeout(() => { if (!B || B.over) { if (B) B.lvlPending = false; return; } B.lvlPending = false; B.paused = true; openLevelSheet(); }, 720);
-  const openLevelSheet = () => {
-  sheet(`<h2 id="cardTitle">레벨 ${B.lvl}!</h2><p>하나를 골라요. 이번 전투가 끝날 때까지 이어져요.</p><div class="opts">${opts.map((o, i) => `<button class="opt${o.aw ? ' r2' : ''}" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[o.icon])}</span><span class="tx"><b>${o.title}</b><span>${o.desc}</span></span></button>`).join('')}</div>`,
-    (act, b) => { if (b.closest('.lock')) return; apply(opts[+b.dataset.i]); closeSheet(); sfx.good(); B.paused = false; last = performance.now();
-      fxAdd({ k: 'ring', x: B.p.x, y: B.p.y - 20, r: 10, to: 90, life: 0.35, max: 0.35, col: '#FFFFFF', w: 5 }); });
-  cardEl.classList.add('lvl'); flipReveal();
-  };
+  setTimeout(() => { if (!B || B.over) { if (B) B.lvlPending = false; return; } B.lvlPending = false; B.paused = true; levelSheet(rollLevelOpts()); }, 720);
 }
-
+/* 선택지: 아직 Lv10이 아닌 무기 10가지 + 능력 3가지가 모두 같은 확률 */
+function rollLevelOpts() {
+  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(Object.keys(STATS).map(id => ({ t: 's', id })));
+  return shuffle(pool).slice(0, M('choice') ? 4 : 3);
+}
+function applyLevel(o) {
+  if (o.t === 's') { run.bonus[o.id]++; B.st = battleStats(); return; }
+  let w = run.wpn.find(x => x.id === o.id);
+  if (w) { w.lv++; const bw = B.weapons.find(x => x.src === w); if (bw) bw.lv = w.lv; if (w.lv === 5 || w.lv === 10) specialFx(w); }
+  else { w = { id: o.id, lv: 1 }; run.wpn.push(w); B.weapons.push({ id: w.id, lv: 1, src: w, cd: 0.2, ang: 0 }); }
+}
+function levelSheet(opts) {
+  /* 짧게: 무기는 레벨만, 능력은 한 줄. Lv5·Lv10이 되는 카드는 색으로 구분 */
+  const optHtml = (o, i) => {
+    if (o.t === 's') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[STATS[o.id].icon])}</span><span class="tx"><b>${STATS[o.id].name}</b></span></button>`;
+    const lv = wLv(o.id), nx = lv + 1, W = WEAPONS[o.id];
+    return `<button class="opt lvc${nx === 10 ? ' lv10' : nx === 5 ? ' lv5' : ''}" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${W.name}</b><span>${lv ? `Lv${lv} → Lv${nx}` : '새 무기 Lv1'}${nx === 5 || nx === 10 ? ' · 특별 효과' : ''}</span></span></button>`;
+  };
+  sheet(`<h2 id="cardTitle">레벨 ${B.lvl}!</h2><div class="opts">${opts.map(optHtml).join('')}</div>${run.rerolls > 0 ? `<button class="btn" type="button" data-act="reroll">다시 뽑기 (${run.rerolls}번 남음)</button>` : ''}`,
+    (act, b) => {
+      if (b.closest('.lock')) return;
+      if (act === 'reroll') { run.rerolls--; sfx.flip(); levelSheet(rollLevelOpts()); return; }
+      applyLevel(opts[+b.dataset.i]); closeSheet(); sfx.good(); B.paused = false; last = performance.now();
+      fxAdd({ k: 'ring', x: B.p.x, y: B.p.y - 20, r: 10, to: 90, life: 0.35, max: 0.35, col: '#FFFFFF', w: 5 });
+    });
+  cardEl.classList.add('lvl'); flipReveal();
+}
+function specialFx(w) {
+  if (headless) return; const p = B.p;
+  toast(`${WEAPONS[w.id].name} Lv${w.lv} 특별 효과!`); sfx.rare();
+  fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.7, max: 0.7 });
+  for (let i = 0; i < 20; i++) { const a = i / 20 * 6.283, sp = rand(140, 260); fxAdd({ k: 'star', x: p.x, y: p.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.7, max: 0.7, col: i % 2 ? '#FFD23F' : '#FFFFFF', r: 6 }); }
+  fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.5, max: 0.5, col: '#FFD23F', w: 8 });
+}
 function bossThink(f, dt) {
   const p = B.p; f.stT -= dt;
   if (f.st === 0 && f.stT <= 0) {
@@ -518,14 +606,16 @@ function update(dt) {
   if (B.auto) [mx, my] = autopilot(); else if (B.joy) { mx = B.joy.dx; my = B.joy.dy; }
   const mm = Math.hypot(mx, my); p.moving = mm > 0.12;
   if (p.moving) {
-    const sp = 172 * B.st.spd * B.buffSpd * (has('cape') && p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
+    const sp = 172 * B.st.spd * (has('cape') && p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
     p.x += mx / mm * sp * k * dt; p.y += my / mm * sp * k * dt; p.dirX = mx / mm; p.dirY = my / mm; if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1; p.bob += dt * 12;
   }
   if (p.inv > 0) p.inv -= dt;
   /* 적 등장 */
-  const rate = (0.85 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * (1 + 0.12 * B.floor) * (B.big ? 0.5 : 1) * DF().spawn * 1.2;
-  B.spawnAcc += rate * dt;
-  while (B.spawnAcc >= 1 && B.foes.length < 168) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); spawnRing(pick(pool)); }
+  const rate = (0.6 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * stageMul() * (B.big ? 0.5 : 1) * DF().spawn * 1.2;
+  if (!B.rush && B.t >= 120) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
+  if (B.rush && !headless && ZOOM > 0.78) { ZOOM = Math.max(0.78, ZOOM - dt * 0.15); resize(); }     // 화면을 천천히 넓혀서 더 많이 보여요
+  B.spawnAcc += rate * (B.rush ? 1.3 : 1) * dt;
+  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing('donut'); bigIntro(); }
   if (B.bossAt > 0 && B.t >= B.bossAt && !B.big) { B.big = spawnRing('boss'); bigIntro(); }
@@ -533,14 +623,14 @@ function update(dt) {
   for (const f of B.foes) {
     if (f.dead) continue;
     if (f.flash > 0) f.flash -= dt;
-    if (f.slow > 0) f.slow -= dt;
+    if (f.slow > 0) f.slow -= dt; if (f.stun > 0) f.stun -= dt;
     if (f.acid > 0) { f.acidT -= dt; if (f.acidT <= 0) { f.acidT = 0.5; const d = f.acid * 0.9; f.hp -= d * B.st.dmg; f.acid = Math.max(0, f.acid - 0.5); textAdd(f.x, f.y - f.r, Math.round(d), '#7FA81E'); if (f.hp <= 0) { killFoe(f, null); continue; } } }
     let busy = false;
     if (f.type === 'boss') bossThink(f, dt); else if (f.type === 'donut') busy = eliteThink(f, dt);
     const dx = p.x - f.x, dy = p.y - f.y, m = Math.hypot(dx, dy) || 1;
     if (f.sq > 0) f.sq = Math.max(0, f.sq - dt * 3);
     if (f.kx || f.ky) { f.x += f.kx * dt; f.y += f.ky * dt; const dec = Math.exp(-dt * 11); f.kx *= dec; f.ky *= dec; if (Math.abs(f.kx) + Math.abs(f.ky) < 8) f.kx = f.ky = 0; }
-    if (!busy) { const sp = f.spd * (f.slow > 0 ? 0.55 : 1) * (f.kx || f.ky ? 0.25 : 1); f.x += dx / m * sp * dt; f.y += dy / m * sp * dt; }
+    if (!busy && !(f.stun > 0)) { const sp = f.spd * (f.slow > 0 ? 0.55 : 1) * (f.kx || f.ky ? 0.25 : 1); f.x += dx / m * sp * dt; f.y += dy / m * sp * dt; }
     f.ph += dt * 7;
     if (m < f.r + HERO_R) hurtPlayer(f.type);
     if (m > 900) { const a = Math.random() * 6.283, R = Math.hypot(vw, vh) / 2 + 40; f.x = p.x + Math.cos(a) * R; f.y = p.y + Math.sin(a) * R; }   // 너무 멀어지면 다시 근처로
@@ -548,7 +638,7 @@ function update(dt) {
   /* 서로 겹치지 않게 살짝 밀어내요 */
   const F = B.foes;
   for (let i = 0; i < F.length; i++) { const a = F[i]; if (a.dead) continue; for (let j = i + 1; j < F.length; j++) { const b = F[j]; if (b.dead) continue; const dx = b.x - a.x; if (dx > 40 || dx < -40) continue; const dy = b.y - a.y, rr = a.r + b.r, d2 = dx * dx + dy * dy; if (d2 < rr * rr && d2 > 0.01) { const d = Math.sqrt(d2), push = (rr - d) * 0.5 / d, wa = a === B.big ? 0 : b === B.big ? 2 : 1; a.x -= dx * push * wa; a.y -= dy * push * wa; b.x += dx * push * (2 - wa); b.y += dy * push * (2 - wa); } } }
-  fireWeapons(dt);
+  fireWeapons(dt); updateLobs(dt);
   /* 내 탄 */
   for (const s of B.shots) {
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
@@ -556,7 +646,7 @@ function update(dt) {
       if (!s.back && s.life < 0.75) { s.back = true; s.hit = new Set(); }
       if (s.back) { const dx = p.x - s.x, dy = p.y - 10 - s.y, d = Math.hypot(dx, dy) || 1; s.vx += (dx / d * 520 - s.vx) * Math.min(1, dt * 6); s.vy += (dy / d * 520 - s.vy) * Math.min(1, dt * 6); s.a = Math.atan2(s.vy, s.vx); if (d < 22) s.life = 0; }
     }
-    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { s.hit.add(f); if (s.acid) f.acid += s.acid * B.st.acid; hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
+    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { s.hit.add(f); if (s.acid) f.acid += s.acid; hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
       if (s.puddle && B.zones.length < 24) B.zones.push({ x: f.x, y: f.y, r: 34, life: 2.5, tick: 0.2, dmg: s.dmg * 0.25, w: s.w, cream: true });
       if (s.bounce > 0) {   // 튕기는 별사탕: 가까운 다른 적에게
         let nb = null, nd = 170 * 170; for (const g of B.foes) { if (g.dead || s.hit.has(g) || g === f) continue; const d2 = (g.x - s.x) ** 2 + (g.y - s.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } }
@@ -581,7 +671,7 @@ function update(dt) {
     if (g.vz != null) { g.x += g.vx * dt; g.y += g.vy * dt; g.z += g.vz * dt; g.vz -= 700 * dt; if (g.z <= 0) { if (g.vz < -120) { g.vz *= -0.35; g.z = 0.1; g.vx *= 0.5; g.vy *= 0.5; } else { g.z = 0; g.vz = null; } } continue; }
     if (!g.pull && d2 < pr2) { g.pull = true; g.sp = -120; }
     if (g.pull) {
-      const d = Math.sqrt(d2) || 1; g.sp = Math.min(900, g.sp + 1500 * dt);     // 살짝 튕겨 나갔다가 빨려 들어와요
+      const d = Math.sqrt(d2) || 1; g.sp = Math.min(d > 400 ? 1600 : 900, g.sp + 1500 * dt);     // 살짝 튕겨 나갔다가 빨려 들어와요
       g.x += dx / d * g.sp * dt; g.y += dy / d * g.sp * dt;
       if (d < 18) { g.got = true; B.xp += g.v * B.st.xp * (1 + 0.12 * B.floor); B.gemCombo = B.gemT > 0 ? B.gemCombo + 1 : 0; B.gemT = 0.5; sfx.gem(B.gemCombo); B.xpFlash = 0.25;
         fxAdd({ k: 'flash', x: p.x, y: p.y - 26, r: 12, life: 0.12, max: 0.12, col: g.v >= 5 ? '#FFC2DA' : g.v >= 2 ? '#C9F7B8' : '#BFE6FF' });
@@ -590,6 +680,8 @@ function update(dt) {
   }
   B.gems = B.gems.filter(g => !g.got); if (B.gems.length > 220) B.gems.splice(0, B.gems.length - 220);
   if (B.gemT > 0) B.gemT -= dt; if (B.xpFlash > 0) B.xpFlash -= dt;
+  /* 자석: 먹으면 화면 밖까지 모든 보석이 빨려 와요 */
+  if (B.magnet) { const m = B.magnet; m.ph += dt * 5; if ((p.x - m.x) ** 2 + (p.y - m.y) ** 2 < 26 * 26) { B.magnet = null; for (const g of B.gems) { g.vz = null; g.z = 0; if (!g.pull) { g.pull = true; g.sp = 200; } } sfx.magnet(); if (!headless) { toast('자석! 보석이 전부 모여요'); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.5, max: 0.5, col: '#FF4F6B', w: 6 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: 200, life: 0.4, max: 0.4, col: '#FFFFFF', w: 4 }); } } }
   /* 걸을 때 발밑 먼지 */
   if (p.moving && !headless) { B.dustT = (B.dustT || 0) - dt; if (B.dustT <= 0) { B.dustT = 0.16; fxAdd({ k: 'dot', x: p.x + rand(-6, 6), y: p.y + 2, vx: -p.dirX * 30 + rand(-15, 15), vy: rand(-30, -10), life: 0.4, max: 0.4, col: 'rgba(200,150,90,.55)', r: rand(3, 5) }); } }
   while (B.xp >= B.need && !B.over && !B.paused && !B.lvlPending) levelUp();
@@ -610,8 +702,9 @@ function autopilot() {
   for (const t of B.telegraphs) if (t.k === 'line') { const c = Math.cos(t.a), sn = Math.sin(t.a), rx = p.x - t.f.x, ry = p.y - t.f.y, along = rx * c + ry * sn, side = -rx * sn + ry * c; if (along > -30 && along < t.len + 60 && Math.abs(side) < t.f.r + 50) { const sg = side >= 0 ? 1 : -1; x += -sn * sg * 4; y += c * sg * 4; } }
   for (const s of B.foes) if (s.type === 'donut' && s.st === 2) { const c = Math.cos(s.da), sn = Math.sin(s.da), rx = p.x - s.x, ry = p.y - s.y, side = -rx * sn + ry * c; if (rx * c + ry * sn > 0 && Math.abs(side) < s.r + 50) { const sg = side >= 0 ? 1 : -1; x += -sn * sg * 4; y += c * sg * 4; } }
   for (const t of B.telegraphs) if (t.k === 'circle') { const dx = p.x - t.x, dy = p.y - t.y, d = Math.hypot(dx, dy) || 1; if (d < t.r + 30) { x += dx / d * 3; y += dy / d * 3; } }
-  let g = null, gd = 220 * 220; for (const q of B.gems) { const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < gd) { gd = d; g = q; } }
-  if (g) { const dx = g.x - p.x, dy = g.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 0.6; y += dy / d * 0.6; }
+  let g = null, gd = 300 * 300; for (const q of B.gems) { const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < gd) { gd = d; g = q; } }
+  if (g) { const dx = g.x - p.x, dy = g.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 1.1; y += dy / d * 1.1; }
+  if (B.magnet) { const dx = B.magnet.x - p.x, dy = B.magnet.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 1.5; y += dy / d * 1.5; }
   if (Math.hypot(x, y) < 0.05) { x = Math.cos(B.t * 0.7); y = Math.sin(B.t * 0.7); }
   return [x, y];
 }
@@ -620,11 +713,11 @@ function endBattle(won) {
   if (B.over) return; B.over = true;
   const info = { won, kind: B.kind, floor: B.floor, bigDead: B.bigDead, kills: B.kills, time: B.t };
   run.hp = Math.max(won ? 1 : 0, Math.min(run.maxHp, B.p.hp));
-  run.kills = (run.kills || 0) + B.kills;
+  run.kills = (run.kills || 0) + B.kills; run.lvl = B.lvl; run.xp = B.xp;
   const cb = B.onEnd;
   if (headless) { B.result = info; return; }
   if (won) sfx.win(); else sfx.lose();
-  setTimeout(() => { B = null; cb(info); }, 900);
+  setTimeout(() => { B = null; ZOOM = 1; cb(info); }, 900);
 }
 
 /* ───── 그리기: 낮은 해상도로 그린 뒤 크게 키우는 픽셀 화면. 화면 1칸 = 게임 속 길이 2 ───── */
@@ -707,6 +800,11 @@ function draw() {
     ctx.drawImage(G, gx - (G.width >> 1), gy - z - (G.height >> 1));
     if (pulse) { pstar(gx + 3, gy - z - 4, 2, '#FFFFFF'); }
   }
+  /* 자석 아이템 */
+  if (B.magnet) { const m = B.magnet, mx = X(m.x), my = Y(m.y) - 3 - Math.round(Math.abs(Math.sin(m.ph)) * 3), big = Math.floor(B.t * 4) % 2;
+    ctx.drawImage(dDisc(big ? 11 : 9, big ? 8 : 6, '#FF4F6B', 6), mx - (big ? 11 : 9), my - (big ? 8 : 6)); R('rgba(14,6,20,.5)', mx - 4, Y(m.y) + 2, 8, 1);
+    R(INK, mx - 6, my - 6, 13, 12); R('#E8323C', mx - 5, my - 5, 11, 9); R(INK, mx - 2, my - 5, 5, 6); R('#DDE3EA', mx - 5, my + 2, 3, 2); R('#DDE3EA', mx + 3, my + 2, 3, 2); R('#FF9AA6', mx - 4, my - 4, 2, 1);
+    if (big) pstar(mx + 6, my - 7, 2, '#FFFFFF'); }
   /* 적과 나를 아래쪽에 있는 것부터 겹쳐 그려요 */
   const list = B.foes.slice(); list.push(p); list.sort((a, b) => a.y - b.y);
   for (const o of list) {
@@ -726,7 +824,7 @@ function draw() {
     }
   }
   /* 무기 */
-  for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (awake(w)) putDisc(X(ox), Y(oy), 7, 7, '#FFD86B', Math.round(4 + 8 * (1 - Math.max(0, w.burstT) / 2.5))); ctx.drawImage(MAC, X(ox) - 4, Y(oy) - 4); }
+  for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (w.lv >= 10) putDisc(X(ox), Y(oy), 7, 7, '#FFD86B', Math.round(4 + 8 * (1 - Math.max(0, w.burstT) / 2.5))); ctx.drawImage(MAC, X(ox) - 4, Y(oy) - 4); }
   for (const s of B.shots) {
     const sx = X(s.x), sy = Y(s.y);
     if (s.k === 'skewer') {
@@ -742,12 +840,32 @@ function draw() {
     else { R(INK, sx - 1, sy - 2, 3, 5); R(INK, sx - 2, sy - 1, 5, 3); R(col, sx - 1, sy - 1, 3, 3); R(s.k === 'lemon' ? '#FFFFC0' : '#FFD9E6', sx - 1, sy - 1, 1, 1); }
   }
   for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#B14FE0', sx - 2, sy - 2, 5, 5); R('#F0C8FF', sx - 1, sy - 1, 2, 2); }
+  /* 던진 초코 폭탄, 떨어지는 지팡이 사탕 */
+  for (const L of B.lobs) {
+    const k = Math.max(0, Math.min(1, L.t / L.dur)), tx0 = X(L.x), ty0 = Y(L.y);
+    if (L.k === 'bomb') {
+      const bx = Math.round(X(L.x0) + (tx0 - X(L.x0)) * k), by = Math.round(Y(L.y0) + (ty0 - Y(L.y0)) * k - Math.sin(k * Math.PI) * 26), s2 = L.mini ? 2 : 3;
+      R('rgba(14,6,20,.5)', tx0 - 3, ty0 + 1, 6, 1); pcircle(tx0, ty0, Math.round(L.r / WP * k), 'rgba(255,107,61,.5)');
+      R(INK, bx - s2 - 1, by - s2 - 1, s2 * 2 + 3, s2 * 2 + 3); R('#6B3A1E', bx - s2, by - s2, s2 * 2 + 1, s2 * 2 + 1); R('#A0663C', bx - s2, by - s2, 2, 2); if (Math.floor(B.t * 20) % 2) R('#FFD23F', bx + s2, by - s2 - 2, 1, 1);
+    } else {
+      if (L.t < 0) continue;
+      const r = Math.round(L.r / WP); pcircle(tx0, ty0, Math.max(1, Math.round(r * (0.4 + 0.6 * k))), k > 0.7 ? '#FFFFFF' : '#FF8FA8');
+      const cy0 = Math.round(ty0 - 90 * (1 - k)), sx = tx0;
+      R(INK, sx - 2, cy0 - 18, 5, 19); for (let j = 0; j < 17; j++) R(Math.floor((j + B.t * 30) / 3) % 2 ? '#E8323C' : '#FFFFFF', sx - 1, cy0 - 17 + j, 3, 1);
+      R(INK, sx - 1, cy0 - 21, 7, 4); R('#FFFFFF', sx, cy0 - 20, 4, 2); R('#E8323C', sx + 3, cy0 - 19, 2, 3);
+    }
+  }
   /* 효과 */
   for (const f of B.fx) {
     const k = Math.max(0, f.life / f.max), fx = X(f.x), fy = Y(f.y);
     if (f.k === 'dot') { const s = Math.max(1, Math.round(f.r / WP * (0.5 + 0.5 * k))); R(f.col, fx, fy, s, s); }
     else if (f.k === 'line') pline(fx, fy, X(f.x - f.vx * 0.04), Y(f.y - f.vy * 0.04), f.col);
     else if (f.k === 'star') pstar(fx, fy, k > 0.5 ? 2 : 1, f.col);
+    else if (f.k === 'bolt') {   /* 솜사탕 번개: 지그재그 줄기 */
+      for (let i = 1; i < f.pts.length; i++) { const [ax, ay] = f.pts[i - 1], [bx, by] = f.pts[i], mx = (ax + bx) / 2 + rand(-10, 10), my = (ay + by) / 2 + rand(-10, 10);
+        for (const [c, t] of [[k > 0.5 ? '#FF8FD0' : '#C77DFF', 3], [k > 0.4 ? '#FFFFFF' : '#FFE7F0', 1]]) { pline(X(ax), Y(ay), X(mx), Y(my), c, t); pline(X(mx), Y(my), X(bx), Y(by), c, t); }
+        pstar(X(bx), Y(by), 2, '#FFFFFF'); }
+    }
     else if (f.k === 'slash') {   /* 치명타: 맞은 자리를 가르는 X자 섬광 */
       const L = Math.round(16 * (k > 0.5 ? 1 : k * 2)), a = f.a + 0.785;
       for (const b of [a, a + 1.571]) { const c = Math.cos(b), s2 = Math.sin(b); pline(Math.round(fx - c * L), Math.round(fy - s2 * L), Math.round(fx + c * L), Math.round(fy + s2 * L), INK, 3); pline(Math.round(fx - c * L), Math.round(fy - s2 * L), Math.round(fx + c * L), Math.round(fy + s2 * L), k > 0.6 ? '#FFFFFF' : '#FFD86B', 1); }
@@ -778,7 +896,7 @@ function draw() {
   ctx.drawImage(vignette(), 0, 0);
   for (let i = 0; i < 14; i++) { const sx = Math.round(((i * 53 + B.t * (4 + i % 5 * 2)) % (lw + 10)) - 5), sy = Math.round(((i * 91 - B.t * (7 + i % 4 * 3)) % lh + lh) % lh); if (Math.sin(B.t * 2 + i) > -0.3) R(i % 3 ? 'rgba(255,231,240,.45)' : 'rgba(201,182,217,.45)', sx, sy, 1, 1); }
   /* 글자, 번쩍임, 조이스틱은 위에 겹친 선명한 판에 그려요 */
-  const d = cv2.width / innerWidth, U = PXS * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
+  const d = cv2.width / innerWidth, U = PZ * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
   if (B.flashScr) { const fk = B.flashScr.t / B.flashScr.max; if (fk <= 0) B.flashScr = null; else { tx.fillStyle = `rgba(${B.flashScr.col},${0.4 * fk})`; tx.fillRect(0, 0, cv2.width, cv2.height); } }
   tx.textAlign = 'center';
   for (const t of B.texts) {
@@ -897,11 +1015,11 @@ cardEl.addEventListener('click', e => { const b = e.target.closest('[data-act]')
 
 /* ───── 지도 ───── */
 const NODE = {
-  battle: { name: '전투', desc: '3분 동안 버텨요. 끝나면 카드 3장 중 1장을 골라요.', img: 'jelly' },
-  elite: { name: '엘리트 전투', desc: '1분 30초에 딱딱 도넛 기사가 나타나요. 잡으면 유물에 더해 인챈트도 받아요.', img: 'donut' },
+  battle: { name: '전투', desc: '3분 동안 버텨요. 이기면 골드와 하트 1칸을 받아요.', img: 'jelly' },
+  elite: { name: '엘리트 전투', desc: '1분 30초에 딱딱 도넛 기사가 나타나요. 이기면 유물을 받아요.', img: 'donut' },
   boss: { name: '보스: 곰팡이 케이크', desc: '3분에 보스가 나타나요. 잡거나 5분을 버티면 이겨요.', img: 'boss' },
-  shop: { name: '상점', desc: '골드로 카드, 유물, 코코아를 사거나 카드를 덱에서 빼요.', icon: 'shop' },
-  rest: { name: '휴식처', desc: '하트를 채우거나 카드 1장을 강화해요.', icon: 'rest' },
+  shop: { name: '상점', desc: '골드로 유물, 무기 손질, 케이크, 코코아를 사요.', icon: 'shop' },
+  rest: { name: '휴식처', desc: '하트를 채우거나 무기 하나의 레벨을 올려요.', icon: 'rest' },
   event: { name: '수상한 일', desc: '무슨 일이 생길지 몰라요. 둘 중 하나를 골라요.', icon: 'event' },
   chest: { name: '보물 상자', desc: '유물 1개를 얻어요.', icon: 'chest' }
 };
@@ -972,30 +1090,17 @@ $('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo')
 $('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; const r = RELICS[b.dataset.relic]; sfx.tap(); info(`<h3>${r.name}</h3><p>유물. ${r.desc}</p>`); });
 function arrive(id) { run.at = id; run.done.push(id); run.floor = run.map.nodes[id].row; persist(); }
 
-/* ───── 장착 ───── */
-function fixEquip() { run.equip = run.equip.filter(i => i < run.deck.length); if (run.deck.length <= 6) run.equip = run.deck.map((_, i) => i); }
-function equipSheet(next) {
-  fixEquip();
-  if (run.deck.length <= 6) { next(); return; }
-  const draw = () => sheet(`<h2 id="cardTitle">들고 갈 카드 고르기</h2><p>6장까지 들고 갈 수 있어요. 지금 ${run.equip.length}장 골랐어요.</p><div class="opts">${run.deck.map((c, i) => cardOpt(c, i, { act: 'toggle', on: run.equip.includes(i) })).join('')}</div><button class="cta" type="button" data-act="go" data-pref>전투 시작</button>`,
-    (act, b) => {
-      if (act === 'go') { if (!run.equip.some(i => CARDS[run.deck[i].id].type === 'w')) { sfx.no(); return; } closeSheet(); persist(); next(); return; }
-      const i = +b.dataset.i, at = run.equip.indexOf(i);
-      if (at >= 0) run.equip.splice(at, 1); else if (run.equip.length < 6) run.equip.push(i); else { sfx.no(); return; }
-      sfx.tap(); const top = cardEl.scrollTop; draw(); cardEl.scrollTop = top;
-    });
-  draw();
+/* ───── 무기 보기 ───── */
+function weaponSheet() {
+  const st = battleStats(), list = run.wpn.map(w => `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${w.lv >= WMAX ? ' (최고)' : ''}</b><span>${wDescFull(w.id)}</span></span></div>`).join('');
+  sheet(`<h2 id="cardTitle">내 무기 ${run.wpn.length}개 · Lv ${run.lvl}</h2><p>공격력 ${Math.round(st.dmg * 100)}% · 치명타 ${Math.round(st.crit * 100)}% · 이동 속도 ${Math.round(st.spd * 100)}%</p><div class="opts">${list}</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`, () => closeSheet());
 }
-function deckSheet() {
-  sheet(`<h2 id="cardTitle">내 덱 ${run.deck.length}장</h2><p>6장이 넘으면 전투 전에 들고 갈 카드를 골라요.</p><div class="opts">${run.deck.map((c, i) => cardOpt(c, i, { act: 'none', on: run.equip.includes(i) })).join('')}</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
-    act => { if (act === 'close') closeSheet(); });
-}
-$('#btnDeck').addEventListener('click', () => { sfx.tap(); fixEquip(); deckSheet(); });
+$('#btnDeck').addEventListener('click', () => { sfx.tap(); weaponSheet(); });
 
 /* ───── 칸에 들어가기 ───── */
 function enter(id) {
   if (!canGo(id)) return; const n = run.map.nodes[id]; sfx.tap();
-  if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') equipSheet(() => startBattle(n.type, diffOf(n.row, mapRows()), r => afterBattle(id, r)));
+  if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') startBattle(n.type, diffOf(n.row, mapRows()), r => afterBattle(id, r));
   else if (n.type === 'rest') { arrive(id); showMap(); restSheet(); }
   else if (n.type === 'shop') { arrive(id); showMap(); shopSheet(); }
   else if (n.type === 'chest') { arrive(id); showMap(); const r = rollRelic(); if (r) relicSheet(r, '보물 상자를 열었어요', showMap); else { run.gold += 40; showMap(); } }
@@ -1003,23 +1108,15 @@ function enter(id) {
 }
 function afterBattle(id, r) {
   if (!r.won) { gameOver(r); return; }
-  arrive(id);
-  const healed = run.hp < run.maxHp; run.hp = Math.min(run.maxHp, run.hp + 1 + (has('jar') && r.kind === 'elite' ? 1 : 0));
+  arrive(id); if (r.kind === 'elite' && r.bigDead) run.elites = (run.elites || 0) + 1;
+  run.hp = Math.min(run.maxHp, run.hp + 1 + (has('jar') && r.kind === 'elite' ? 1 : 0));
   const gold = goldGain(18 + 6 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
   if (r.kind === 'boss') { victory(r); return; }
   showMap();
-  const steps = [];
-  steps.push(next => winFx(r.kind === 'elite' ? '엘리트 격파!' : '승리!', gold, oldGold, next));
-  steps.push(next => rewardCards(`카드 보상${healed ? ' · 하트 +1' : ''}`, next));
-  if (r.kind === 'elite') { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '엘리트 전투 보상', next)); if (r.bigDead) steps.push(enchantSheet); else if (!run.potion && Math.random() < 0.5) steps.push(next => { run.potion = true; noteSheet('따뜻한 코코아를 얻었어요', '하트가 다 없어지면 저절로 마시고 하트 1칸으로 다시 일어나요.', 'cocoa', next); }); }
+  const steps = [next => winFx(r.kind === 'elite' ? '엘리트 격파!' : '승리!', gold, oldGold, next)];
+  if (r.kind === 'elite') { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '엘리트 전투 보상', next)); if (!run.potion && Math.random() < 0.5) steps.push(next => { run.potion = true; noteSheet('따뜻한 코코아를 얻었어요', '하트가 다 없어지면 저절로 마시고 하트 1칸으로 다시 일어나요.', 'cocoa', next); }); }
   const go = () => { const s = steps.shift(); if (s) s(go); else { persist(); showMap(); } };
   go();
-}
-function rewardCards(title, next) {
-  const opts = rollCards(3);
-  sheet(`<h2 id="cardTitle">${title}</h2><p>카드 1장을 덱에 넣어요. 건너뛰면 골드 10을 받아요.</p><div class="opts">${opts.map((c, i) => cardOpt(c, i)).join('')}</div><button class="btn" type="button" data-act="skip">건너뛰고 골드 10 받기</button>`,
-    (act, b) => { if (b.closest('.lock')) return; if (act === 'skip') { run.gold += 10; sfx.coin(); } else { run.deck.push(opts[+b.dataset.i]); sfx.good(); } closeSheet(); fixEquip(); next(); });
-  flipReveal();
 }
 function relicSheet(id, title, next) {
   const r = RELICS[id]; gainRelic(id); sfx.rare();
@@ -1030,79 +1127,82 @@ function relicSheet(id, title, next) {
 function noteSheet(title, text, icon, next) {
   sheet(`<h2 id="cardTitle">${title}</h2><div class="opts"><div class="opt"><span class="ic">${svg(ICON[icon])}</span><span class="tx"><span>${text}</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); next(); });
 }
-function enchantSheet(next) {
-  const kind = pick(Object.keys(ENCH)), list = run.deck.map((c, i) => [c, i]).filter(([c]) => CARDS[c.id].type === 'w' && !c.ench);
-  if (!list.length) { next(); return; }
-  sheet(`<h2 id="cardTitle">인챈트: ${ENCH[kind].name}</h2><p>엘리트를 잡아서 얻었어요. ${ENCH[kind].desc} 붙일 무기 1장을 골라요.</p><div class="opts">${list.map(([c, i]) => cardOpt(c, i)).join('')}</div>`,
-    (act, b) => { run.deck[+b.dataset.i].ench = kind; sfx.good(); closeSheet(); next(); });
+/* 가진 무기 하나를 골라 1레벨 올려요 */
+function upWeaponSheet(title, done) {
+  const can = run.wpn.filter(w => w.lv < WMAX);
+  if (!can.length) { done(false); return; }
+  sheet(`<h2 id="cardTitle">${title}</h2><p>고른 무기의 레벨이 1 올라요.</p><div class="opts">${can.map((w, i) => wOpt(w.id, i)).join('')}</div>`, (a, b) => { const w = can[+b.dataset.i]; w.lv++; sfx.good(); closeSheet(); done(true); });
 }
 function restSheet() {
-  const heal = has('icepack') ? 2 : 1, can = run.deck.map((c, i) => [c, i]).filter(([c]) => !c.plus);
-  sheet(`<div class="pic">${svg(ICON.rest)}</div><h2 id="cardTitle">휴식처</h2><p>따뜻한 오븐 옆에서 쉬어 가요. 하나만 고를 수 있어요.</p><div class="opts"><button class="opt" type="button" data-act="heal" data-pref><span class="ic">${svg(ICON.heart)}</span><span class="tx"><b>푹 쉬기</b><span>하트를 ${heal}칸 채워요. 지금 ${run.hp}/${run.maxHp}칸.</span></span></button><button class="opt" type="button" data-act="up"${can.length ? '' : ' aria-disabled="true"'}><span class="ic">${svg(ICON.ench)}</span><span class="tx"><b>카드 1장 강화하기</b><span>고른 카드가 이번 모험 내내 더 세져요.</span></span></button></div>`,
+  const heal = has('icepack') ? 3 : 2, can = run.wpn.some(w => w.lv < WMAX);
+  sheet(`<div class="pic">${svg(ICON.rest)}</div><h2 id="cardTitle">휴식처</h2><p>따뜻한 오븐 옆에서 쉬어 가요. 하나만 고를 수 있어요.</p><div class="opts"><button class="opt" type="button" data-act="heal" data-pref><span class="ic">${svg(ICON.heart)}</span><span class="tx"><b>푹 쉬기</b><span>하트를 ${heal}칸 채워요. 지금 ${run.hp}/${run.maxHp}칸.</span></span></button><button class="opt" type="button" data-act="up"${can ? '' : ' aria-disabled="true"'}><span class="ic">${svg(ICON.ench)}</span><span class="tx"><b>무기 손질하기</b><span>가진 무기 하나의 레벨이 1 올라요.</span></span></button></div>`,
     act => {
       if (act === 'heal') { run.hp = Math.min(run.maxHp, run.hp + heal); sfx.good(); closeSheet(); persist(); showMap(); return; }
-      sheet(`<h2 id="cardTitle">강화할 카드</h2><p>카드마다 한 번만 강화할 수 있어요.</p><div class="opts">${can.map(([c, i]) => cardOpt(c, i)).join('')}</div>`, (a, b) => { run.deck[+b.dataset.i].plus = true; sfx.good(); closeSheet(); persist(); showMap(); });
+      upWeaponSheet('손질할 무기', () => { persist(); showMap(); });
     });
 }
 function shopSheet() {
-  const stock = rollCards(3).map(c => ({ c, price: [40, 60, 90][CARDS[c.id].rar], sold: false })), rel = rollRelic(), state = { rel: rel ? { id: rel, price: 110, sold: false } : null, pot: !run.potion };
+  const rel = rollRelic(), state = { rel: rel ? { id: rel, price: 110, sold: false } : null, pot: !run.potion, heart: true, up: true };
+  const row = (act, ic, t, d, price, off) => `<button class="opt" type="button" data-act="${act}"${off || run.gold < price ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON[ic])}</span><span class="tx"><b>${t}</b><span>${d}</span></span><em>${price}골드</em></button>`;
   const draw = () => sheet(`<div class="pic">${svg(ICON.shop)}</div><h2 id="cardTitle">상점</h2><p>가진 골드는 ${run.gold}이에요.</p><div class="opts">`
-    + stock.map((s, i) => s.sold ? '' : cardOpt(s.c, i, { act: 'card', price: s.price, off: run.gold < s.price })).join('')
-    + (state.rel && !state.rel.sold ? `<button class="opt r2" type="button" data-act="relic"${run.gold < state.rel.price ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON[RELICS[state.rel.id].icon])}</span><span class="tx"><b>유물: ${RELICS[state.rel.id].name}</b><span>${RELICS[state.rel.id].desc}</span></span><em>${state.rel.price}골드</em></button>` : '')
-    + (state.pot ? `<button class="opt" type="button" data-act="pot"${run.gold < 60 ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON.cocoa)}</span><span class="tx"><b>따뜻한 코코아</b><span>하트가 다 없어지면 저절로 마시고 다시 일어나요. 하나만 들 수 있어요.</span></span><em>60골드</em></button>` : '')
-    + (run.deck.length > 2 ? `<button class="opt" type="button" data-act="remove"${run.gold < 50 ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON.event)}</span><span class="tx"><b>카드 1장 빼기</b><span>안 쓰는 카드를 덱에서 없애요.</span></span><em>50골드</em></button>` : '')
+    + (state.rel && !state.rel.sold ? row('relic', RELICS[state.rel.id].icon, `유물: ${RELICS[state.rel.id].name}`, RELICS[state.rel.id].desc, state.rel.price).replace('class="opt"', 'class="opt r2"') : '')
+    + (state.up ? row('up', 'ench', '무기 손질', '가진 무기 하나의 레벨이 1 올라요.', 90, !run.wpn.some(w => w.lv < WMAX)) : '')
+    + (state.heart ? row('heart', 'heart', '딸기 케이크 한 조각', '하트를 1칸 채워요.', 45, run.hp >= run.maxHp) : '')
+    + (state.pot ? row('pot', 'cocoa', '따뜻한 코코아', '하트가 다 없어지면 저절로 마시고 다시 일어나요. 하나만 들 수 있어요.', 60) : '')
     + `</div><button class="cta" type="button" data-act="leave" data-pref>상점 나가기</button>`,
-    (act, b) => {
-      if (act === 'leave') { closeSheet(); fixEquip(); persist(); showMap(); return; }
-      if (act === 'card') { const s = stock[+b.dataset.i]; run.gold -= s.price; s.sold = true; run.deck.push(s.c); }
-      else if (act === 'relic') { run.gold -= state.rel.price; state.rel.sold = true; gainRelic(state.rel.id); }
+    act => {
+      if (act === 'leave') { closeSheet(); persist(); showMap(); return; }
+      if (act === 'relic') { run.gold -= state.rel.price; state.rel.sold = true; gainRelic(state.rel.id); }
       else if (act === 'pot') { run.gold -= 60; run.potion = true; state.pot = false; }
-      else if (act === 'remove') {
-        sheet(`<h2 id="cardTitle">뺄 카드</h2><p>고른 카드는 덱에서 사라져요.</p><div class="opts">${run.deck.map((c, i) => cardOpt(c, i)).join('')}</div><button class="btn" type="button" data-act="back">그만두기</button>`,
-          (a, bb) => { if (a !== 'back') { const i = +bb.dataset.i; if (CARDS[run.deck[i].id].type === 'w' && run.deck.filter(c => CARDS[c.id].type === 'w').length <= 1) { sfx.no(); return; } run.deck.splice(i, 1); run.equip = []; run.gold -= 50; fixEquip(); sfx.coin(); } draw(); });
-        return;
-      }
+      else if (act === 'heart') { run.gold -= 45; run.hp = Math.min(run.maxHp, run.hp + 1); state.heart = false; }
+      else if (act === 'up') { upWeaponSheet('손질할 무기', ok => { if (ok) { run.gold -= 90; state.up = false; sfx.coin(); } renderBar(); draw(); }); return; }
       sfx.coin(); renderBar(); draw();
     });
   draw();
 }
 function eventSheet() {
-  const up = run.deck.map((c, i) => [c, i]).filter(([c]) => !c.plus);
   const EVENTS = [
-    { title: '수상한 오븐', text: '혼자 달궈진 오븐에서 좋은 냄새가 나요. 손을 넣으면 데일 것 같아요.', a: ['손을 넣어 꺼내기', '하트를 1칸 잃고 희귀 카드 1장을 얻어요. 마지막 1칸은 남아요.', () => { run.hp = Math.max(1, run.hp - 1); run.deck.push(rollCard(2)); }], b: ['그냥 지나가기', '바닥에 떨어진 골드 15만 주워요.', () => { run.gold += 15; }] },
+    { title: '수상한 오븐', text: '혼자 달궈진 오븐에서 좋은 냄새가 나요. 손을 넣으면 데일 것 같아요.', a: ['손을 넣어 꺼내기', '하트를 1칸 잃고 가진 무기 하나가 1레벨 올라요. 마지막 1칸은 남아요.', () => { run.hp = Math.max(1, run.hp - 1); const c = run.wpn.filter(w => w.lv < WMAX); if (c.length) pick(c).lv++; }], b: ['그냥 지나가기', '바닥에 떨어진 골드 15만 주워요.', () => { run.gold += 15; }] },
     { title: '길 잃은 마카롱 상인', text: '보따리를 멘 마카롱이 물건 하나를 싸게 넘기겠다고 해요.', a: ['골드 45에 사기', '유물 1개를 얻어요.', () => { const r = rollRelic(); run.gold -= 45; if (r) gainRelic(r); }, () => run.gold >= 45 && !!rollRelic()], b: ['정중히 거절하기', '아무 일도 일어나지 않아요.', () => {}] },
-    { title: '설탕 샘', text: '반짝이는 설탕물이 솟는 샘을 찾았어요. 한 가지만 할 수 있어요.', a: ['한 모금 마시기', '하트를 1칸 채워요.', () => { run.hp = Math.min(run.maxHp, run.hp + 1); }], b: ['카드를 담그기', '아무 카드 1장이 강화돼요.', () => { if (up.length) pick(up)[0].plus = true; }, () => up.length > 0] }
+    { title: '설탕 샘', text: '반짝이는 설탕물이 솟는 샘을 찾았어요. 한 가지만 할 수 있어요.', a: ['한 모금 마시기', '하트를 2칸 채워요.', () => { run.hp = Math.min(run.maxHp, run.hp + 2); }], b: ['병에 담아 가기', '경험치 보석 한 움큼을 얻어요. 다음 전투가 시작되면 바로 들어와요.', () => { run.xp += needOf(run.lvl) * 0.8; }] }
   ];
   const ev = pick(EVENTS), row = (k, o) => `<button class="opt" type="button" data-act="${k}"${o[3] && !o[3]() ? ' aria-disabled="true"' : ''}${k === 'b' ? ' data-pref' : ''}><span class="tx"><b>${o[0]}</b><span>${o[1]}</span></span></button>`;
   sheet(`<div class="pic">${svg(ICON.event)}</div><h2 id="cardTitle">${ev.title}</h2><p>${ev.text}</p><div class="opts">${row('a', ev.a)}${row('b', ev.b)}</div>`,
-    act => { ev[act][2](); sfx.good(); closeSheet(); fixEquip(); persist(); showMap(); });
+    act => { ev[act][2](); sfx.good(); closeSheet(); persist(); showMap(); });
 }
 
 /* ───── 모험의 시작과 끝 ───── */
 function newRun() {
-  run = S.run = { map: genMap(), at: null, done: [], floor: 0, hp: 3, maxHp: 3, gold: 30, potion: true, kills: 0,
-    deck: [{ id: 'pin', plus: false, ench: null }, { id: 'cream', plus: false, ench: null }, { id: 'magnet', plus: false, ench: null }], equip: [0, 1, 2], relics: ['cape'] };
+  const hearts = 3 + M('hp');
+  run = S.run = { map: genMap(), at: null, done: [], floor: 0, hp: hearts, maxHp: hearts, gold: 30, potion: true, kills: 0, elites: 0,
+    wpn: [], lvl: 1, xp: 0, bonus: { spd: 0, dmg: 0, crit: 0 }, rerolls: 2 * M('reroll'), relics: ['cape'] };
   persist(); showMap();
-  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>곰팡이 케이크가 간식들을 상하게 만들고 있어요. 길을 골라 올라가서 케이크를 물리쳐요.</p><p>전투에서는 화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 처음엔 롤링핀과 휘핑크림, 코코아 한 잔을 들고, 무기 1장을 더 골라 출발해요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
+  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>곰팡이 케이크가 간식들을 상하게 만들고 있어요. 길을 골라 올라가서 케이크를 물리쳐요.</p><p>전투에서는 화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 레벨이 오르면 무기와 능력을 골라요. 고른 것은 모험이 끝날 때까지 이어져요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
 }
-/* 출발할 때 무기 1장을 더 골라요 */
-function starterPick() {
-  const opts = shuffle(['star', 'macaron', 'honey', 'lemon']).slice(0, 3).map(id => ({ id, plus: false, ench: null }));
-  sheet(`<h2 id="cardTitle">첫 무기 고르기</h2><p>롤링핀, 휘핑크림, 설탕 자석에 더해 무기 1장을 골라 들고 가요.</p><div class="opts">${opts.map((c, i) => cardOpt(c, i)).join('')}</div>`,
-    (act, b) => { if (act !== 'pick' || b.closest('.lock')) return; run.deck.push(opts[+b.dataset.i]); fixEquip(); persist(); sfx.good(); closeSheet(); });
+/* 출발할 때 첫 무기를 골라요 (성장 트리에 따라 하나 더, 또는 Lv3으로) */
+function starterPick(second) {
+  const ids = shuffle(['pin', 'cream', 'lemon', 'skewer', 'choco', 'cotton', 'cane'].filter(id => !wLv(id))).slice(0, 3);     // 혼자서도 싸울 수 있는 무기 중에서
+  sheet(`<h2 id="cardTitle">${second ? '두 번째 무기 고르기' : '첫 무기 고르기'}</h2><p>${second ? '성장 트리 덕분에 무기를 하나 더 들고 가요.' : `무기 1개를 골라 들고 가요.${M('veteran') ? ' 숙련 제빵사라서 Lv3으로 시작해요.' : ''}`}</p><div class="opts">${ids.map((id, i) => wOpt(id, i)).join('')}</div>`,
+    (act, b) => {
+      if (act !== 'pick' || b.closest('.lock')) return;
+      run.wpn.push({ id: ids[+b.dataset.i], lv: !second && M('veteran') ? 3 : 1 }); persist(); sfx.good(); closeSheet();
+      if (!second && M('start2')) starterPick(true);
+    });
   flipReveal();
 }
+function endStars(r, won) { const n = sugarStars(r, won); S.meta.pts += n; S.meta.total += n; return n; }
 function victory(r) {
-  S.wins++; const kills = run.kills, deck = run.deck.length; run = S.run = null; persist();
+  const stars = endStars(r, true);
+  S.wins++; const kills = run.kills, lvl = run.lvl, nw = run.wpn.length; run = S.run = null; persist();
   show('title'); renderTitle(); winFx('왕국을 지켰어요!', 0, 0, () => {}, true); setTimeout(() => confetti(50, innerWidth / 2, innerHeight * 0.3, 1.3), 1500);
-  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켰어요!</h2><p>${r.bigDead ? '곰팡이 케이크를 물리쳤어요.' : '곰팡이 케이크의 공격을 끝까지 버텨 냈어요.'} 적 ${kills}마리를 잡았고, 카드 ${deck}장으로 끝까지 왔어요.</p><p>지금까지 ${S.wins}번 지켜 냈어요.</p><button class="cta" type="button" data-act="go" data-pref>처음 화면으로</button>`, () => { closeSheet(); });
+  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켰어요!</h2><p>${r.bigDead ? '곰팡이 케이크를 물리쳤어요.' : '곰팡이 케이크의 공격을 끝까지 버텨 냈어요.'} 적 ${kills}마리를 잡았고, Lv ${lvl}, 무기 ${nw}개로 끝까지 왔어요.</p><p class="pts">설탕 별 <b>+${stars}</b>개 · 지금 ${S.meta.pts}개</p><button class="cta" type="button" data-act="tree" data-pref>성장 트리 열기</button><button class="btn" type="button" data-act="go">처음 화면으로</button>`, act => { closeSheet(); if (act === 'tree') treeSheet(); });
 }
 function gameOver(r) {
+  const stars = endStars(r, false);
   const kills = run.kills, floor = run.floor + 1; run = S.run = null; persist();
   show('title'); renderTitle();
-  sheet(`<div class="pic"><img src="img/${r.kind === 'boss' ? 'boss' : r.kind === 'elite' ? 'donut' : 'jelly'}.png" alt=""></div><h2 id="cardTitle">쓰러졌어요</h2><p>${floor}층에서 쓰러졌어요. 적 ${kills}마리를 잡았어요. 다음엔 다른 길과 다른 카드로 가 봐요.</p><button class="cta" type="button" data-act="go" data-pref>처음 화면으로</button>`, () => { closeSheet(); });
+  sheet(`<div class="pic"><img src="img/${r.kind === 'boss' ? 'boss' : r.kind === 'elite' ? 'donut' : 'jelly'}.png" alt=""></div><h2 id="cardTitle">쓰러졌어요</h2><p>${floor}층에서 쓰러졌어요. 적 ${kills}마리를 잡았어요.</p><p class="pts">설탕 별 <b>+${stars}</b>개 · 지금 ${S.meta.pts}개</p><button class="cta" type="button" data-act="tree" data-pref>성장 트리에서 강해지기</button><button class="btn" type="button" data-act="go">처음 화면으로</button>`, act => { closeSheet(); if (act === 'tree') treeSheet(); });
 }
-
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
 const isInstalled = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -1110,10 +1210,12 @@ function renderTitle() {
   const going = !!(S.run && S.run.map);
   $('#btnContinue').hidden = !going;
   const b = $('#btnNew'); b.className = going ? 'btn' : 'cta green'; b.textContent = going ? '새 모험 떠나기' : '모험 떠나기';
-  $('#titleSub').textContent = going ? `${(S.run.floor || 0) + 1}층까지 왔어요. 하트 ${S.run.hp}/${S.run.maxHp}칸, 카드 ${S.run.deck.length}장.` : S.wins ? `간식 왕국을 ${S.wins}번 지켜 냈어요.` : '자동으로 공격하는 전투와, 길을 고르고 카드를 모으는 모험.';
+  $('#titleSub').textContent = going ? `${(S.run.floor || 0) + 1}층까지 왔어요. 하트 ${S.run.hp}/${S.run.maxHp}칸, Lv ${S.run.lvl}.` : S.wins ? `간식 왕국을 ${S.wins}번 지켜 냈어요.` : '자동으로 공격하는 전투와, 길을 골라 올라가는 모험.';
+  $('#btnTree').textContent = `성장 트리 · 설탕 별 ${S.meta.pts}개`;
   $('#btnInstall').hidden = !installEvt || isInstalled; clearTimeout(newArmed); newArmed = 0;
 }
-$('#btnContinue').addEventListener('click', () => { run = S.run; fixEquip(); sfx.tap(); showMap(); });
+$('#btnContinue').addEventListener('click', () => { run = S.run; sfx.tap(); showMap(); });
+$('#btnTree').addEventListener('click', () => { sfx.tap(); treeSheet(() => renderTitle()); });
 $('#btnNew').addEventListener('click', () => {
   const b = $('#btnNew');
   if (S.run && S.run.map && !newArmed) { b.textContent = '한 번 더 누르면 지금 모험을 버리고 새로 떠나요'; newArmed = setTimeout(() => { newArmed = 0; b.textContent = '새 모험 떠나기'; }, 3000); return; }

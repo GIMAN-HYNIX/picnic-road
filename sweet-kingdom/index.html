@@ -187,6 +187,39 @@ img,canvas,.pxi{image-rendering:pixelated}
 @keyframes lvlBan{0%,70%{opacity:1; transform:none}100%{opacity:0; transform:translateY(-24px)}}
 .card.lvl h2{font-size:36px}
 @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01s!important; animation-iteration-count:1!important} }
+
+/* 레벨업 카드: 짧게, Lv5는 하늘색, Lv10은 금색 카드 */
+.opt.lvc{min-height:60px}
+.opt.lvc b{font-size:19px}
+.opt.lvc span:not(.ic){font-size:15px; color:var(--ink-2)}
+.opt.lv5{background:#1E4A6A; box-shadow:0 0 0 3px var(--cyan)}
+.opt.lv5 .ic{box-shadow:0 0 0 3px var(--cyan)}
+.opt.lv5 span:not(.ic){color:var(--cyan)}
+.opt.lv10{background:#6A4A12; box-shadow:0 0 0 3px var(--gold); animation:rareGlow .8s steps(1) infinite}
+.opt.lv10 .ic{box-shadow:0 0 0 3px var(--gold)}
+.opt.lv10 span:not(.ic){color:var(--gold)}
+
+/* 성장 트리 */
+.pts{font-family:var(--font-sign); color:var(--ink)!important; font-size:16px!important}
+.pts b{color:var(--gold); font-weight:400}
+.tree{position:relative; margin:14px auto 6px; max-width:100%}
+.tl{position:absolute; inset:0; width:100%; height:100%; overflow:visible}
+.tl line{stroke:var(--edge); stroke-width:3; stroke-dasharray:3 4; shape-rendering:crispEdges}
+.tl line.on{stroke:var(--gold); stroke-dasharray:none}
+.tn{position:absolute; width:48px; height:48px; margin:-24px 0 0 -24px; padding:6px; background:var(--bg); box-shadow:0 0 0 3px var(--edge), 0 6px 0 3px var(--dark)}
+.tn .ti{display:block; width:100%; height:100%}
+.tn .tr{position:absolute; left:50%; bottom:-14px; transform:translateX(-50%); padding:0 4px; font-family:var(--font-sm); font-size:12px; line-height:15px; color:var(--ink); background:var(--dark); white-space:nowrap}
+.tn.lock{opacity:.45}
+.tn.can{box-shadow:0 0 0 3px var(--cyan), 0 6px 0 3px var(--dark)}
+.tn.got{background:var(--panel-2)}
+.tn.max{box-shadow:0 0 0 3px var(--gold), 0 6px 0 3px var(--dark)}
+.tn.max .tr{color:var(--gold)}
+.tn.sel{background:var(--pink-d); box-shadow:0 0 0 3px var(--ink), 0 0 0 6px var(--pink), 0 6px 0 6px var(--dark)}
+.td{margin-top:18px; padding:10px 12px; background:var(--bg); box-shadow:0 0 0 3px var(--edge); display:flex; flex-direction:column; gap:6px}
+.td b{font-family:var(--font-sign); font-weight:400; font-size:18px; color:var(--gold)}
+.td span{font-size:14px; color:var(--ink-2)}
+.td em{font-style:normal; font-family:var(--font-sm); color:var(--gold)}
+.td .cta{margin:8px 3px 6px!important; width:calc(100% - 6px)}
 </style>
 </head>
 <body>
@@ -200,6 +233,7 @@ img,canvas,.pxi{image-rendering:pixelated}
       <button class="cta green" id="btnContinue" type="button">이어서 하기</button>
       <button class="cta" id="btnNew" type="button">모험 떠나기</button>
       <button class="btn" id="btnInstall" type="button" hidden>홈 화면에 앱으로 설치하기</button>
+      <button class="btn" id="btnTree" type="button">성장 트리</button>
       <button class="btn" id="btnSet" type="button">소리와 진동 바꾸기</button>
     </div>
   </div>
@@ -207,7 +241,7 @@ img,canvas,.pxi{image-rendering:pixelated}
 
 <section class="screen" id="map" hidden>
   <div class="col">
-    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">덱 보기</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
+    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">무기</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
     <div class="relics" id="relics"></div>
     <div class="map" id="mapBox"></div>
     <div class="info" id="info"></div>
