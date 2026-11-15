@@ -188,17 +188,25 @@ img,canvas,.pxi{image-rendering:pixelated}
 .card.lvl h2{font-size:36px}
 @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01s!important; animation-iteration-count:1!important} }
 
-/* 레벨업 카드: 짧게, Lv5는 하늘색, Lv10은 금색 카드 */
-.opt.lvc{min-height:60px}
+/* 레벨업 카드: 짧게. Lv5는 하늘색 줄무늬 카드, Lv10은 금빛으로 번쩍이는 카드 */
+.opt.lvc{min-height:60px; overflow:hidden}
 .opt.lvc b{font-size:19px}
 .opt.lvc span:not(.ic){font-size:15px; color:var(--ink-2)}
-.opt.lv5{background:#1E4A6A; box-shadow:0 0 0 3px var(--cyan)}
-.opt.lv5 .ic{box-shadow:0 0 0 3px var(--cyan)}
+.opt .shine{position:absolute; top:0; bottom:0; left:-40%; width:30%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); transform:skewX(-20deg); animation:shineMove 1.4s steps(10) infinite; pointer-events:none; z-index:1}
+@keyframes shineMove{to{left:130%}}
+.opt .tag{position:absolute; right:0; top:0; z-index:2; padding:2px 7px; font-style:normal; font-family:var(--font-sm); font-size:13px; line-height:1.3; color:var(--bg)}
+.opt.lv5{min-height:70px; background:repeating-linear-gradient(135deg,#1E4A6A 0 9px,#245A80 9px 18px); box-shadow:0 0 0 3px var(--cyan), 0 0 0 6px var(--dark), 0 0 0 9px var(--cyan)}
+.opt.lv5 .tag{background:var(--cyan)}
+.opt.lv5 .ic{width:54px; height:54px; box-shadow:0 0 0 3px var(--cyan), 0 0 0 6px var(--dark)}
+.opt.lv5 b{color:#FFFFFF; text-shadow:3px 3px 0 #0E2A40}
 .opt.lv5 span:not(.ic){color:var(--cyan)}
-.opt.lv10{background:#6A4A12; box-shadow:0 0 0 3px var(--gold); animation:rareGlow .8s steps(1) infinite}
-.opt.lv10 .ic{box-shadow:0 0 0 3px var(--gold)}
-.opt.lv10 span:not(.ic){color:var(--gold)}
-
+.opt.lv10{min-height:76px; background:repeating-linear-gradient(135deg,#7A5210 0 9px,#8E6418 9px 18px); box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink-d), 0 0 0 9px var(--gold); animation:lv10Flash .5s steps(1) infinite}
+@keyframes lv10Flash{50%{box-shadow:0 0 0 3px #FFFFFF, 0 0 0 6px var(--pink), 0 0 0 9px #FFFFFF}}
+.opt.lv10 .tag{background:var(--gold); animation:blink .5s steps(1) infinite}
+.opt.lv10 .ic{width:58px; height:58px; background:#3A2400; box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink-d)}
+.opt.lv10 b{font-size:21px; color:var(--gold); text-shadow:3px 3px 0 var(--pink-d)}
+.opt.lv10 span:not(.ic){color:#FFF3C0}
+.opts:has(.lv5,.lv10){gap:20px; padding:9px}
 /* 성장 트리 */
 .pts{font-family:var(--font-sign); color:var(--ink)!important; font-size:16px!important}
 .pts b{color:var(--gold); font-weight:400}

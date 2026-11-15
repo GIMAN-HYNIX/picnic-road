@@ -558,7 +558,8 @@ function levelSheet(opts) {
   const optHtml = (o, i) => {
     if (o.t === 's') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[STATS[o.id].icon])}</span><span class="tx"><b>${STATS[o.id].name}</b></span></button>`;
     const lv = wLv(o.id), nx = lv + 1, W = WEAPONS[o.id];
-    return `<button class="opt lvc${nx === 10 ? ' lv10' : nx === 5 ? ' lv5' : ''}" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${W.name}</b><span>${lv ? `Lv${lv} → Lv${nx}` : '새 무기 Lv1'}${nx === 5 || nx === 10 ? ' · 특별 효과' : ''}</span></span></button>`;
+    const sp = nx === 5 || nx === 10;
+    return `<button class="opt lvc${nx === 10 ? ' lv10' : nx === 5 ? ' lv5' : ''}" type="button" data-act="pick" data-i="${i}">${sp ? `<i class="shine"></i><em class="tag">${nx === 10 ? '★ 최강 각성' : '★ 특별 효과'}</em>` : ''}<span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${W.name}</b><span>${lv ? `Lv${lv} → Lv${nx}` : '새 무기 Lv1'}</span></span></button>`;
   };
   sheet(`<h2 id="cardTitle">레벨 ${B.lvl}!</h2><div class="opts">${opts.map(optHtml).join('')}</div>${run.rerolls > 0 ? `<button class="btn" type="button" data-act="reroll">다시 뽑기 (${run.rerolls}번 남음)</button>` : ''}`,
     (act, b) => {
@@ -943,7 +944,7 @@ $('#btnPause').addEventListener('click', pauseSheet);
 function show(id) { ['title', 'map', 'battle'].forEach(s => { $('#' + s).hidden = s !== id; }); if (!headless) music(id === 'battle' ? 'battle' : 'map'); }
 const overlay = $('#overlay'), cardEl = $('#card');
 let onCard = null;
-function sheet(html, handler) { cardEl.innerHTML = html; overlay.hidden = false; onCard = handler; cardEl.scrollTop = 0; }
+function sheet(html, handler) { cardEl.className = 'card'; cardEl.innerHTML = html; overlay.hidden = false; onCard = handler; cardEl.scrollTop = 0; }
 function closeSheet() { overlay.hidden = true; cardEl.innerHTML = ''; onCard = null; cardEl.classList.remove('reward', 'lvl'); }
 
 /* ───── 보상 연출 ───── */
@@ -979,7 +980,7 @@ function flipReveal() {
   list.forEach((o, i) => {
     const d = 350 + i * 260; o.style.setProperty('--d', d + 'ms');
     setTimeout(() => { if (o.isConnected) sfx.flip(); }, d + 120);
-    setTimeout(() => { if (!o.isConnected) return; o.classList.add('shown'); if (o.classList.contains('r2')) { const r = o.getBoundingClientRect(); sfx.rare(); sparkle(r.left + 36, r.top + r.height / 2, 14); } }, d + 300);
+    setTimeout(() => { if (!o.isConnected) return; o.classList.add('shown'); if (o.classList.contains('r2') || o.classList.contains('lv5') || o.classList.contains('lv10')) { const r = o.getBoundingClientRect(), big = o.classList.contains('lv10'); sfx.rare(); sparkle(r.left + 36, r.top + r.height / 2, big ? 20 : 14); if (big) { sparkle(r.right - 40, r.top + r.height / 2, 14); confetti(24, r.left + r.width / 2, r.top + r.height / 2, .7); } } }, d + 300);
   });
   setTimeout(() => box.classList.remove('lock'), 350 + list.length * 260 + 250);
 }
