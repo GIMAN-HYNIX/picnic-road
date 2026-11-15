@@ -165,7 +165,18 @@ const RELICS = {
   cloud: { name: '솜사탕 구름', desc: '전투마다 처음 맞는 공격 한 번을 막아 줘요.', icon: 'cream' }
 };
 const cardLabel = c => CARDS[c.id].name + (c.plus ? '+' : '') + (c.ench ? ` (${ENCH[c.ench].name})` : '');
-const cardDesc = c => CARDS[c.id].desc + (c.plus ? ' 강화돼서 더 세요.' : '') + (c.ench ? ' ' + ENCH[c.ench].desc : '');
+/* Lv5 각성: 무기마다 모양과 효과가 바뀌어요 */
+const AWAKE = {
+  pin: '한 바퀴 빙 돌며 휘두르고 충격파가 퍼져요.',
+  cream: '맞은 자리에 크림 웅덩이가 생겨 적이 느려져요.',
+  star: '별사탕이 적에 맞으면 옆 적으로 2번 튕겨요.',
+  macaron: '2.5초마다 마카롱이 터져 주변에 피해를 줘요.',
+  honey: '꿀 장판이 나를 따라다니고 더 넓어져요.',
+  lemon: '산성이 쌓인 적이 죽으면 터지며 주변에 산성이 옮아요.',
+  skewer: '꼬치가 부메랑처럼 돌아오며 한 번 더 꿰뚫어요.'
+};
+const AW = 5, WMAX = 8, awake = w => w.lv >= AW;
+const cardDesc = c => CARDS[c.id].desc + (c.plus ? ' 강화돼서 더 세요.' : '') + (c.ench ? ' ' + ENCH[c.ench].desc : '') + (AWAKE[c.id] ? ` 각성(전투 중 Lv5): ${AWAKE[c.id]}` : '');
 const TYPE = { w: '무기', p: '패시브' }, RAR = ['일반', '고급', '희귀'];
 function cardOpt(c, i, o = {}) {
   const d = CARDS[c.id];
@@ -212,23 +223,23 @@ function battleStats() {
   return {
     dmg: has('whisk') ? 1.15 : 1, xp: has('cup') ? 1.25 : 1, spd: has('boots') ? 1.12 : 1,
     proj: Math.round(n('hands')), acid: n('sour') ? 2 * (n('sour') > 1 ? 1.5 : 1) : 1, hpAdd: Math.floor(n('dough')),
-    pickup: 46 * (1 + 0.6 * n('magnet')), invK: 1 + 0.5 * n('glove')
+    pickup: 58 * (1 + 0.6 * n('magnet')), invK: 1 + 0.5 * n('glove')
   };
 }
 function startBattle(kind, floor, onEnd) {
-  const st = battleStats(), dur = kind === 'boss' ? 300 : kind === 'elite' ? 120 : 90;
+  const st = battleStats(), dur = kind === 'boss' ? 300 : 180;
   B = {
     kind, floor, onEnd, t: 0, dur, st, paused: false, over: false,
     p: { x: 0, y: 0, hp: run.hp + st.hpAdd, max: run.maxHp + st.hpAdd, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: has('cloud') },
     foes: [], shots: [], foeShots: [], gems: [], zones: [], fx: [], texts: [], telegraphs: [],
     weapons: run.equip.map(i => run.deck[i]).filter(c => c && CARDS[c.id].type === 'w').map(c => ({ id: c.id, lv: 1 + (c.plus ? 1 : 0), ench: c.ench, cd: Math.random() * 0.5, ang: 0 })),
-    lvl: 1, xp: 0, need: 6, kills: 0, spawnAcc: 0, shake: 0, buffDmg: 1, buffSpd: 1, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
-    eliteAt: kind === 'elite' ? 60 : -1, bossAt: kind === 'boss' ? 180 : -1, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
+    lvl: 1, xp: 0, need: 5, kills: 0, spawnAcc: 0, shake: 0, buffDmg: 1, buffSpd: 1, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
+    eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? 180 : -1, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
   };
   if (!headless) {
     show('battle'); resize();
     $('#bossBar').hidden = true; $('#potHud').innerHTML = run.potion ? svg(ICON.cocoa) : '';
-    toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 뒤에 엘리트가 나타나요' : '1분 30초만 버텨요!');
+    toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
     if (window.__dbg.autoAll) B.auto = true;
     last = performance.now(); requestAnimationFrame(frame);
   }
@@ -277,6 +288,10 @@ function killFoe(f, w) {
   fxAdd({ k: 'ring', x: f.x, y: f.y - d.h * 0.3, r: f.r * 0.6, to: f.r * (big ? 5 : 2.6), life: big ? 0.45 : 0.22, max: big ? 0.45 : 0.22, col: big ? '#FFC83D' : '#FFFFFF', w: big ? 8 : 4 });
   if (big) { sfx.bigKill(); B.hitstop = 0.18; B.slow = 0.6; B.shake = 0.6; B.flashScr = { col: '255,255,255', t: 0.25, max: 0.25 }; }
   else { sfx.kill(); hitStop(f.type === 'cookie' ? 0.035 : 0.02); B.shake = Math.max(B.shake, f.type === 'cookie' ? 0.1 : 0.05); }
+  if (f.acid > 0 && B.weapons.some(x => x.id === 'lemon' && awake(x))) {   // 레몬 각성: 산성 폭발이 옮아요
+    for (const g of B.foes) if (!g.dead && g !== f && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 80 * 80) { g.acid += 3 * B.st.acid; g.flash = 0.06; }
+    fxAdd({ k: 'ring', x: f.x, y: f.y - d.h * 0.3, r: 10, to: 80, life: 0.3, max: 0.3, col: '#B9DD52', w: 6 }); burst(f.x, f.y - d.h * 0.3, '#C8F06A', 8, 160);
+  }
   if (w && w.ench === 'split') for (let i = 0; i < 2; i++) { const a = Math.random() * 6.283; B.shots.push({ k: 'shard', x: f.x, y: f.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 5, dmg: 7, pierce: 0, life: 0.7, w: null, hit: new Set([f]) }); }
   if (big) { B.bigDead = true; if (B.kind === 'boss') endBattle(true); else toast('엘리트를 잡았어요!'); }
 }
@@ -306,51 +321,63 @@ function fireWeapons(dt) {
   for (const w of B.weapons) {
     w.cd -= dt;
     if (w.id === 'macaron') {            // 늘 돌고 있어요
-      w.ang += dt * 3.2; const n = 2 + (w.lv >= 3 ? 1 : 0) + (w.lv >= 5 ? 1 : 0) + B.st.proj, R = 58 * area(w);
+      w.ang += dt * (awake(w) ? 4 : 3.2); const n = 2 + (w.lv >= 3 ? 1 : 0) + (w.lv >= 5 ? 1 : 0) + (w.lv >= 7 ? 1 : 0) + B.st.proj, R = (awake(w) ? 66 : 58) * area(w);
+      if (awake(w)) { w.burstT = (w.burstT ?? 2.5) - dt; }
       w.orbs = [];
       for (let i = 0; i < n; i++) {
         const a = w.ang + i * 6.283 / n, ox = p.x + Math.cos(a) * R, oy = p.y + Math.sin(a) * R; w.orbs.push([ox, oy]);
         for (const f of B.foes) { if (f.dead) continue; if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.45; hurtFoe(f, wDmg(w, 8), w, f.x - ox, f.y - oy); } }
+        if (awake(w) && w.burstT <= 0) { for (const f of B.foes) if (!f.dead && (f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 52) ** 2) hurtFoe(f, wDmg(w, 10), w, f.x - ox, f.y - oy); fxAdd({ k: 'ring', x: ox, y: oy, r: 8, to: 56, life: 0.28, max: 0.28, col: '#FF8FB8', w: 6 }); fxAdd({ k: 'flash', x: ox, y: oy, r: 18, life: 0.1, max: 0.1, col: '#FFFFFF' }); }
       }
+      if (awake(w) && w.burstT <= 0) { w.burstT = 2.5; sfx.swing(); B.shake = Math.max(B.shake, 0.06); }
       continue;
     }
     if (w.cd > 0) continue;
     if (w.id === 'pin') {
-      const R = (72 + 6 * w.lv) * area(w), t = nearestFoe(R + 30);
+      const aw = awake(w), R = (72 + 6 * w.lv) * area(w) * (aw ? 1.1 : 1), t = nearestFoe(R + 30);
       if (!t) { w.cd = 0.15; continue; }
       const a = Math.atan2(t.y - p.y, t.x - p.x); w.cd = 1.05;
-      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); if (m < R + f.r) { let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = 6.283 - da; if (da < 1.25) hurtFoe(f, wDmg(w, 15), w, dx, dy); } }
-      fxAdd({ k: 'arc', x: p.x, y: p.y, a, r: R, life: 0.22, max: 0.22 }); B.shake = Math.max(B.shake, 0.04); sfx.swing();
+      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); if (m < R + f.r) { let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = 6.283 - da; if (aw || da < 1.25) hurtFoe(f, wDmg(w, 15), w, dx, dy); } else if (aw && m < R * 1.6 + f.r) hurtFoe(f, wDmg(w, 6), w, dx, dy); }
+      if (aw) { fxAdd({ k: 'spin', x: p.x, y: p.y, a, r: R, life: 0.3, max: 0.3 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: R * 0.8, to: R * 1.6, life: 0.3, max: 0.3, col: '#FFE1A8', w: 6 }); }
+      else fxAdd({ k: 'arc', x: p.x, y: p.y, a, r: R, life: 0.22, max: 0.22 }); B.shake = Math.max(B.shake, 0.04); sfx.swing();
     } else if (w.id === 'cream' || w.id === 'lemon') {
       const t = nearestFoe(300); if (!t) { w.cd = 0.2; continue; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), n = 1 + B.st.proj; w.cd = w.id === 'cream' ? 0.78 : 0.95;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.16; if (i === 0) fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: w.id === 'cream' ? '#FFFFFF' : '#F4E04D' }); B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 330, vy: Math.sin(aa) * 330, r: 7, dmg: wDmg(w, w.id === 'cream' ? 10 : 5), acid: w.id === 'lemon' ? 2 : 0, pierce: w.ench === 'pierce' ? 2 : 0, life: 1.2, w, hit: new Set() }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.16; if (i === 0) fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: w.id === 'cream' ? '#FFFFFF' : '#F4E04D' }); B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 330, vy: Math.sin(aa) * 330, r: 7, dmg: wDmg(w, w.id === 'cream' ? 10 : 5), acid: w.id === 'lemon' ? 2 : 0, pierce: w.ench === 'pierce' ? 2 : 0, life: 1.2, w, hit: new Set(), aw: awake(w), puddle: w.id === 'cream' && awake(w) }); }
       sfx.shot();
     } else if (w.id === 'star') {
       const a = Math.atan2(p.dirY, p.dirX), n = 3 + B.st.proj + (w.lv >= 4 ? 1 : 0); w.cd = 1.25;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.22; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 300, vy: Math.sin(aa) * 300, r: 7, dmg: wDmg(w, 7), pierce: w.ench === 'pierce' ? 2 : 0, life: 0.9, w, hit: new Set() }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.22; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 300, vy: Math.sin(aa) * 300, r: 7, dmg: wDmg(w, 7), pierce: w.ench === 'pierce' ? 2 : 0, life: 0.9, w, hit: new Set(), aw: awake(w), bounce: awake(w) ? 2 : 0 }); }
       sfx.shot();
     } else if (w.id === 'skewer') {
       const a = Math.atan2(p.dirY, p.dirX), n = 1 + B.st.proj; w.cd = 1.5;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.14; B.shots.push({ k: 'skewer', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 430, vy: Math.sin(aa) * 430, r: 9, dmg: wDmg(w, 17), pierce: 99, life: 0.9, w, hit: new Set(), a: aa }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.14; B.shots.push({ k: 'skewer', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 430, vy: Math.sin(aa) * 430, r: 9, dmg: wDmg(w, 17), pierce: 99, life: awake(w) ? 1.5 : 0.9, w, hit: new Set(), a: aa, aw: awake(w), boom: awake(w) }); }
       sfx.shot();
     } else if (w.id === 'honey') {
-      w.cd = 3; B.zones.push({ x: p.x, y: p.y, r: (52 + 4 * w.lv) * area(w), life: 3, tick: 0, dmg: wDmg(w, 5), w });
+      w.cd = 3; B.zones.push({ x: p.x, y: p.y, r: (52 + 4 * w.lv) * area(w) * (awake(w) ? 1.35 : 1), life: 3, tick: 0, dmg: wDmg(w, 5), w, follow: awake(w) });
     }
   }
 }
 
+function awakenFx(w) {
+  if (headless) return; const p = B.p;
+  toast(`${CARDS[w.id].name} 각성!`); sfx.rare();
+  fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.7, max: 0.7 });
+  for (let i = 0; i < 20; i++) { const a = i / 20 * 6.283, sp = rand(140, 260); fxAdd({ k: 'star', x: p.x, y: p.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.7, max: 0.7, col: i % 2 ? '#FFD23F' : '#FFFFFF', r: 6 }); }
+  fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.5, max: 0.5, col: '#FFD23F', w: 8 });
+}
 function levelUp() {
-  B.lvl++; B.xp -= B.need; B.need = Math.round(6 + 4.5 * (B.lvl - 1));
+  B.lvl++; B.xp -= B.need; B.need = Math.round(5 + 2.6 * (B.lvl - 1));
   if (has('sprinkle')) { B.foes.forEach(f => { if (!f.dead && (f.x - B.p.x) ** 2 + (f.y - B.p.y) ** 2 < 130 * 130) hurtFoe(f, 30, null); }); fxAdd({ k: 'ring', x: B.p.x, y: B.p.y, r: 10, to: 130, life: 0.3, max: 0.3, col: '#FF8FB8', w: 6 }); }
-  const ups = B.weapons.filter(w => w.lv < 6).map(w => ({ t: 'up', w, title: `${CARDS[w.id].name} 강화`, desc: `이번 전투 동안 Lv${w.lv} → Lv${w.lv + 1}. 더 세져요.`, icon: w.id }));
+  const ups = B.weapons.filter(w => w.lv < WMAX).map(w => w.lv + 1 === AW ? { t: 'up', w, aw: true, title: `${CARDS[w.id].name} 각성!`, desc: `Lv${w.lv} → Lv${AW}. ${AWAKE[w.id]}`, icon: w.id } : { t: 'up', w, title: `${CARDS[w.id].name} 강화`, desc: `이번 전투 동안 Lv${w.lv} → Lv${w.lv + 1}. 더 세져요.${w.lv + 2 === AW ? ' 한 번 더 올리면 각성해요!' : ''}`, icon: w.id });
+  ups.sort((a, b) => (b.aw ? 1 : 0) - (a.aw ? 1 : 0));
   const buffs = [
     ...(B.p.hp < B.p.max ? [{ t: 'heal', title: '달콤한 한 입', desc: '하트를 1칸 채워요.', icon: 'heart' }] : []),
     { t: 'dmg', title: '설탕 폭주', desc: '이번 전투 동안 주는 피해가 12% 늘어요.', icon: 'star' },
     { t: 'spd', title: '가벼운 발걸음', desc: '이번 전투 동안 10% 빨리 달려요.', icon: 'honey' }
   ];
-  const opts = shuffle(ups).slice(0, 2).concat(shuffle(buffs)).slice(0, 3);
-  const apply = o => { if (o.t === 'up') o.w.lv++; else if (o.t === 'heal') B.p.hp = Math.min(B.p.max, B.p.hp + 1); else if (o.t === 'dmg') B.buffDmg *= 1.12; else B.buffSpd *= 1.1; };
+  const aws = ups.filter(u => u.aw), rest = shuffle(ups.filter(u => !u.aw)); rest.sort((a, b) => b.w.lv - a.w.lv + (Math.random() - 0.5) * 1.5); const opts = aws.slice(0, 1).concat(rest).slice(0, 2).concat(shuffle(buffs)).slice(0, 3);
+  const apply = o => { if (o.t === 'up') { o.w.lv++; if (o.w.lv === AW) awakenFx(o.w); } else if (o.t === 'heal') B.p.hp = Math.min(B.p.max, B.p.hp + 1); else if (o.t === 'dmg') B.buffDmg *= 1.12; else B.buffSpd *= 1.1; };
   if (headless) { apply(opts[0]); return; }
   /* 빛기둥, 고리, 별가루, 큰 글자. 주변 적은 밀려나고 잠깐 느려져요 */
   const p = B.p; B.lvlPending = true; sfx.level(); B.slow = 1.1; p.inv = Math.max(p.inv, 1.4);
@@ -363,7 +390,7 @@ function levelUp() {
   const lv = $('#lvText'); lv.classList.remove('pop'); void lv.offsetWidth; lv.classList.add('pop');
   setTimeout(() => { if (!B || B.over) { if (B) B.lvlPending = false; return; } B.lvlPending = false; B.paused = true; openLevelSheet(); }, 720);
   const openLevelSheet = () => {
-  sheet(`<h2 id="cardTitle">레벨 ${B.lvl}!</h2><p>하나를 골라요. 이번 전투가 끝날 때까지 이어져요.</p><div class="opts">${opts.map((o, i) => `<button class="opt" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[o.icon])}</span><span class="tx"><b>${o.title}</b><span>${o.desc}</span></span></button>`).join('')}</div>`,
+  sheet(`<h2 id="cardTitle">레벨 ${B.lvl}!</h2><p>하나를 골라요. 이번 전투가 끝날 때까지 이어져요.</p><div class="opts">${opts.map((o, i) => `<button class="opt${o.aw ? ' r2' : ''}" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[o.icon])}</span><span class="tx"><b>${o.title}</b><span>${o.desc}</span></span></button>`).join('')}</div>`,
     (act, b) => { if (b.closest('.lock')) return; apply(opts[+b.dataset.i]); closeSheet(); sfx.good(); B.paused = false; last = performance.now();
       fxAdd({ k: 'ring', x: B.p.x, y: B.p.y - 20, r: 10, to: 90, life: 0.35, max: 0.35, col: '#FFFFFF', w: 5 }); });
   cardEl.classList.add('lvl'); flipReveal();
@@ -434,11 +461,21 @@ function update(dt) {
   /* 내 탄 */
   for (const s of B.shots) {
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
-    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { s.hit.add(f); if (s.acid) f.acid += s.acid * B.st.acid; hurtFoe(f, s.dmg, s.w, s.vx, s.vy); if (s.pierce-- <= 0) { s.life = 0; break; } } }
+    if (s.boom) {            // 부메랑 꼬치: 반쯤 날아가면 나에게 돌아와요
+      if (!s.back && s.life < 0.75) { s.back = true; s.hit = new Set(); }
+      if (s.back) { const dx = p.x - s.x, dy = p.y - 10 - s.y, d = Math.hypot(dx, dy) || 1; s.vx += (dx / d * 520 - s.vx) * Math.min(1, dt * 6); s.vy += (dy / d * 520 - s.vy) * Math.min(1, dt * 6); s.a = Math.atan2(s.vy, s.vx); if (d < 22) s.life = 0; }
+    }
+    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { s.hit.add(f); if (s.acid) f.acid += s.acid * B.st.acid; hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
+      if (s.puddle && B.zones.length < 24) B.zones.push({ x: f.x, y: f.y, r: 34, life: 2.5, tick: 0.2, dmg: s.dmg * 0.25, w: s.w, cream: true });
+      if (s.bounce > 0) {   // 튕기는 별사탕: 가까운 다른 적에게
+        let nb = null, nd = 170 * 170; for (const g of B.foes) { if (g.dead || s.hit.has(g) || g === f) continue; const d2 = (g.x - s.x) ** 2 + (g.y - s.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } }
+        if (nb) { s.bounce--; const dx = nb.x - s.x, dy = nb.y - s.y, d = Math.hypot(dx, dy) || 1, sp = Math.hypot(s.vx, s.vy); s.vx = dx / d * sp; s.vy = dy / d * sp; s.life = Math.max(s.life, 0.6); s.trail = []; fxAdd({ k: 'flash', x: s.x, y: s.y, r: 12, life: 0.08, max: 0.08, col: '#FFE45C' }); break; }
+      }
+      if (s.pierce-- <= 0) { s.life = 0; break; } } }
   }
   B.shots = B.shots.filter(s => s.life > 0);
   /* 꿀 장판 */
-  for (const z of B.zones) { z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; hurtFoe(f, z.dmg, z.w, 0.001, 0.001); } } }
+  for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; hurtFoe(f, z.dmg, z.w, 0.001, 0.001); } } }
   B.zones = B.zones.filter(z => z.life > 0);
   /* 적의 탄 */
   for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + 11) ** 2) { hurtPlayer('shot'); s.life = 0; } }
@@ -455,7 +492,7 @@ function update(dt) {
     if (g.pull) {
       const d = Math.sqrt(d2) || 1; g.sp = Math.min(900, g.sp + 1500 * dt);     // 살짝 튕겨 나갔다가 빨려 들어와요
       g.x += dx / d * g.sp * dt; g.y += dy / d * g.sp * dt;
-      if (d < 18) { g.got = true; B.xp += g.v * B.st.xp; B.gemCombo = B.gemT > 0 ? B.gemCombo + 1 : 0; B.gemT = 0.5; sfx.gem(B.gemCombo); B.xpFlash = 0.25;
+      if (d < 18) { g.got = true; B.xp += g.v * B.st.xp * (1 + 0.12 * B.floor); B.gemCombo = B.gemT > 0 ? B.gemCombo + 1 : 0; B.gemT = 0.5; sfx.gem(B.gemCombo); B.xpFlash = 0.25;
         fxAdd({ k: 'flash', x: p.x, y: p.y - 26, r: 12, life: 0.12, max: 0.12, col: g.v >= 5 ? '#FFC2DA' : g.v >= 2 ? '#C9F7B8' : '#BFE6FF' });
         if (Math.random() < 0.5) fxAdd({ k: 'star', x: p.x + rand(-16, 16), y: p.y - rand(20, 50), vx: rand(-30, 30), vy: -70, life: 0.45, max: 0.45, col: '#FFFFFF', r: 5 }); }
     }
@@ -527,7 +564,7 @@ function draw() {
   }
   ctx.translate(-cx, -cy);
   /* 꿀 장판 */
-  for (const z of B.zones) { ctx.globalAlpha = Math.min(0.5, z.life * 0.5); ctx.fillStyle = '#F7B733'; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1; }
+  for (const z of B.zones) { ctx.globalAlpha = Math.min(z.cream ? 0.75 : 0.5, z.life * 0.5); ctx.fillStyle = z.cream ? '#FFFFFF' : z.follow ? '#FFC23D' : '#F7B733'; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 6.283); ctx.fill(); if (z.follow || z.cream) { ctx.strokeStyle = z.cream ? 'rgba(227,183,198,.9)' : 'rgba(200,120,10,.7)'; ctx.lineWidth = 3; ctx.setLineDash([6, 6]); ctx.lineDashOffset = -B.t * 30; ctx.stroke(); ctx.setLineDash([]); } ctx.globalAlpha = 1; }
   /* 위험 예고 */
   for (const t of B.telegraphs) {
     const k = 1 - t.life / t.max; ctx.fillStyle = 'rgba(224,68,90,.22)'; ctx.strokeStyle = '#E0445A'; ctx.lineWidth = 2.5;
@@ -563,19 +600,20 @@ function draw() {
     }
   }
   /* 무기 */
-  for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { ctx.fillStyle = '#FF8FB8'; ctx.beginPath(); ctx.ellipse(ox, oy - 3, 10, 6, 0, 0, 6.283); ctx.fill(); ctx.beginPath(); ctx.ellipse(ox, oy + 4, 10, 6, 0, 0, 6.283); ctx.fill(); ctx.fillStyle = '#FFF3E0'; ctx.fillRect(ox - 9, oy - 1.5, 18, 3.5); }
+  for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (awake(w)) { const k = 1 - Math.max(0, w.burstT) / 2.5; ctx.fillStyle = `rgba(255,214,70,${0.25 + 0.45 * k})`; ctx.beginPath(); ctx.arc(ox, oy, 16 + 6 * k, 0, 6.283); ctx.fill(); } ctx.fillStyle = '#FF8FB8'; ctx.beginPath(); ctx.ellipse(ox, oy - 3, 10, 6, 0, 0, 6.283); ctx.fill(); ctx.beginPath(); ctx.ellipse(ox, oy + 4, 10, 6, 0, 0, 6.283); ctx.fill(); ctx.fillStyle = '#FFF3E0'; ctx.fillRect(ox - 9, oy - 1.5, 18, 3.5); }
   const SHOT_COL = { cream: '#FFFFFF', lemon: '#F4E04D', star: '#FFC83D', shard: '#C9B6FF' };
   ctx.lineCap = 'round';
   for (const s of B.shots) {
     if (s.k === 'skewer') {
-      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.a);
-      const g = ctx.createLinearGradient(-70, 0, -10, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.85)');
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.aw ? B.t * 18 : s.a);
+      const g = ctx.createLinearGradient(-70, 0, -10, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, s.aw ? 'rgba(255,214,70,.9)' : 'rgba(255,255,255,.85)');
       ctx.strokeStyle = g; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(-70, 0); ctx.lineTo(-10, 0); ctx.stroke();
       ctx.strokeStyle = '#B9783F'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(22, 0); ctx.stroke();
       ['#E8323C', '#B9DD52', '#FF9A1F'].forEach((c, i) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(-9 + i * 10, 0, 6, 0, 6.283); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(-11 + i * 10, -2, 2, 0, 6.283); ctx.fill(); });
       ctx.restore(); continue;
     }
     const col = SHOT_COL[s.k] || '#FFFFFF', t = s.trail;
+    if (s.aw) { ctx.fillStyle = 'rgba(255,214,70,.35)'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 2.1, 0, 6.283); ctx.fill(); }
     if (t && t.length >= 4) { for (let i = 0; i < t.length - 2; i += 2) { const k = (i + 2) / t.length; ctx.globalAlpha = k * 0.55; ctx.strokeStyle = col; ctx.lineWidth = s.r * 2 * k; ctx.beginPath(); ctx.moveTo(t[i], t[i + 1]); ctx.lineTo(t[i + 2], t[i + 3]); ctx.stroke(); } ctx.globalAlpha = 1; }
     ctx.fillStyle = col; ctx.strokeStyle = 'rgba(74,32,64,.6)'; ctx.lineWidth = 1.8;
     if (s.k === 'star') { ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(B.t * 14); ctx.beginPath(); for (let i = 0; i < 10; i++) { const rr = i % 2 ? s.r * 0.5 : s.r * 1.25, aa = i * Math.PI / 5; ctx.lineTo(Math.cos(aa) * rr, Math.sin(aa) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
@@ -596,6 +634,13 @@ function draw() {
     }
     else if (f.k === 'flash') { ctx.globalAlpha = k; ctx.fillStyle = f.col; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1.3 - 0.5 * k), 0, 6.283); ctx.fill(); }
     else if (f.k === 'ghost') { ctx.globalAlpha = k * 0.9; const sc = 1 + (1 - k) * 0.5; drawSprite(f.img, f.x, f.y, f.h * sc, f.flip, -(1 - k) * 0.3, true); }
+    else if (f.k === 'spin') {
+      /* 각성 롤링핀: 한 바퀴 도는 금빛 궤적 */
+      const e = 1 - k, a1 = f.a + 6.283 * Math.min(1, e * 1.6), rr = f.r * 0.82;
+      ctx.globalAlpha = Math.min(1, k * 2) * 0.4; ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 34; ctx.beginPath(); ctx.arc(f.x, f.y - 12, rr, f.a, a1); ctx.stroke();
+      ctx.globalAlpha = Math.min(1, k * 2); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 12 * k + 3; ctx.beginPath(); ctx.arc(f.x, f.y - 12, rr, a1 - 1.6, a1); ctx.stroke();
+      ctx.save(); ctx.translate(f.x + Math.cos(a1) * rr, f.y - 12 + Math.sin(a1) * rr); ctx.rotate(a1); ctx.fillStyle = '#FFD23F'; ctx.strokeStyle = '#8B5A3C'; ctx.lineWidth = 2; ctx.fillRect(-16, -6, 32, 12); ctx.strokeRect(-16, -6, 32, 12); ctx.restore();
+    }
     else if (f.k === 'arc') {
       /* 롤링핀: 굵은 하얀 궤적 + 앞쪽 끝의 반짝임 */
       const e = 1 - k, a0 = f.a - 1.3, a1 = f.a - 1.3 + 2.6 * Math.min(1, e * 2.2), rr = f.r * 0.82;
@@ -729,15 +774,15 @@ cardEl.addEventListener('click', e => { const b = e.target.closest('[data-act]')
 
 /* ───── 지도 ───── */
 const NODE = {
-  battle: { name: '전투', desc: '1분 30초 동안 버텨요. 끝나면 카드 3장 중 1장을 골라요.', img: 'jelly' },
-  elite: { name: '엘리트 전투', desc: '1분에 딱딱 도넛 기사가 나타나요. 잡으면 유물에 더해 인챈트도 받아요.', img: 'donut' },
+  battle: { name: '전투', desc: '3분 동안 버텨요. 끝나면 카드 3장 중 1장을 골라요.', img: 'jelly' },
+  elite: { name: '엘리트 전투', desc: '1분 30초에 딱딱 도넛 기사가 나타나요. 잡으면 유물에 더해 인챈트도 받아요.', img: 'donut' },
   boss: { name: '보스: 곰팡이 케이크', desc: '3분에 보스가 나타나요. 잡거나 5분을 버티면 이겨요.', img: 'boss' },
   shop: { name: '상점', desc: '골드로 카드, 유물, 코코아를 사거나 카드를 덱에서 빼요.', icon: 'shop' },
   rest: { name: '휴식처', desc: '하트를 채우거나 카드 1장을 강화해요.', icon: 'rest' },
   event: { name: '수상한 일', desc: '무슨 일이 생길지 몰라요. 둘 중 하나를 골라요.', icon: 'event' },
   chest: { name: '보물 상자', desc: '유물 1개를 얻어요.', icon: 'chest' }
 };
-const MAP_ROWS = 11;                      // 보스 앞까지 11층 (보스 칸 id는 ROWS*3)
+const MAP_ROWS = 8;                      // 보스 앞까지 11층 (보스 칸 id는 ROWS*3)
 const diffOf = (row, rows) => row * 7 / rows;   // 층이 늘어도 난이도는 원래처럼 보스 직전 7단계까지만 올라가요
 function genMap() {
   const ROWS = MAP_ROWS, on = Array.from({ length: ROWS }, () => [false, false, false]), E = new Set();
@@ -753,12 +798,12 @@ function genMap() {
     if (n.row === Math.floor(ROWS / 2)) { n.type = 'chest'; return; }
     if (n.row === 0) return;
     const x = Math.random();
-    n.type = x < 0.45 ? 'battle' : x < 0.6 ? (n.row >= 3 ? 'elite' : 'battle') : x < 0.76 ? 'event' : x < 0.87 ? 'shop' : x < 0.94 ? 'chest' : 'rest';
+    n.type = x < 0.45 ? 'battle' : x < 0.6 ? (n.row >= 2 ? 'elite' : 'battle') : x < 0.76 ? 'event' : x < 0.87 ? 'shop' : x < 0.94 ? 'chest' : 'rest';
   });
   const need = (type, rows) => { if (list.some(n => n.type === type)) return; const pool = list.filter(n => n.type === 'battle' && rows.includes(n.row)); if (pool.length) pick(pool).type = type; };
-  need('elite', [3, 4, 6, 7, 8]); need('shop', [3, 4, 6, 7, 8]); need('event', [1, 2, 3, 4, 6]);
-  if (list.filter(n => n.type === 'elite').length < 2) need2('elite', [7, 8, 9]);
-  if (list.filter(n => n.type === 'shop').length < 2) need2('shop', [7, 8, 9]);
+  need('elite', [2, 3, 5, 6]); need('shop', [2, 3, 5, 6]); need('event', [1, 2, 3, 5]);
+  if (list.filter(n => n.type === 'elite').length < 2) need2('elite', [5, 6]);
+  if (list.filter(n => n.type === 'shop').length < 2) need2('shop', [5, 6]);
   function need2(type, rows) { const pool = list.filter(n => n.type === 'battle' && rows.includes(n.row)); if (pool.length) pick(pool).type = type; }
   return { nodes, rows: ROWS };
 }
@@ -837,7 +882,7 @@ function afterBattle(id, r) {
   if (!r.won) { gameOver(r); return; }
   arrive(id);
   const healed = run.hp < run.maxHp; run.hp = Math.min(run.maxHp, run.hp + 1 + (has('jar') && r.kind === 'elite' ? 1 : 0));
-  const gold = goldGain(12 + 5 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
+  const gold = goldGain(18 + 6 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
   if (r.kind === 'boss') { victory(r); return; }
   showMap();
   const steps = [];
