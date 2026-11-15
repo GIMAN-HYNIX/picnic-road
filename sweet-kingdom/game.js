@@ -35,7 +35,6 @@ const KEY = 'sweet-kingdom-v1';
 let S = { muted: false, vib: true, wins: 0, run: null };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
 if (S.run && S.run.maxHp > 10) { const r = S.run, m = 3 + (r.relics || []).includes('apron'); r.hp = Math.max(1, Math.round(r.hp / r.maxHp * m)); r.maxHp = m; }
-if (false) { r.maxHp = m; }
 /* 난이도: 적이 나오는 수, 적 속도, 적 체력, 맞은 뒤 무적 시간, 엘리트·보스 공격 예고 시간 */
 const DIFF = {
   easy: { name: '쉬움', spawn: 0.7, spd: 0.85, hp: 0.72, inv: 1.7, warn: 1.3, desc: '적이 적고 느려요. 맞은 뒤 무적 시간이 길어요.' },
@@ -75,7 +74,7 @@ const M = id => S.meta.n[id] || 0;
 const TNODE = Object.fromEntries(TREE.map(t => [t.id, t]));
 const canLearn = t => M(t.id) < t.max && (!t.req || M(t.req) > 0);
 /* 모험이 끝나면 설탕 별을 받아요: 올라간 층, 잡은 적, 엘리트, 승리 */
-function sugarStars(r, won) { return Math.max(1, Math.round((run.floor + 1) * 2 + (run.kills || 0) / 60 + (run.elites || 0) * 3 + (won ? 15 : 0))); }
+function sugarStars(r, won) { return Math.max(1, Math.round((run.floor + 1) * 2 + Math.min(5, (run.kills || 0) / 800) + (run.elites || 0) * 2 + (won ? 8 : 0))     /* 이기면 30개 남짓: 5~6번 이기면 트리를 다 배워요 */); }
 function treeSheet(back) {
   let sel = null;
   const cell = 64, W = 5 * cell, H = 6 * 78 + 20, pos = t => [t.col * cell + cell / 2, t.row * 78 + 40];
@@ -503,7 +502,7 @@ function fireWeapons(dt) {
       const chain = s10 ? 8 : s5 ? 4 : 2;
       for (const t of ts) {
         const pts = [[p.x, p.y - 30]], hit = new Set(); let cur = t;
-        for (let k = 0; k <= chain && cur; k++) { hit.add(cur); pts.push([cur.x, cur.y - FOES[cur.type].h * 0.4]); hurtFoe(cur, 12, w, cur.x - pts[pts.length - 2][0], cur.y - pts[pts.length - 2][1]); if (s10) cur.stun = 0.6; let nb = null, nd = 120 * 120; for (const g of B.foes) { if (g.dead || hit.has(g)) continue; const d2 = (g.x - cur.x) ** 2 + (g.y - cur.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } } cur = nb; }
+        for (let k = 0; k <= chain && cur; k++) { hit.add(cur); pts.push([cur.x, cur.y - FOES[cur.type].h * 0.4]); hurtFoe(cur, 12, w, cur.x - pts[pts.length - 2][0], cur.y - pts[pts.length - 2][1]); if (s10 && cur !== B.big) cur.stun = 0.6; let nb = null, nd = 120 * 120; for (const g of B.foes) { if (g.dead || hit.has(g)) continue; const d2 = (g.x - cur.x) ** 2 + (g.y - cur.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } } cur = nb; }
         fxAdd({ k: 'bolt', pts, life: 0.16, max: 0.16 });
       }
       sfx.zap();
@@ -540,7 +539,7 @@ function levelUp() {
   B.flashScr = { col: '255,230,140', t: 0.4, max: 0.4 };
   const ban = el('div', 'lvl-ban', `<b>LEVEL UP!</b><span>Lv ${B.lvl}</span>`); fxLayer.appendChild(ban); setTimeout(() => ban.remove(), 760);
   const lv = $('#lvText'); lv.classList.remove('pop'); void lv.offsetWidth; lv.classList.add('pop');
-  setTimeout(() => { if (!B || B.over) { if (B) B.lvlPending = false; return; } B.lvlPending = false; B.paused = true; levelSheet(rollLevelOpts()); }, 720);
+  setTimeout(() => { if (!B || B.over) { if (B && B.lvlLost) return; run.picks = (run.picks || 0) + 1; if (B) B.lvlPending = false; return; } B.lvlPending = false; B.paused = true; levelSheet(rollLevelOpts()); }, 720);
 }
 /* 선택지: 아직 Lv10이 아닌 무기 10가지 + 능력 3가지가 모두 같은 확률 */
 function rollLevelOpts() {
@@ -548,12 +547,12 @@ function rollLevelOpts() {
   return shuffle(pool).slice(0, M('choice') ? 4 : 3);
 }
 function applyLevel(o) {
-  if (o.t === 's') { run.bonus[o.id]++; B.st = battleStats(); return; }
+  if (o.t === 's') { run.bonus[o.id]++; if (B) B.st = battleStats(); return; }
   let w = run.wpn.find(x => x.id === o.id);
-  if (w) { w.lv++; const bw = B.weapons.find(x => x.src === w); if (bw) bw.lv = w.lv; if (w.lv === 5 || w.lv === 10) specialFx(w); }
-  else { w = { id: o.id, lv: 1 }; run.wpn.push(w); B.weapons.push({ id: w.id, lv: 1, src: w, cd: 0.2, ang: 0 }); }
+  if (w) { w.lv++; const bw = B && B.weapons.find(x => x.src === w); if (bw) bw.lv = w.lv; if (B && (w.lv === 5 || w.lv === 10)) specialFx(w); }
+  else { w = { id: o.id, lv: 1 }; run.wpn.push(w); if (B) B.weapons.push({ id: w.id, lv: 1, src: w, cd: 0.2, ang: 0 }); }
 }
-function levelSheet(opts) {
+function levelSheet(opts, after) {
   /* 짧게: 무기는 레벨만, 능력은 한 줄. Lv5·Lv10이 되는 카드는 색으로 구분 */
   const optHtml = (o, i) => {
     if (o.t === 's') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[STATS[o.id].icon])}</span><span class="tx"><b>${STATS[o.id].name}</b></span></button>`;
@@ -561,11 +560,13 @@ function levelSheet(opts) {
     const sp = nx === 5 || nx === 10;
     return `<button class="opt lvc${nx === 10 ? ' lv10' : nx === 5 ? ' lv5' : ''}" type="button" data-act="pick" data-i="${i}">${sp ? `<i class="shine"></i><em class="tag">${nx === 10 ? '★ 최강 각성' : '★ 특별 효과'}</em>` : ''}<span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${W.name}</b><span>${lv ? `Lv${lv} → Lv${nx}` : '새 무기 Lv1'}</span></span></button>`;
   };
-  sheet(`<h2 id="cardTitle">레벨 ${B.lvl}!</h2><div class="opts">${opts.map(optHtml).join('')}</div>${run.rerolls > 0 ? `<button class="btn" type="button" data-act="reroll">다시 뽑기 (${run.rerolls}번 남음)</button>` : ''}`,
+  sheet(`<h2 id="cardTitle">레벨 ${run.lvl}!</h2><div class="opts">${opts.map(optHtml).join('')}</div>${run.rerolls > 0 ? `<button class="btn" type="button" data-act="reroll">다시 뽑기 (${run.rerolls}번 남음)</button>` : ''}`,
     (act, b) => {
       if (b.closest('.lock')) return;
-      if (act === 'reroll') { run.rerolls--; sfx.flip(); levelSheet(rollLevelOpts()); return; }
-      applyLevel(opts[+b.dataset.i]); closeSheet(); sfx.good(); B.paused = false; last = performance.now();
+      if (act === 'reroll') { run.rerolls--; sfx.flip(); levelSheet(rollLevelOpts(), after); return; }
+      applyLevel(opts[+b.dataset.i]); closeSheet(); sfx.good();
+      if (after) { after(); return; }
+      B.paused = false; last = performance.now();
       fxAdd({ k: 'ring', x: B.p.x, y: B.p.y - 20, r: 10, to: 90, life: 0.35, max: 0.35, col: '#FFFFFF', w: 5 });
     });
   cardEl.classList.add('lvl'); flipReveal();
@@ -716,6 +717,7 @@ function endBattle(won) {
   run.hp = Math.max(won ? 1 : 0, Math.min(run.maxHp, B.p.hp));
   run.kills = (run.kills || 0) + B.kills; run.lvl = B.lvl; run.xp = B.xp;
   const cb = B.onEnd;
+  if (B.lvlPending) { run.picks = (run.picks || 0) + 1; B.lvlPending = false; B.lvlLost = true; }
   if (headless) { B.result = info; return; }
   if (won) sfx.win(); else sfx.lose();
   setTimeout(() => { B = null; ZOOM = 1; cb(info); }, 900);
@@ -1076,6 +1078,7 @@ function renderMap() {
 function info(html, goId) { $('#info').innerHTML = `<div>${html}</div>${goId != null ? `<button class="cta" type="button" id="btnGo" data-id="${goId}">들어가기</button>` : ''}`; }
 function showMap() {
   show('map'); renderBar(); picked = null; renderMap();
+  if (!run.wpn.length && overlay.hidden) { starterPick(); return; }     // 첫 무기를 고르기 전에 앱을 껐다 켠 경우
   const open = Object.values(run.map.nodes).filter(n => canGo(n.id));
   if (open.length === 1) pickNode(open[0].id, true);
   else info(`<h3>${run.at == null ? '어느 길로 출발할까요?' : '다음엔 어디로 갈까요?'}</h3><p>금빛으로 빛나는 칸이 지금 갈 수 있는 곳이에요. 위아래로 밀어서 지도를 볼 수 있어요. 눌러 보면 어떤 곳인지 알려 줘요. 하트는 3칸이고, 무엇에 맞든 1칸씩 줄어요. 전투에서 이기면 1칸 차요.</p>`);
@@ -1104,7 +1107,7 @@ function enter(id) {
   if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') startBattle(n.type, diffOf(n.row, mapRows()), r => afterBattle(id, r));
   else if (n.type === 'rest') { arrive(id); showMap(); restSheet(); }
   else if (n.type === 'shop') { arrive(id); showMap(); shopSheet(); }
-  else if (n.type === 'chest') { arrive(id); showMap(); const r = rollRelic(); if (r) relicSheet(r, '보물 상자를 열었어요', showMap); else { run.gold += 40; showMap(); } }
+  else if (n.type === 'chest') { arrive(id); showMap(); const r = rollRelic(); if (r) relicSheet(r, '보물 상자를 열었어요', showMap); else { run.gold += 40; renderBar(); noteSheet('보물 상자를 열었어요', '유물을 다 모아서 대신 골드 40을 찾았어요.', 'coin', showMap); } }
   else { arrive(id); showMap(); eventSheet(); }
 }
 function afterBattle(id, r) {
@@ -1116,6 +1119,7 @@ function afterBattle(id, r) {
   showMap();
   const steps = [next => winFx(r.kind === 'elite' ? '엘리트 격파!' : '승리!', gold, oldGold, next)];
   if (r.kind === 'elite') { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '엘리트 전투 보상', next)); if (!run.potion && Math.random() < 0.5) steps.push(next => { run.potion = true; noteSheet('따뜻한 코코아를 얻었어요', '하트가 다 없어지면 저절로 마시고 하트 1칸으로 다시 일어나요.', 'cocoa', next); }); }
+  for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next); });
   const go = () => { const s = steps.shift(); if (s) s(go); else { persist(); showMap(); } };
   go();
 }
@@ -1187,7 +1191,7 @@ function starterPick(second) {
     (act, b) => {
       if (act !== 'pick' || b.closest('.lock')) return;
       run.wpn.push({ id: ids[+b.dataset.i], lv: !second && M('veteran') ? 3 : 1 }); persist(); sfx.good(); closeSheet();
-      if (!second && M('start2')) starterPick(true);
+      if (!second && M('start2')) starterPick(true); else showMap();
     });
   flipReveal();
 }
