@@ -455,7 +455,7 @@ function battleStats() {
     xp: (has('cup') ? 1.25 : 1) * (1 + 0.08 * M('xp')), pickup: 88 * (1 + 0.2 * M('mag')), invK: 1 + 0.15 * M('guard'), area: 1 + 0.08 * M('size')
   };
 }
-const needOf = lvl => Math.round(4 + 3 * (lvl - 1) + 0.06 * (lvl - 1) ** 2);
+const needOf = lvl => Math.round(5 + 3.2 * (lvl - 1) + 0.05 * (lvl - 1) ** 2);
 function startBattle(kind, floor, onEnd) {
   const st = battleStats(), dur = kind === 'boss' ? 300 : 180;
   B = {
@@ -481,7 +481,7 @@ function toast(t) { if (headless) return; const e = $('#toast'); e.textContent =
 /* 판이 지날수록(층이 오를수록) 적이 확실히 많아져요: 첫 판 1배 → 보스 판 약 5배 */
 const stageMul = () => 0.8 + 0.5 * B.floor;
 function spawnFoe(type, x, y) {
-  const d = FOES[type], grow = 1 + 0.6 * B.floor + (B.t / 120) * 0.6;
+  const d = FOES[type], grow = 1 + 0.85 * Math.pow(B.floor, 0.8) + (B.t / 120) * 0.6;     /* 초반 판에서 빨리 단단해지고 뒤로 갈수록 완만하게 */
   const big = type === 'donut' || type === 'boss';
   const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow) * DF().hp, spd: d.spd * DF().spd * (0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : 0, vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   f.max = f.hp; B.foes.push(f); return f;
