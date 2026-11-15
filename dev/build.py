@@ -69,7 +69,7 @@ open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(html)
 
 manifest = {
     'name': '소풍 가는 길', 'short_name': '소풍 가는 길', 'description': '갈림길을 골라 퍼즐을 풀며 언덕을 오르는 소풍 모험',
-    'lang': 'ko', 'start_url': './', 'scope': './', 'display': 'standalone', 'orientation': 'portrait',
+    'lang': 'ko', 'id': './index.html', 'start_url': './index.html', 'scope': './index.html', 'display': 'standalone', 'orientation': 'portrait',
     'background_color': '#DCF0FB', 'theme_color': '#DCF0FB',
     'icons': [
         {'src': 'icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
@@ -88,7 +88,7 @@ const CACHE = 'picnic-%s';
 const FILES = %s;
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('picnic-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   const req = e.request;

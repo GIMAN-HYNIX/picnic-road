@@ -11,7 +11,7 @@ for name, out in (('Galmuri11.ttf', 'galmuri11.woff2'), ('Galmuri11-Bold.ttf', '
     if not os.path.exists(src): urllib.request.urlretrieve(f'https://raw.githubusercontent.com/quiple/galmuri/main/dist/{name}', src)
     subprocess.run([sys.executable, '-m', 'fontTools.subset', src, f'--text-file={tf}', '--flavor=woff2', f'--output-file={os.path.join(HERE, "fonts", out)}'], check=True)
 os.remove(tf)
-json.dump({'name': '쪈이의 디저트 대작전', 'short_name': '디저트 대작전', 'lang': 'ko', 'start_url': './', 'scope': './', 'display': 'standalone', 'orientation': 'portrait',
+json.dump({'name': '쪈이의 디저트 대작전', 'short_name': '디저트 대작전', 'lang': 'ko', 'id': './', 'start_url': './', 'scope': './', 'display': 'standalone', 'orientation': 'portrait',
            'background_color': '#1A0E22', 'theme_color': '#1A0E22',
            'icons': [{'src': 'icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'}]},
           open(os.path.join(HERE, 'manifest.webmanifest'), 'w', encoding='utf-8'), ensure_ascii=False, indent=2)

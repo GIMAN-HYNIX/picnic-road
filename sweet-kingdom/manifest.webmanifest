@@ -2,6 +2,7 @@
   "name": "쪈이의 디저트 대작전",
   "short_name": "디저트 대작전",
   "lang": "ko",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
