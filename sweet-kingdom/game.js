@@ -1235,7 +1235,12 @@ $('#btnSet').addEventListener('click', () => menuSheet(false));
 addEventListener('pointerdown', () => { if (!headless && !S.muted) audio(); }, { once: true });
 $('#btnInstall').addEventListener('click', () => { if (!installEvt) return; installEvt.prompt(); installEvt = null; $('#btnInstall').hidden = true; });
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; renderTitle(); });
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  /* 새 버전이 깔리면 전투 중이 아닐 때 저절로 새로 고쳐요 (예전엔 앱을 두 번 껐다 켜야 했어요) */
+  const hadCtrl = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadCtrl || reloaded) return; const go = () => { if (B) { setTimeout(go, 2000); return; } reloaded = true; location.reload(); }; go(); });
+  navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
+}
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* 테스트용: 화면을 그리지 않고 전투 하나를 끝까지 빨리 돌려요 */
