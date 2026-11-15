@@ -195,6 +195,7 @@ const AWAKE = {
   lemon: '산성이 쌓인 적이 죽으면 터지며 주변에 산성이 옮아요.',
   skewer: '꼬치가 부메랑처럼 돌아오며 한 번 더 꿰뚫어요.'
 };
+const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
 const AW = 5, WMAX = 8, awake = w => w.lv >= AW;
 const cardDesc = c => CARDS[c.id].desc + (c.plus ? ' 강화돼서 더 세요.' : '') + (c.ench ? ' ' + ENCH[c.ench].desc : '') + (AWAKE[c.id] ? ` 각성(전투 중 Lv5): ${AWAKE[c.id]}` : '');
 const TYPE = { w: '무기', p: '패시브' }, RAR = ['일반', '고급', '희귀'];
@@ -447,7 +448,7 @@ function update(dt) {
   if (B.auto) [mx, my] = autopilot(); else if (B.joy) { mx = B.joy.dx; my = B.joy.dy; }
   const mm = Math.hypot(mx, my); p.moving = mm > 0.12;
   if (p.moving) {
-    const sp = 150 * B.st.spd * B.buffSpd * (has('cape') && p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
+    const sp = 172 * B.st.spd * B.buffSpd * (has('cape') && p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
     p.x += mx / mm * sp * k * dt; p.y += my / mm * sp * k * dt; p.dirX = mx / mm; p.dirY = my / mm; if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1; p.bob += dt * 12;
   }
   if (p.inv > 0) p.inv -= dt;
@@ -471,7 +472,7 @@ function update(dt) {
     if (f.kx || f.ky) { f.x += f.kx * dt; f.y += f.ky * dt; const dec = Math.exp(-dt * 11); f.kx *= dec; f.ky *= dec; if (Math.abs(f.kx) + Math.abs(f.ky) < 8) f.kx = f.ky = 0; }
     if (!busy) { const sp = f.spd * (f.slow > 0 ? 0.55 : 1) * (f.kx || f.ky ? 0.25 : 1); f.x += dx / m * sp * dt; f.y += dy / m * sp * dt; }
     f.ph += dt * 7;
-    if (m < f.r + 13) hurtPlayer(f.type);
+    if (m < f.r + HERO_R) hurtPlayer(f.type);
     if (m > 900) { const a = Math.random() * 6.283, R = Math.hypot(vw, vh) / 2 + 40; f.x = p.x + Math.cos(a) * R; f.y = p.y + Math.sin(a) * R; }   // 너무 멀어지면 다시 근처로
   }
   /* 서로 겹치지 않게 살짝 밀어내요 */
@@ -498,7 +499,7 @@ function update(dt) {
   for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; hurtFoe(f, z.dmg, z.w, 0.001, 0.001); } } }
   B.zones = B.zones.filter(z => z.life > 0);
   /* 적의 탄 */
-  for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + 11) ** 2) { hurtPlayer('shot'); s.life = 0; } }
+  for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + HERO_R * 0.85) ** 2) { hurtPlayer('shot'); s.life = 0; } }
   B.foeShots = B.foeShots.filter(s => s.life > 0);
   for (const t of B.telegraphs) t.life -= dt; B.telegraphs = B.telegraphs.filter(t => t.life > 0 && !(t.f && t.f.dead));
   B.foes = B.foes.filter(f => !f.dead);
