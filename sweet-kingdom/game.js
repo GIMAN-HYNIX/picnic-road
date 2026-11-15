@@ -199,7 +199,7 @@ function battleStats() {
   };
 }
 function startBattle(kind, floor, onEnd) {
-  const st = battleStats(), dur = kind === 'boss' ? 300 : 120;
+  const st = battleStats(), dur = kind === 'boss' ? 300 : kind === 'elite' ? 120 : 90;
   B = {
     kind, floor, onEnd, t: 0, dur, st, paused: false, over: false,
     p: { x: 0, y: 0, hp: run.hp + st.hpAdd, max: run.maxHp + st.hpAdd, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: has('cloud') },
@@ -211,7 +211,7 @@ function startBattle(kind, floor, onEnd) {
   if (!headless) {
     show('battle'); resize();
     $('#bossBar').hidden = true; $('#potHud').innerHTML = run.potion ? svg(ICON.cocoa) : '';
-    toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 뒤에 엘리트가 나타나요' : '2분만 버텨요!');
+    toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 뒤에 엘리트가 나타나요' : '1분 30초만 버텨요!');
     if (window.__dbg.autoAll) B.auto = true;
     last = performance.now(); requestAnimationFrame(frame);
   }
@@ -375,9 +375,9 @@ function update(dt) {
   }
   if (p.inv > 0) p.inv -= dt;
   /* 적 등장 */
-  const rate = (0.85 + 2.05 * Math.min(1, B.t / 120)) * (1 + 0.12 * B.floor) * (B.big ? 0.5 : 1);
+  const rate = (0.85 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * (1 + 0.12 * B.floor) * (B.big ? 0.5 : 1);
   B.spawnAcc += rate * dt;
-  while (B.spawnAcc >= 1 && B.foes.length < 140) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; if (B.floor >= 1 || B.t > 60) pool.push('ice'); if (B.floor >= 2 || B.t > 90) pool.push('cookie'); spawnRing(pick(pool)); }
+  while (B.spawnAcc >= 1 && B.foes.length < 140) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing('donut'); bigIntro(); }
   if (B.bossAt > 0 && B.t >= B.bossAt && !B.big) { B.big = spawnRing('boss'); bigIntro(); }
@@ -662,7 +662,7 @@ cardEl.addEventListener('click', e => { const b = e.target.closest('[data-act]')
 
 /* ───── 지도 ───── */
 const NODE = {
-  battle: { name: '전투', desc: '2분 동안 버텨요. 끝나면 카드 3장 중 1장을 골라요.', img: 'jelly' },
+  battle: { name: '전투', desc: '1분 30초 동안 버텨요. 끝나면 카드 3장 중 1장을 골라요.', img: 'jelly' },
   elite: { name: '엘리트 전투', desc: '1분에 딱딱 도넛 기사가 나타나요. 잡으면 유물에 더해 인챈트도 받아요.', img: 'donut' },
   boss: { name: '보스: 곰팡이 케이크', desc: '3분에 보스가 나타나요. 잡거나 5분을 버티면 이겨요.', img: 'boss' },
   shop: { name: '상점', desc: '골드로 카드, 유물, 코코아를 사거나 카드를 덱에서 빼요.', icon: 'shop' },
