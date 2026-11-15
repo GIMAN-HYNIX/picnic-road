@@ -670,27 +670,34 @@ const NODE = {
   event: { name: '수상한 일', desc: '무슨 일이 생길지 몰라요. 둘 중 하나를 골라요.', icon: 'event' },
   chest: { name: '보물 상자', desc: '유물 1개를 얻어요.', icon: 'chest' }
 };
+const MAP_ROWS = 11;                      // 보스 앞까지 11층 (보스 칸 id는 ROWS*3)
+const diffOf = (row, rows) => row * 7 / rows;   // 층이 늘어도 난이도는 원래처럼 보스 직전 7단계까지만 올라가요
 function genMap() {
-  const ROWS = 7, on = Array.from({ length: ROWS }, () => [false, false, false]), E = new Set();
+  const ROWS = MAP_ROWS, on = Array.from({ length: ROWS }, () => [false, false, false]), E = new Set();
   for (let p = 0; p < 4; p++) { let c = p < 3 ? p : rnd(3); for (let r = 0; r < ROWS; r++) { on[r][c] = true; if (r === ROWS - 1) break; let nc = clamp(c + rnd(3) - 1, 0, 2); if (nc !== c && E.has(`${r},${nc}>${c}`)) nc = c; E.add(`${r},${c}>${nc}`); c = nc; } }
   const nodes = {};
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < 3; c++) if (on[r][c]) nodes[r * 3 + c] = { id: r * 3 + c, row: r, col: c, jx: rnd(9) - 4, type: 'battle', next: [] };
   E.forEach(k => { const [a, b] = k.split('>'), [r, c] = a.split(',').map(Number); nodes[r * 3 + c].next.push((r + 1) * 3 + Number(b)); });
-  nodes[21] = { id: 21, row: 7, col: 1, jx: 0, type: 'boss', next: [] };
+  const BOSS = ROWS * 3; nodes[BOSS] = { id: BOSS, row: ROWS, col: 1, jx: 0, type: 'boss', next: [] };
   const list = Object.values(nodes);
   list.forEach(n => {
     if (n.type === 'boss') return;
-    if (n.row === 6) { n.type = 'rest'; n.next = [21]; return; }
+    if (n.row === ROWS - 1) { n.type = 'rest'; n.next = [BOSS]; return; }
+    if (n.row === Math.floor(ROWS / 2)) { n.type = 'chest'; return; }
     if (n.row === 0) return;
     const x = Math.random();
-    n.type = x < 0.45 ? 'battle' : x < 0.6 ? (n.row >= 2 ? 'elite' : 'battle') : x < 0.76 ? 'event' : x < 0.87 ? 'shop' : x < 0.94 ? 'chest' : 'rest';
+    n.type = x < 0.45 ? 'battle' : x < 0.6 ? (n.row >= 3 ? 'elite' : 'battle') : x < 0.76 ? 'event' : x < 0.87 ? 'shop' : x < 0.94 ? 'chest' : 'rest';
   });
   const need = (type, rows) => { if (list.some(n => n.type === type)) return; const pool = list.filter(n => n.type === 'battle' && rows.includes(n.row)); if (pool.length) pick(pool).type = type; };
-  need('elite', [2, 3, 4, 5]); need('shop', [2, 3, 4, 5]); need('chest', [1, 2, 3, 4]); need('event', [1, 2, 3, 4, 5]);
-  return { nodes };
+  need('elite', [3, 4, 6, 7, 8]); need('shop', [3, 4, 6, 7, 8]); need('event', [1, 2, 3, 4, 6]);
+  if (list.filter(n => n.type === 'elite').length < 2) need2('elite', [7, 8, 9]);
+  if (list.filter(n => n.type === 'shop').length < 2) need2('shop', [7, 8, 9]);
+  function need2(type, rows) { const pool = list.filter(n => n.type === 'battle' && rows.includes(n.row)); if (pool.length) pick(pool).type = type; }
+  return { nodes, rows: ROWS };
 }
 const canGo = id => { const n = run.map.nodes[id]; if (run.done.includes(id)) return false; return run.at == null ? n.row === 0 : run.map.nodes[run.at].next.includes(id); };
-const xy = n => [n.type === 'boss' ? 50 : [18, 50, 82][n.col] + n.jx, (1 - n.row / 7) * 100];
+const mapRows = () => run.map.rows || 7;
+const xy = n => [n.type === 'boss' ? 50 : [18, 50, 82][n.col] + n.jx, (1 - n.row / mapRows()) * 100];
 let picked = null;
 function renderBar() {
   $('#hpChip').innerHTML = heartsHtml(run.hp, run.maxHp);
@@ -701,20 +708,23 @@ function renderBar() {
 function renderMap() {
   const N = run.map.nodes; let lines = '';
   Object.values(N).forEach(n => n.next.forEach(t => { const [a, b] = xy(n), [c, d] = xy(N[t]), walked = run.done.includes(n.id) && run.done.includes(t); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"${walked ? ' class="walked"' : ''}/>`; }));
-  const m = $('#mapBox'); m.innerHTML = `<div class="map-in"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg></div>`;
+  const m = $('#mapBox'); m.innerHTML = `<div class="map-in" style="height:${mapRows() * 92}px"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg></div>`;
   Object.values(N).forEach(n => {
     const [x, y] = xy(n), d = NODE[n.type], dn = run.done.includes(n.id);
     const b = el('button', `node ${n.type}${dn ? ' done' : ''}${n.id === run.at ? ' here' : ''}${canGo(n.id) ? ' open' : ''}`, d.img ? `<img src="img/${d.img}.png" alt="">` : svg(ICON[d.icon]));
     b.type = 'button'; b.dataset.id = n.id; b.style.left = x + '%'; b.style.top = y + '%'; b.setAttribute('aria-label', d.name + (dn ? ', 지나온 곳' : canGo(n.id) ? ', 지금 갈 수 있는 곳' : ''));
     m.firstElementChild.appendChild(b);
   });
+  /* 지금 갈 수 있는 칸이 화면 아래쪽 2/3 지점에 오도록 스크롤해요 */
+  const t = m.querySelector('.node.open') || m.querySelector('.node.here');
+  if (t) m.scrollTo({ top: t.offsetTop + 56 - m.clientHeight * 0.62, behavior: 'instant' });
 }
 function info(html, goId) { $('#info').innerHTML = `<div>${html}</div>${goId != null ? `<button class="cta" type="button" id="btnGo" data-id="${goId}">들어가기</button>` : ''}`; }
 function showMap() {
   show('map'); renderBar(); picked = null; renderMap();
   const open = Object.values(run.map.nodes).filter(n => canGo(n.id));
   if (open.length === 1) pickNode(open[0].id, true);
-  else info(`<h3>${run.at == null ? '어느 길로 출발할까요?' : '다음엔 어디로 갈까요?'}</h3><p>분홍 테두리가 지금 갈 수 있는 곳이에요. 눌러 보면 어떤 곳인지 알려 줘요. 하트는 3칸이고, 무엇에 맞든 1칸씩 줄어요. 전투에서 이기면 1칸 차요.</p>`);
+  else info(`<h3>${run.at == null ? '어느 길로 출발할까요?' : '다음엔 어디로 갈까요?'}</h3><p>금빛으로 빛나는 칸이 지금 갈 수 있는 곳이에요. 위아래로 밀어서 지도를 볼 수 있어요. 눌러 보면 어떤 곳인지 알려 줘요. 하트는 3칸이고, 무엇에 맞든 1칸씩 줄어요. 전투에서 이기면 1칸 차요.</p>`);
 }
 function pickNode(id, quiet) {
   picked = id; const n = run.map.nodes[id], d = NODE[n.type];
@@ -750,7 +760,7 @@ $('#btnDeck').addEventListener('click', () => { sfx.tap(); fixEquip(); deckSheet
 /* ───── 칸에 들어가기 ───── */
 function enter(id) {
   if (!canGo(id)) return; const n = run.map.nodes[id]; sfx.tap();
-  if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') equipSheet(() => startBattle(n.type, n.row, r => afterBattle(id, r)));
+  if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') equipSheet(() => startBattle(n.type, diffOf(n.row, mapRows()), r => afterBattle(id, r)));
   else if (n.type === 'rest') { arrive(id); showMap(); restSheet(); }
   else if (n.type === 'shop') { arrive(id); showMap(); shopSheet(); }
   else if (n.type === 'chest') { arrive(id); showMap(); const r = rollRelic(); if (r) relicSheet(r, '보물 상자를 열었어요', showMap); else { run.gold += 40; showMap(); } }
@@ -760,7 +770,7 @@ function afterBattle(id, r) {
   if (!r.won) { gameOver(r); return; }
   arrive(id);
   const healed = run.hp < run.maxHp; run.hp = Math.min(run.maxHp, run.hp + 1 + (has('jar') && r.kind === 'elite' ? 1 : 0));
-  const gold = goldGain(15 + 5 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
+  const gold = goldGain(12 + 5 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
   if (r.kind === 'boss') { victory(r); return; }
   showMap();
   const steps = [];
@@ -853,7 +863,7 @@ function victory(r) {
   sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켰어요!</h2><p>${r.bigDead ? '곰팡이 케이크를 물리쳤어요.' : '곰팡이 케이크의 공격을 끝까지 버텨 냈어요.'} 적 ${kills}마리를 잡았고, 카드 ${deck}장으로 끝까지 왔어요.</p><p>지금까지 ${S.wins}번 지켜 냈어요.</p><button class="cta" type="button" data-act="go" data-pref>처음 화면으로</button>`, () => { closeSheet(); });
 }
 function gameOver(r) {
-  const kills = run.kills, floor = r.floor + 1; run = S.run = null; persist();
+  const kills = run.kills, floor = run.floor + 1; run = S.run = null; persist();
   show('title'); renderTitle();
   sheet(`<div class="pic"><img src="img/${r.kind === 'boss' ? 'boss' : r.kind === 'elite' ? 'donut' : 'jelly'}.png" alt=""></div><h2 id="cardTitle">쓰러졌어요</h2><p>${floor}층에서 쓰러졌어요. 적 ${kills}마리를 잡았어요. 다음엔 다른 길과 다른 카드로 가 봐요.</p><button class="cta" type="button" data-act="go" data-pref>처음 화면으로</button>`, () => { closeSheet(); });
 }
