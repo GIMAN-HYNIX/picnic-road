@@ -759,7 +759,13 @@ function newRun() {
   run = S.run = { map: genMap(), at: null, done: [], floor: 0, hp: 3, maxHp: 3, gold: 30, potion: true, kills: 0,
     deck: [{ id: 'pin', plus: false, ench: null }, { id: 'cream', plus: false, ench: null }, { id: 'magnet', plus: false, ench: null }], equip: [0, 1, 2], relics: ['cape'] };
   persist(); showMap();
-  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>곰팡이 케이크가 간식들을 상하게 만들고 있어요. 길을 골라 올라가서 케이크를 물리쳐요.</p><p>전투에서는 화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 처음엔 롤링핀과 휘핑크림, 코코아 한 잔을 들고 출발해요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { closeSheet(); sfx.tap(); });
+  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>곰팡이 케이크가 간식들을 상하게 만들고 있어요. 길을 골라 올라가서 케이크를 물리쳐요.</p><p>전투에서는 화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 처음엔 롤링핀과 휘핑크림, 코코아 한 잔을 들고, 무기 1장을 더 골라 출발해요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
+}
+/* 출발할 때 무기 1장을 더 골라요 */
+function starterPick() {
+  const opts = shuffle(['star', 'macaron', 'honey', 'lemon']).slice(0, 3).map(id => ({ id, plus: false, ench: null }));
+  sheet(`<h2 id="cardTitle">첫 무기 고르기</h2><p>롤링핀, 휘핑크림, 설탕 자석에 더해 무기 1장을 골라 들고 가요.</p><div class="opts">${opts.map((c, i) => cardOpt(c, i)).join('')}</div>`,
+    (act, b) => { if (act !== 'pick') return; run.deck.push(opts[+b.dataset.i]); fixEquip(); persist(); sfx.good(); closeSheet(); });
 }
 function victory(r) {
   S.wins++; const kills = run.kills, deck = run.deck.length; run = S.run = null; persist();
