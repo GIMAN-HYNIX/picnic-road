@@ -80,6 +80,10 @@ const sfx = {
   slam() { play('slam', () => { voice(120, .4, { to: 45, vol: .24 }); hiss(.3, { type: 'lowpass', f: 2000, to: 200, vol: .16 }); }); buzz(60); },
   boss() { play('boss', () => { voice(98, .9, { to: 62, type: 'triangle', vol: .2 }); hiss(.9, { type: 'lowpass', f: 300, to: 1600, vol: .1 }); }); buzz(120); },
   revive() { play('revive', () => { [392, 523, 659, 784, 1047].forEach((f, i) => bell(f, .4, .09, i * .08)); }); buzz([40, 40, 80]); },
+  flip() { play('flip', () => { hiss(.09, { f: 1200, to: 4200, vol: .07 }); voice(900, .04, { to: 1300, type: 'triangle', vol: .05, at: .06 }); }, 60); buzz(6); },
+  rare() { play('rare', () => { [1047, 1319, 1568, 2093].forEach((f, i) => bell(f, .5, .07, i * .06)); hiss(.4, { type: 'highpass', f: 6000, vol: .05 }); }); buzz([10, 20, 30]); },
+  coinTick() { play('coinTick', () => bell(1568 + Math.random() * 300, .12, .05), 45); },
+  fanfare() { play('fanfare', () => { [523, 659, 784].forEach((f, i) => voice(f, .16, { type: 'triangle', vol: .1, at: i * .09 })); [1047, 1319, 1568].forEach(f => voice(f, .7, { type: 'triangle', vol: .07, at: .3 })); bell(2093, .8, .05, .32); hiss(.5, { type: 'highpass', f: 5000, vol: .05, at: .3 }); }); buzz([20, 30, 20, 30, 80]); },
   tap() { play('tap', () => voice(660, .05, { to: 880, vol: .06 })); buzz(6); },
   coin() { play('coin', () => { bell(1318, .2, .07); bell(1760, .3, .07, .07); }); },
   good() { play('good', () => { [784, 1047, 1318].forEach((f, i) => bell(f, .4, .08, i * .08)); }); buzz([15, 30, 30]); },
@@ -587,7 +591,73 @@ function show(id) { ['title', 'map', 'battle'].forEach(s => { $('#' + s).hidden 
 const overlay = $('#overlay'), cardEl = $('#card');
 let onCard = null;
 function sheet(html, handler) { cardEl.innerHTML = html; overlay.hidden = false; onCard = handler; cardEl.scrollTop = 0; }
-function closeSheet() { overlay.hidden = true; cardEl.innerHTML = ''; onCard = null; }
+function closeSheet() { overlay.hidden = true; cardEl.innerHTML = ''; onCard = null; cardEl.classList.remove('reward'); }
+
+/* ───── 보상 연출 ───── */
+const fxLayer = $('#fx'), calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CONF = ['#FF5C8A', '#FFD23F', '#86D44A', '#59B8FF', '#C77DFF', '#FFFFFF', '#FF9A1F'];
+function confetti(n, x = innerWidth / 2, y = innerHeight * 0.4, spread = 1) {
+  if (headless || calm()) return;
+  for (let i = 0; i < n; i++) {
+    const e = el('i', 'conf'); e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.background = pick(CONF);
+    if (Math.random() < 0.3) e.style.borderRadius = '50%';
+    fxLayer.appendChild(e);
+    const a = rand(-Math.PI, 0), sp = rand(120, 340) * spread, dx = Math.cos(a) * sp, up = Math.sin(a) * sp, r = rand(-720, 720);
+    e.animate([{ transform: 'translate(-50%,-50%) rotate(0deg) scale(.4)' }, { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${up}px)) rotate(${r / 2}deg) scale(1)`, offset: 0.3 }, { transform: `translate(calc(-50% + ${dx * 1.4}px), calc(-50% + ${up + rand(260, 460)}px)) rotate(${r}deg) scale(.9)`, opacity: 0 }],
+      { duration: rand(1300, 1900), easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' }).onfinish = () => e.remove();
+  }
+}
+/* 반짝이: 한 점에서 별가루가 퍼져요 */
+function sparkle(x, y, n = 12) {
+  if (headless || calm()) return;
+  for (let i = 0; i < n; i++) {
+    const e = el('i', 'spk'); e.style.left = x + 'px'; e.style.top = y + 'px'; fxLayer.appendChild(e);
+    const a = i / n * 6.283 + rand(-.2, .2), d = rand(40, 90);
+    e.animate([{ transform: 'translate(-50%,-50%) scale(0) rotate(0deg)', opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), calc(-50% + ${Math.sin(a) * d}px)) scale(1) rotate(180deg)`, opacity: 1, offset: .6 }, { transform: `translate(calc(-50% + ${Math.cos(a) * d * 1.2}px), calc(-50% + ${Math.sin(a) * d * 1.2}px)) scale(0) rotate(240deg)`, opacity: 0 }],
+      { duration: 700, easing: 'ease-out', fill: 'forwards' }).onfinish = () => e.remove();
+  }
+}
+/* 카드 뒤집기: 뒷면으로 깔렸다가 하나씩 뒤집혀요. 희귀 카드는 반짝여요 */
+function flipReveal() {
+  const box = cardEl.querySelector('.opts'); if (!box) return;
+  const list = [...box.querySelectorAll('.opt')];
+  if (headless || calm()) { list.forEach(o => o.classList.add('shown')); return; }
+  box.classList.add('flip', 'lock');
+  list.forEach((o, i) => {
+    const d = 350 + i * 260; o.style.setProperty('--d', d + 'ms');
+    setTimeout(() => { if (o.isConnected) sfx.flip(); }, d + 120);
+    setTimeout(() => { if (!o.isConnected) return; o.classList.add('shown'); if (o.classList.contains('r2')) { const r = o.getBoundingClientRect(); sfx.rare(); sparkle(r.left + 36, r.top + r.height / 2, 14); } }, d + 300);
+  });
+  setTimeout(() => box.classList.remove('lock'), 350 + list.length * 260 + 250);
+}
+/* 승리 연출: 빛줄기, 큰 글자, 색종이, 골드가 위쪽 지갑으로 날아가요. 누르면 넘어가요 */
+function winFx(title, gold, oldGold, next, big) {
+  if (headless) { next(); return; }
+  const wrap = el('div', 'win' + (big ? ' big' : ''), `<div class="rays"></div><div class="win-t">${title}</div>${gold ? `<div class="win-g"><i>${svg(ICON.coin)}</i>+${gold}</div>` : ''}`);
+  fxLayer.appendChild(wrap); sfx.fanfare();
+  confetti(big ? 90 : 46, innerWidth / 2, innerHeight * 0.38, big ? 1.4 : 1);
+  if (big) setTimeout(() => confetti(60, innerWidth / 2, innerHeight * 0.3, 1.6), 450);
+  const chip = $('#goldChip'), N = Math.min(12, Math.max(4, Math.round(gold / 4)));
+  let shown = oldGold, done = false;
+  const paint = () => { if (chip) chip.innerHTML = `<i>${svg(ICON.coin)}</i>${shown}`; };
+  if (gold && chip && chip.offsetParent && !calm()) {
+    paint(); const to = chip.getBoundingClientRect(), tx = to.left + 16, ty = to.top + to.height / 2;
+    for (let i = 0; i < N; i++) {
+      const c = el('i', 'fly', svg(ICON.coin)), sx = innerWidth / 2 + rand(-60, 60), sy = innerHeight * 0.5 + rand(-20, 30); fxLayer.appendChild(c);
+      c.style.left = sx + 'px'; c.style.top = sy + 'px';
+      const mx = (sx + tx) / 2 + rand(-80, 80), my = Math.min(sy, ty) - rand(20, 90);
+      c.animate([{ transform: 'translate(-50%,-50%) scale(0)' }, { transform: 'translate(-50%,-50%) scale(1.2)', offset: .15 }, { transform: `translate(calc(-50% + ${mx - sx}px), calc(-50% + ${my - sy}px)) scale(1)`, offset: .6 }, { transform: `translate(calc(-50% + ${tx - sx}px), calc(-50% + ${ty - sy}px)) scale(.6)` }],
+        { duration: 750, delay: 450 + i * 60, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'both' }).onfinish = () => {
+          c.remove(); if (done) return;
+          shown = i === N - 1 ? oldGold + gold : Math.min(oldGold + gold, shown + Math.ceil(gold / N)); paint(); sfx.coinTick();
+          chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump');
+        };
+    }
+  }
+  const finish = () => { if (done) return; done = true; wrap.classList.add('out'); setTimeout(() => wrap.remove(), 250); if (gold && chip) { shown = oldGold + gold; paint(); } next(); };
+  setTimeout(finish, big ? 2600 : 1900); wrap.addEventListener('pointerdown', finish, { once: true });
+}
+
 cardEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || !onCard) return; if (b.getAttribute('aria-disabled') === 'true') { sfx.no(); return; } onCard(b.dataset.act, b); });
 
 /* ───── 지도 ───── */
@@ -690,11 +760,12 @@ function afterBattle(id, r) {
   if (!r.won) { gameOver(r); return; }
   arrive(id);
   const healed = run.hp < run.maxHp; run.hp = Math.min(run.maxHp, run.hp + 1 + (has('jar') && r.kind === 'elite' ? 1 : 0));
-  const gold = goldGain(15 + 5 * r.floor + (r.kind === 'elite' ? 25 : 0)); run.gold += gold; persist();
+  const gold = goldGain(15 + 5 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
   if (r.kind === 'boss') { victory(r); return; }
   showMap();
   const steps = [];
-  steps.push(next => rewardCards(`전투 승리! 골드 ${gold}${healed ? ', 하트 +1' : ''}`, next));
+  steps.push(next => winFx(r.kind === 'elite' ? '엘리트 격파!' : '승리!', gold, oldGold, next));
+  steps.push(next => rewardCards(`카드 보상${healed ? ' · 하트 +1' : ''}`, next));
   if (r.kind === 'elite') { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '엘리트 전투 보상', next)); if (r.bigDead) steps.push(enchantSheet); else if (!run.potion && Math.random() < 0.5) steps.push(next => { run.potion = true; noteSheet('따뜻한 코코아를 얻었어요', '하트가 다 없어지면 저절로 마시고 하트 1칸으로 다시 일어나요.', 'cocoa', next); }); }
   const go = () => { const s = steps.shift(); if (s) s(go); else { persist(); showMap(); } };
   go();
@@ -702,12 +773,14 @@ function afterBattle(id, r) {
 function rewardCards(title, next) {
   const opts = rollCards(3);
   sheet(`<h2 id="cardTitle">${title}</h2><p>카드 1장을 덱에 넣어요. 건너뛰면 골드 10을 받아요.</p><div class="opts">${opts.map((c, i) => cardOpt(c, i)).join('')}</div><button class="btn" type="button" data-act="skip">건너뛰고 골드 10 받기</button>`,
-    (act, b) => { if (act === 'skip') { run.gold += 10; sfx.coin(); } else { run.deck.push(opts[+b.dataset.i]); sfx.good(); } closeSheet(); fixEquip(); next(); });
+    (act, b) => { if (b.closest('.lock')) return; if (act === 'skip') { run.gold += 10; sfx.coin(); } else { run.deck.push(opts[+b.dataset.i]); sfx.good(); } closeSheet(); fixEquip(); next(); });
+  flipReveal();
 }
 function relicSheet(id, title, next) {
-  const r = RELICS[id]; gainRelic(id); sfx.good();
-  sheet(`<h2 id="cardTitle">${title}</h2><div class="opts"><div class="opt r2"><span class="ic">${svg(ICON[r.icon])}</span><span class="tx"><b>유물: ${r.name}</b><span>${r.desc} 이번 모험 내내 이어져요.</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>받기</button>`,
+  const r = RELICS[id]; gainRelic(id); sfx.rare();
+  sheet(`<h2 id="cardTitle">${title}</h2><div class="prize"><div class="rays"></div><div class="medal">${svg(ICON[r.icon])}</div></div><div class="opts"><div class="opt r2"><span class="ic">${svg(ICON[r.icon])}</span><span class="tx"><b>유물: ${r.name}</b><span>${r.desc} 이번 모험 내내 이어져요.</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>받기</button>`,
     () => { closeSheet(); next(); });
+  cardEl.classList.add('reward'); if (!headless) setTimeout(() => { const m = cardEl.querySelector('.medal'); if (m) { const q = m.getBoundingClientRect(); sparkle(q.left + q.width / 2, q.top + q.height / 2, 16); confetti(30, q.left + q.width / 2, q.top + q.height / 2, .8); } }, 260);
 }
 function noteSheet(title, text, icon, next) {
   sheet(`<h2 id="cardTitle">${title}</h2><div class="opts"><div class="opt"><span class="ic">${svg(ICON[icon])}</span><span class="tx"><span>${text}</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); next(); });
@@ -771,11 +844,12 @@ function newRun() {
 function starterPick() {
   const opts = shuffle(['star', 'macaron', 'honey', 'lemon']).slice(0, 3).map(id => ({ id, plus: false, ench: null }));
   sheet(`<h2 id="cardTitle">첫 무기 고르기</h2><p>롤링핀, 휘핑크림, 설탕 자석에 더해 무기 1장을 골라 들고 가요.</p><div class="opts">${opts.map((c, i) => cardOpt(c, i)).join('')}</div>`,
-    (act, b) => { if (act !== 'pick') return; run.deck.push(opts[+b.dataset.i]); fixEquip(); persist(); sfx.good(); closeSheet(); });
+    (act, b) => { if (act !== 'pick' || b.closest('.lock')) return; run.deck.push(opts[+b.dataset.i]); fixEquip(); persist(); sfx.good(); closeSheet(); });
+  flipReveal();
 }
 function victory(r) {
   S.wins++; const kills = run.kills, deck = run.deck.length; run = S.run = null; persist();
-  show('title'); renderTitle();
+  show('title'); renderTitle(); winFx('왕국을 지켰어요!', 0, 0, () => {}, true); setTimeout(() => confetti(50, innerWidth / 2, innerHeight * 0.3, 1.3), 1500);
   sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켰어요!</h2><p>${r.bigDead ? '곰팡이 케이크를 물리쳤어요.' : '곰팡이 케이크의 공격을 끝까지 버텨 냈어요.'} 적 ${kills}마리를 잡았고, 카드 ${deck}장으로 끝까지 왔어요.</p><p>지금까지 ${S.wins}번 지켜 냈어요.</p><button class="cta" type="button" data-act="go" data-pref>처음 화면으로</button>`, () => { closeSheet(); });
 }
 function gameOver(r) {
