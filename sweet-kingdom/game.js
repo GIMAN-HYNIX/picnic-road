@@ -38,7 +38,7 @@ try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e)
 /* 난이도: 적이 나오는 수, 적 속도, 적 체력, 맞은 뒤 무적 시간, 엘리트·보스 공격 예고 시간 */
 const DIFF = {
   easy: { name: '쉬움', spawn: 0.7, spd: 0.85, hp: 0.72, inv: 1.7, warn: 1.3, desc: '적이 적고 느려요. 맞은 뒤 무적 시간이 길어요.' },
-  normal: { name: '보통', spawn: 1, spd: 1, hp: 1, inv: 1.3, warn: 1, desc: '원래 난이도예요.' },
+  normal: { name: '보통', spawn: 0.85, spd: 0.94, hp: 0.85, inv: 1.3, warn: 1, desc: '보통 난이도예요.' },      /* 몬스터 수·체력 85%, 속도 94% */
   hard: { name: '어려움', spawn: 1.2, spd: 1.08, hp: 1.2, inv: 1.1, warn: 0.85, desc: '적이 많고 빨라요.' }
 };
 S.diff = 'normal';                 // 난이도는 보통으로 고정
@@ -535,6 +535,7 @@ const LEG = {
   cane: { name: '지팡이 대폭격', desc: '지팡이 사탕 12개가 나를 둥글게 감싸며 내리꽂혀요.', cd: 5 }
 };
 const LEG_N = 10;
+const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 const isLeg = id => !!(run && run.leg && run.leg[id]);
 const legLater = (t, f) => B.legQ.push({ t, f });
 function castLeg(w) {
@@ -1003,7 +1004,7 @@ function levelUp() {
 }
 /* 선택지: 아직 Lv10이 아닌 무기 10가지 + 능력 3가지가 모두 같은 확률 */
 function rollLevelOpts() {
-  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(run.wpn.filter(w => w.lv >= WMAX && !isLeg(w.id)).map(w => ({ t: 'leg', id: w.id }))).concat(Object.keys(STATS).filter(id => id === 'heart' ? ((run.bonus.heart || 0) < 1 && Math.random() < 0.2) : id === 'spd' ? (run.bonus.spd || 0) < 8 : id === 'crit' ? (run.bonus.crit || 0) < 10 : true).map(id => ({ t: 's', id })));
+  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(legUnlocked() ? run.wpn.filter(w => !isLeg(w.id)).map(w => ({ t: 'leg', id: w.id })) : []).concat(Object.keys(STATS).filter(id => id === 'heart' ? ((run.bonus.heart || 0) < 1 && Math.random() < 0.2) : id === 'spd' ? (run.bonus.spd || 0) < 8 : id === 'crit' ? (run.bonus.crit || 0) < 10 : true).map(id => ({ t: 's', id })));
   return shuffle(pool).slice(0, M('choice') ? 4 : 3);
 }
 function applyLevel(o) {
@@ -1485,14 +1486,16 @@ function draw() {
     for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) tx.fillText(t.t, sx + a * U, sy + b * U);
     tx.fillStyle = t.col === '#4A2040' ? '#FFFFFF' : t.col; tx.fillText(t.t, sx, sy);
   }
-  /* 화면 밖 자석: 가장자리에 방향 화살표 */
-  for (const m of B.magnets) {
+  /* 화면 밖 자석과 폭탄: 가장자리에 방향 화살표 */
+  for (const [m, bomb] of [...B.magnets.map(o => [o, 0]), ...B.bombs.map(o => [o, 1])]) {
     const sx = X(m.x) * U, sy = Y(m.y) * U, W = cv2.width, H = cv2.height, top = 118 * d, pad = 26 * d;
     if (sx > 0 && sx < W && sy > top - 40 * d && sy < H) continue;
     const ax = Math.max(pad, Math.min(W - pad, sx)), ay = Math.max(top, Math.min(H - pad * 1.6, sy)), a = Math.atan2(sy - ay, sx - ax), blink = Math.floor(B.t * 5) % 2, s = 9 * d;
     tx.save(); tx.translate(Math.round(ax), Math.round(ay));
-    tx.fillStyle = INK; tx.fillRect(-s - U, -s - U, (s + U) * 2, (s + U) * 2); tx.fillStyle = blink ? '#FF4F6B' : '#E8323C'; tx.fillRect(-s, -s, s * 2, s * 2);
-    tx.fillStyle = INK; tx.fillRect(-s * 0.3, -s, s * 0.6, s * 1.2); tx.fillStyle = '#DDE3EA'; tx.fillRect(-s, s * 0.45, s * 0.7, s * 0.55); tx.fillRect(s * 0.3, s * 0.45, s * 0.7, s * 0.55);      // 작은 자석 그림
+    tx.fillStyle = INK; tx.fillRect(-s - U, -s - U, (s + U) * 2, (s + U) * 2);
+    if (bomb) { tx.fillStyle = blink ? '#FFB02E' : '#E8892E'; tx.fillRect(-s, -s, s * 2, s * 2); tx.fillStyle = INK; tx.beginPath(); tx.arc(0, s * 0.2, s * 0.62, 0, 6.283); tx.fill(); tx.fillStyle = '#6A6890'; tx.fillRect(-s * 0.35, -s * 0.2, s * 0.25, s * 0.25); tx.fillStyle = INK; tx.fillRect(s * 0.15, -s * 0.85, s * 0.3, s * 0.4); tx.fillStyle = blink ? '#FFFFFF' : '#FFD23F'; tx.fillRect(s * 0.3, -s * 1.0, s * 0.35, s * 0.35); }      // 작은 폭탄 그림
+    else { tx.fillStyle = blink ? '#FF4F6B' : '#E8323C'; tx.fillRect(-s, -s, s * 2, s * 2);
+    tx.fillStyle = INK; tx.fillRect(-s * 0.3, -s, s * 0.6, s * 1.2); tx.fillStyle = '#DDE3EA'; tx.fillRect(-s, s * 0.45, s * 0.7, s * 0.55); tx.fillRect(s * 0.3, s * 0.45, s * 0.7, s * 0.55); }      // 작은 자석 그림
     tx.rotate(a); tx.fillStyle = INK; tx.beginPath(); tx.moveTo(s * 2.9 + U, 0); tx.lineTo(s * 1.5 - U, -s - U); tx.lineTo(s * 1.5 - U, s + U); tx.closePath(); tx.fill();
     tx.fillStyle = blink ? '#FFD86B' : '#FFFFFF'; tx.beginPath(); tx.moveTo(s * 2.7, 0); tx.lineTo(s * 1.5, -s * 0.8); tx.lineTo(s * 1.5, s * 0.8); tx.closePath(); tx.fill();
     tx.restore();
@@ -1673,7 +1676,7 @@ function charSheet() {
     + row('치명타 확률', pc(st.crit), st.crit > 0.05) + row('치명타 피해', pc(st.critMul), st.critMul > 1.8) + row('맞은 뒤 무적', `${(DF().inv * st.invK).toFixed(1)}초`, st.invK > 1)
     + row('방패', st.guard ? `${st.guard}초마다` : M('shield') ? '전투마다 1번' : '없음', !!st.guard) + row('무기 범위', pc(st.area), st.area > 1) + row('줍는 거리', pc(st.pickup / 88), st.pickup > 88) + row('경험치', pc(st.xp), st.xp > 1);
   const slots = SLOTS.map(sl => { const it = e[sl]; return it ? `<button class="opt eqi g${it.g}" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON[eqIcon(it)])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${statLine(it)}</span></span></button>` : `<button class="opt eqi empty" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON[eqIcon(null, sl)])}</span><span class="tx"><b>${SLOT[sl].name}</b><span>비어 있어요. 눌러서 끼울 수 있어요.</span></span></button>`; }).join('');
-  const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설</i>` : w.lv >= WMAX ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}</b>: ${LEG[w.id].desc} ` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
+  const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설</i>` : legUnlocked() ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}</b>: ${LEG[w.id].desc} ` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
   sheet(`<h2 id="cardTitle">내 캐릭터</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="who"><b>Lv ${run.lvl}</b><span>스테이지 ${Math.min(run.stage + 1, STAGES.length)}에 도전 중</span><span>무기 ${run.wpn.length}개 · 장비 ${eqList().length}/5칸</span></div></div>
     <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">배운 특성</h3><p class="eqsum">${learned}</p><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
     <div class="row2"><button class="btn" type="button" data-act="eq">장비 바꾸기</button><button class="btn" type="button" data-act="tree">성장 트리 (별 ${S.meta.pts})</button></div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
@@ -1800,6 +1803,14 @@ function migrate() {
     bonus: Object.assign({ spd: 0, dmg: 0, crit: 0, heart: 0 }, o.bonus || {}), rerolls: 0, relics: [], eq: {}, inv, dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0, picks: o.picks || 0 };
   run = S.run; autoEquip(); run = null; persist();
 }
+/* 예전에 모은 전설 조각은 조각 한 개당 무작위 기본 스킬 레벨업 1번으로 바꿔 줘요 (전설로 깨어난 것도 같아요). 이미 전부 마스터했으면 그대로 둬요 */
+function convertShards() {
+  const o = S.run; if (!o || !o.shards) return; const was = run; run = o;
+  if (legUnlocked()) { run = was; return; }
+  let n = Object.values(o.shards).reduce((a, b) => a + b, 0), done = 0; const got = {};
+  while (n > 0) { const c = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX); if (!c.length) break; const id = pick(c); applyLevel({ t: 'w', id }); got[id] = (got[id] || 0) + 1; n--; done++; }
+  o.shards = null; o.leg = null; run = was; S.legNote = `전설 조각 ${done}개를 무작위 기본 스킬 레벨업으로 바꿔 줬어요: ${Object.entries(got).map(([id, k]) => `${WEAPONS[id].name} +${k}`).join(', ')}. 전설 조각은 기본 스킬 10개를 모두 Lv10으로 만든 뒤에 나와요.`; persist();
+}
 function resetSheet() {
   sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">지우고 처음부터</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); renderTitle(); } });
 }
@@ -1893,4 +1904,4 @@ function drawBg() {
   r('#1A0E22', 0, hz, W, H - hz); for (let k = 0; k < W; k += 2) r('#2A1838', k, hz, 1, 1);
 }
 addEventListener('resize', drawBg);
-Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); if (S.treeReset) { S.treeReset = false; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">성장 트리가 새로워졌어요</h2><p>특성이 늘고 길이 바뀌어서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요. 하트는 방어 길 끝에 아주 비싸게 있어요.</p><button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
+Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); convertShards(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요. 하트는 방어 길 끝에 아주 비싸게 있어요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = S.treeReset ? '게임이 새로워졌어요' : '전설 조각이 바뀌었어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
