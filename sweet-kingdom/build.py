@@ -15,7 +15,7 @@ json.dump({'name': '쪈이의 디저트 대작전', 'short_name': '디저트 대
            'background_color': '#1A0E22', 'theme_color': '#1A0E22',
            'icons': [{'src': 'icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'}, {'src': 'icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'}]},
           open(os.path.join(HERE, 'manifest.webmanifest'), 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-files = ['./', 'index.html', 'game.js', 'manifest.webmanifest', 'fonts/galmuri11.woff2', 'fonts/galmuri11-bold.woff2', 'fonts/galmuri9.woff2', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'img/{n}.png' for n in ('hero', 'jelly', 'cookie', 'ice', 'donut', 'boss', 'boss2', 'boss3')] 
+files = ['./', 'index.html', 'game.js', 'manifest.webmanifest', 'fonts/galmuri11.woff2', 'fonts/galmuri11-bold.woff2', 'fonts/galmuri9.woff2', 'icons/icon-192.png', 'icons/icon-512.png'] + [f'img/{n}.png' for n in ('hero', 'jelly', 'cookie', 'ice', 'donut', 'boss', 'boss2', 'boss3', 'golem', 'knight')] 
 h = hashlib.sha256()
 for f in files[1:]: h.update(open(os.path.join(HERE, f), 'rb').read()) if f != 'manifest.webmanifest' else None
 open(os.path.join(HERE, 'sw.js'), 'w', encoding='utf-8').write('''/* Keeps a copy of the game on the phone so it opens instantly and works with no connection. */
