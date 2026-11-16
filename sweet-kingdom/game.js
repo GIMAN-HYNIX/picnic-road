@@ -1752,7 +1752,7 @@ function bonusLine(b) {
   return `<div class="opt r2 petget"><span class="ic">${cosPetIcon(S.pet && petLv(S.pet) ? S.pet : 'kong', b.k)}</span><span class="tx"><b>펫 꾸미기: ${PET_COS[b.k].name}</b><span>펫 창에서 씌워 줄 수 있어요.</span></span></div>`;
 }
 function dyePreview(k) { const was = S.heroCos; S.heroCos = k; const c = composeHero(HERO_RAW, eqOf(), k); S.heroCos = was; const o = mk(c.width * 2, c.height * 2), q = o.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); }
-const itemRow = (it, i, o = {}) => `<button class="opt eqi g${it.g}" type="button" data-act="${o.act || 'item'}" data-i="${i}"${o.worn ? ' aria-pressed="true"' : ''}>${o.worn ? '<em class="tag wt">착용 중</em>' : o.up ? '<em class="tag up">▲ 더 좋아요</em>' : ''}<span class="ic">${eqImg(it)}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${SLOT[it.s].name} · ${statLine(it)}</span></span></button>`;
+const itemRow = (it, i, o = {}) => `<button class="opt eqi g${it.g}${o.sel ? ' picked' : ''}${o.dim ? ' dim' : ''}" type="button" data-act="${o.act || 'item'}" data-i="${i}"${o.worn || o.sel ? ' aria-pressed="true"' : ''}>${o.sel ? '<em class="tag up">✔ 재료</em>' : o.worn ? '<em class="tag wt">착용 중</em>' : o.up ? '<em class="tag up">▲ 더 좋아요</em>' : ''}<span class="ic">${eqImg(it)}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${SLOT[it.s].name} · ${statLine(it)}</span></span></button>`;
 function rewardSheet(items, bonus, title, next) {
   addItems(items); sfx.rare();
   const best = Math.max(...items.map(it => it.g));
@@ -1772,7 +1772,7 @@ function eqSheet(slot0, back) {
       <p class="eqsum">${sums} · 자세한 능력치는 캐릭터 창에서 봐요</p>
       <div class="tabs"><button class="tb${tab === 'all' ? ' on' : ''}" type="button" data-act="tab" data-s="all">전체</button>${SLOTS.map(s => `<button class="tb${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}">${SLOT[s].name}</button>`).join('')}</div>
       <div class="opts">${tab !== 'all' && e[tab] ? itemRow(e[tab], -1, { act: 'off', worn: true }) : ''}${inv.length ? inv.map((it, i) => itemRow(it, i, { up: betterThanWorn(it) })).join('') : '<p>가방이 비었어요. 스테이지를 깨면 장비를 받아요.</p>'}</div>
-      <button class="btn" type="button" data-act="auto">좋은 걸로 끼기</button><p class="eqsum">안 쓰는 장비는 가방에 모아 둬요. 나중에 펫 먹이로 쓸 거예요. 가방 ${(run.inv || []).length}개</p><button class="btn" type="button" data-act="cos">캐릭터 꾸미기</button><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+      <div class="row2"><button class="btn" type="button" data-act="auto">좋은 걸로 끼기</button><button class="btn" type="button" data-act="synth">장비 합성</button></div><p class="eqsum">안 쓰는 장비는 가방에 모아 둬요. 나중에 펫 먹이로 쓸 거예요. 가방 ${(run.inv || []).length}개</p><button class="btn" type="button" data-act="cos">캐릭터 꾸미기</button><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
       (act, b) => {
         if (act === 'close') { closeSheet(); persist(); renderBar(); if (back) back(); return; }
         if (act === 'tab') { tab = b.dataset.s; sfx.tap(); draw(); return; }
@@ -1780,7 +1780,37 @@ function eqSheet(slot0, back) {
         if (act === 'off') { unequip(tab); sfx.tap(); persist(); draw(); return; }
         if (act === 'auto') { const n = autoEquip(); sfx.good(); persist(); draw(); toastSheetMsg(n ? `${n}개를 바꿔 꼈어요` : '지금 낀 게 제일 좋아요'); return; }
         if (act === 'tidy') { const n = tidyItems(); sfx.tap(); persist(); draw(); toastSheetMsg(n ? `${n}개를 정리했어요` : '정리할 장비가 없어요'); return; }
+        if (act === 'synth') { synthSheet(() => eqSheet(tab, back)); return; }
         if (act === 'cos') { cosSheet(() => eqSheet(tab, back)); }
+      });
+  };
+  draw();
+}
+/* 장비 합성: 가방의 같은 등급 3개 → 한 등급 위 장비 1개. 셋이 같은 칸이면 그 칸으로, 아니면 아무 칸이나 나와요 */
+function synthItem(mats) {
+  const g = mats[0].g, slot = mats.every(m => m.s === mats[0].s) ? mats[0].s : null, n = Math.max(...mats.map(m => m.n || 1));
+  run.inv = run.inv.filter(it => !mats.includes(it));
+  const it = rollItem(n, g + 1, slot); it.g = g + 1; if (it.g < 3) it.sp = null; addItems([it]); return it;
+}
+function synthSheet(back) {
+  let sel = [];
+  const draw = () => {
+    const inv = (run.inv || []).filter(it => it.g < 4).sort((a, b) => a.g - b.g || itemScore(a) - itemScore(b)), g = sel.length ? sel[0].g : -1, cnt = [0, 1, 2, 3].map(k => inv.filter(it => it.g === k).length);
+    const same = sel.length === 3 && sel.every(m => m.s === sel[0].s);
+    sheet(`<h2 id="cardTitle">장비 합성</h2><p>가방에서 <b>같은 등급 3개</b>를 고르면 한 등급 위 장비 1개가 돼요. 셋이 같은 칸이면 그 칸 장비가 나오고, 섞으면 아무 칸이나 나와요. 낀 장비는 재료로 못 써요.</p>
+      <p class="eqsum">${[0, 1, 2, 3].map(k => `<i class="gn g${k}">${GRADES[k].name}</i> ${cnt[k]}개`).join(' · ')}</p>
+      <div class="synth">${[0, 1, 2].map(i => `<span class="sslot${sel[i] ? ' g' + sel[i].g : ''}">${sel[i] ? eqImg(sel[i]) : '?'}</span>`).join('<b>+</b>')}<b>→</b><span class="sslot res${g >= 0 ? ' g' + (g + 1) : ''}">${sel.length === 3 ? (same ? eqImg({ s: sel[0].s, g: g + 1, v: 0, fx: sel[0].fx, nm: '' }) : '?') : '?'}</span></div>
+      <button class="cta" type="button" data-act="go"${sel.length === 3 ? '' : ' aria-disabled="true"'}>${sel.length === 3 ? `합성하기 → ${GRADES[g + 1].name} ${same ? SLOT[sel[0].s].name : '장비'}` : `재료 ${sel.length}/3`}</button>
+      <button class="btn" type="button" data-act="quick">약한 것부터 자동으로 고르기</button>
+      <div class="opts">${inv.length ? inv.map((it, i) => itemRow(it, i, { act: 'pick', sel: sel.includes(it), dim: g >= 0 && it.g !== g })).join('') : '<p>합성할 장비가 없어요.</p>'}</div><button class="btn" type="button" data-act="close">돌아가기</button>`,
+      (act, b) => {
+        if (act === 'close') { closeSheet(); back(); return; }
+        if (act === 'pick') { const it = inv[+b.dataset.i]; if (sel.includes(it)) sel = sel.filter(x => x !== it); else if (sel.length < 3 && (g < 0 || it.g === g)) sel.push(it); else { sfx.no(); return; } sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; return; }
+        if (act === 'quick') { const k = [0, 1, 2, 3].find(x => cnt[x] >= 3); if (k == null) { sfx.no(); toastSheetMsg('같은 등급이 3개 모인 게 없어요'); return; } sel = inv.filter(it => it.g === k).slice(0, 3); sfx.tap(); draw(); return; }
+        if (act === 'go') { if (sel.length !== 3) { sfx.no(); return; } const it = synthItem(sel); sel = []; persist(); sfx.rare();
+          sheet(`<h2 id="cardTitle">합성 성공!</h2><div class="opts">${itemRow(it, 0, { act: 'noop', up: betterThanWorn(it) })}</div><button class="cta" type="button" data-act="more" data-pref>계속 합성하기</button>${betterThanWorn(it) ? '<button class="btn" type="button" data-act="wear">바로 끼기</button>' : ''}<button class="btn" type="button" data-act="close">돌아가기</button>`,
+            (a2, b2) => { if (a2 === 'noop' || b2.closest('.lock')) return; if (a2 === 'wear') { equip(it); sfx.good(); persist(); } if (a2 === 'close') { closeSheet(); back(); return; } draw(); });
+          flipReveal(); if (!headless && it.g >= 3) setTimeout(() => confetti(it.g === 4 ? 60 : 30), 500); }
       });
   };
   draw();
