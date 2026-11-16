@@ -1700,15 +1700,16 @@ function weaponSheet() {
 /* 내 캐릭터: 모습, 능력치, 장착한 장비, 무기 */
 function charSheet() {
   const st = battleStats(), e = eqOf(), pc = v => `${Math.round(v * 100)}%`, row = (k, v, h) => `<div class="st"><span>${k}</span><b${h ? ' class="hi"' : ''}>${v}</b></div>`;
+  const learned = TREE.filter(t => M(t.id)).map(t => `${t.name} ${M(t.id)}/${t.max}`).join(' · ') || '아직 배운 게 없어요';
   const stats = row('하트', `${heartsMax()}칸`) + row('공격력', pc(st.dmg), st.dmg > 1) + row('공격 속도', pc(st.atk), st.atk > 1) + row('이동 속도', pc(st.spd), st.spd > 1)
     + row('치명타 확률', pc(st.crit), st.crit > 0.05) + row('치명타 피해', pc(st.critMul), st.critMul > 1.8) + row('맞은 뒤 무적', `${(DF().inv * st.invK).toFixed(1)}초`, st.invK > 1)
     + row('방패', st.guard ? `${st.guard}초마다` : M('shield') ? '전투마다 1번' : '없음', !!st.guard) + row('무기 범위', pc(st.area), st.area > 1) + row('줍는 거리', pc(st.pickup / 88), st.pickup > 88) + row('경험치', pc(st.xp), st.xp > 1);
   const slots = SLOTS.map(sl => { const it = e[sl]; return it ? `<button class="opt eqi g${it.g}" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON[eqIcon(it)])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${statLine(it)}</span></span></button>` : `<button class="opt eqi empty" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON[eqIcon(null, sl)])}</span><span class="tx"><b>${SLOT[sl].name}</b><span>비어 있어요. 눌러서 끼울 수 있어요.</span></span></button>`; }).join('');
   const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설</i>` : w.lv >= WMAX ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}</b>: ${LEG[w.id].desc} ` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
   sheet(`<h2 id="cardTitle">내 캐릭터</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="who"><b>Lv ${run.lvl}</b><span>스테이지 ${Math.min(run.stage + 1, STAGES.length)}에 도전 중</span><span>무기 ${run.wpn.length}개 · 장비 ${eqList().length}/5칸</span></div></div>
-    <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
-    <button class="btn" type="button" data-act="eq">장비 바꾸기</button><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
-    (act, b) => { if (act === 'close') { closeSheet(); return; } if (act === 'eq') eqSheet(b.dataset.s, () => charSheet()); });
+    <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">배운 특성</h3><p class="eqsum">${learned}</p><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
+    <div class="row2"><button class="btn" type="button" data-act="eq">장비 바꾸기</button><button class="btn" type="button" data-act="tree">성장 트리 (별 ${S.meta.pts})</button></div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+    (act, b) => { if (act === 'close') { closeSheet(); return; } if (act === 'tree') { treeSheet(() => charSheet()); return; } if (act === 'eq') eqSheet(b.dataset.s, () => charSheet()); });
 }
 $('#btnDeck').addEventListener('click', () => { sfx.tap(); charSheet(); });
 $('#btnEq').addEventListener('click', () => { sfx.tap(); eqSheet(); });
