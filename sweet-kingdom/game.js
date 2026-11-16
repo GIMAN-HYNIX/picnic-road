@@ -34,7 +34,7 @@ function pixelIcon(inner) {
 const KEY = 'sweet-kingdom-v1';
 let S = { muted: false, vib: true, wins: 0, run: null };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
-if (S.run && S.run.maxHp > 10) { const r = S.run, m = 3 + (r.relics || []).includes('apron'); r.hp = Math.max(1, Math.round(r.hp / r.maxHp * m)); r.maxHp = m; }
+
 /* 난이도: 적이 나오는 수, 적 속도, 적 체력, 맞은 뒤 무적 시간, 엘리트·보스 공격 예고 시간 */
 const DIFF = {
   easy: { name: '쉬움', spawn: 0.7, spd: 0.85, hp: 0.72, inv: 1.7, warn: 1.3, desc: '적이 적고 느려요. 맞은 뒤 무적 시간이 길어요.' },
@@ -65,13 +65,34 @@ const PET_ART = {
   shu: { pal: { k: '#1A0E22', y: '#FFE45C', c: '#FFF3D6', s: '#E9C27A', w: '#FFFFFF', p: '#FF8FB8' }, rows: ['...yyyy...', '..y....y..', 'w..kkkk..w', 'ww.kcccck.ww', '.wkccccccw.', '.kckcckcck.', '.kcpccccpk.', '..kssssk...', '...kkkk....'] },
   byul: { pal: { k: '#1A0E22', y: '#FFD23F', l: '#FFF3A8', o: '#E0A000', p: '#FF8FB8' }, rows: ['....k....', '...kyk...', 'kkkkylkkkk', 'kyyyyyyyk', '.kykyyky..', '.kpyyyypk.', '..kyoyyk..', '.kyk..kyk.', '.kk....kk.'] }
 };
-const PET_SPR = {};
+const PET_BASE = {};
 for (const [id, a] of Object.entries(PET_ART)) {
   const w = Math.max(...a.rows.map(r => r.length)), h = a.rows.length, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d');
   a.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (a.pal[ch]) { q.fillStyle = a.pal[ch]; q.fillRect(x, y, 1, 1); } }));
-  PET_SPR[id] = c;
+  PET_BASE[id] = c;
 }
-const petImg = (id, size = 40) => { const s = PET_SPR[id], c = document.createElement('canvas'), k = Math.max(1, Math.floor(size / Math.max(s.width, s.height))); c.width = s.width * k; c.height = s.height * k; const q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); return `<img class="pxi" src="${c.toDataURL()}" alt="">`; };
+/* 펫 꾸미기: 머리 위에 얹는 작은 픽셀 장식 */
+const PET_COS = {
+  crown: { name: '작은 왕관', pal: { k: '#1A0E22', y: '#FFD23F', r: '#E8323C' }, rows: ['k.k.k.k', 'kykykyk', 'kyyryyk', 'kkkkkkk'] },
+  ribbon: { name: '분홍 리본', pal: { k: '#1A0E22', p: '#FF6FA5', l: '#FFB3CF' }, rows: ['kk...kk', 'kpk.kpk', 'klpkplk', 'kk.k.kk'] },
+  party: { name: '고깔모자', pal: { k: '#1A0E22', y: '#FFD23F', b: '#59B8FF', p: '#FF6FA5' }, rows: ['...y...', '..kpk..', '.kbpbk.', 'kpbpbpk', 'kkkkkkk'] },
+  flower: { name: '꽃핀', pal: { k: '#1A0E22', p: '#FF8FB8', y: '#FFD23F' }, rows: ['.k.k.', 'kpkpk', '.kyk.', 'kpkpk', '.k.k.'] },
+  leaf: { name: '새싹', pal: { k: '#1A0E22', g: '#5CD66A', d: '#2E9A3C' }, rows: ['kk.kk', 'kgkdk', '.kgk.', '..k..'] },
+  star: { name: '별 머리띠', pal: { k: '#1A0E22', y: '#FFD23F', w: '#FFF6C0' }, rows: ['..k..', '.kyk.', 'kywyk', '.kyk.', '..k..'] }
+};
+if (!S.cos || typeof S.cos !== 'object') S.cos = { hero: [], pet: [] };
+if (!S.petCos || typeof S.petCos !== 'object') S.petCos = {};
+const PET_SPR_C = new Map();
+function petSpr(id) {
+  const cos = S.petCos[id], key = id + (cos || ''); let c = PET_SPR_C.get(key); if (c) return c;
+  const base = PET_BASE[id]; if (!cos || !PET_COS[cos]) { PET_SPR_C.set(key, base); return base; }
+  const H = PET_COS[cos], hw = H.rows[0].length, hh = H.rows.length, top = Math.max(0, hh - 2);
+  c = document.createElement('canvas'); c.width = Math.max(base.width, hw); c.height = base.height + top; const q = c.getContext('2d');
+  q.drawImage(base, (c.width - base.width) >> 1, top); const ox = (c.width - hw) >> 1;
+  H.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (H.pal[ch]) { q.fillStyle = H.pal[ch]; q.fillRect(ox + x, y, 1, 1); } }));
+  PET_SPR_C.set(key, c); return c;
+}
+const petImg = (id, size = 40) => { const s = petSpr(id), c = document.createElement('canvas'), k = Math.max(1, Math.floor(size / Math.max(s.width, s.height))); c.width = s.width * k; c.height = s.height * k; const q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); return `<img class="pxi" src="${c.toDataURL()}" alt="">`; };
 /* 모험이 끝나면 펫 하나 */
 function gainPet() {
   const id = pick(Object.keys(PETS)), was = petLv(id);
@@ -81,10 +102,14 @@ function gainPet() {
 }
 function petLine(g) { return `<div class="opt r2 petget"><span class="ic">${petImg(g.id)}</span><span class="tx"><b>${g.isNew ? '새 펫' : '펫 레벨 업'}: ${PETS[g.id].name} Lv${g.lv}</b><span>${g.extra ? `이미 최고 레벨이라 설탕 별 ${g.extra}개로 바꿨어요.` : PETS[g.id].desc}</span></span></div>`; }
 function petSheet(back) {
-  const draw = () => sheet(`<h2 id="cardTitle">펫</h2><p>모험이 끝날 때마다 하나를 얻어요. 같은 펫이면 레벨이 올라요. 하나를 골라 데리고 가요.</p><div class="opts">${Object.keys(PETS).map(id => { const lv = petLv(id); return `<button class="opt${S.pet === id ? ' on' : ''}" type="button" data-act="pet" data-id="${id}"${lv ? '' : ' aria-disabled="true"'}><span class="ic">${lv ? petImg(id) : '?'}</span><span class="tx"><b>${lv ? `${PETS[id].name} Lv${lv}` : '아직 못 만났어요'}</b><span>${lv ? `${PETS[id].desc} (${PETS[id].lvDesc(lv)})` : '모험을 끝내면 만날 수 있어요.'}</span></span></button>`; }).join('')}</div><button class="btn" type="button" data-act="close">닫기</button>`,
-    (act, b) => { if (act === 'close') { closeSheet(); if (back) back(); return; } S.pet = b.dataset.id; persist(); sfx.tap(); draw(); });
+  const draw = () => { const cur = S.pet && petLv(S.pet) ? S.pet : null, own = S.cos.pet || [];
+    sheet(`<h2 id="cardTitle">펫</h2><p>보스를 잡으면 가끔 펫이나 펫 꾸미기를 받아요. 같은 펫이면 레벨이 올라요. 하나를 골라 데리고 가요.</p><div class="opts">${Object.keys(PETS).map(id => { const lv = petLv(id); return `<button class="opt${S.pet === id ? ' on' : ''}" type="button" data-act="pet" data-id="${id}"${lv ? '' : ' aria-disabled="true"'}><span class="ic">${lv ? petImg(id) : '?'}</span><span class="tx"><b>${lv ? `${PETS[id].name} Lv${lv}` : '아직 못 만났어요'}</b><span>${lv ? `${PETS[id].desc} (${PETS[id].lvDesc(lv)})` : '보스를 잡으면 만날 수 있어요.'}</span></span></button>`; }).join('')}</div>${cur ? `<h3 class="sub3">${PETS[cur].name.split(' ').pop()} 꾸미기</h3>${own.length ? `<div class="cosrow"><button class="cos${S.petCos[cur] ? '' : ' on'}" type="button" data-act="pcos" data-id="">없음</button>${own.map(c => `<button class="cos${S.petCos[cur] === c ? ' on' : ''}" type="button" data-act="pcos" data-id="${c}" aria-label="${PET_COS[c].name}">${cosPetIcon(cur, c)}</button>`).join('')}</div>` : '<p>아직 펫 꾸미기가 없어요. 보스를 잡으면 받을 수 있어요.</p>'}` : ''}<button class="btn" type="button" data-act="close">닫기</button>`,
+    (act, b) => { if (act === 'close') { closeSheet(); if (back) back(); return; }
+      if (act === 'pcos') { if (b.dataset.id) S.petCos[S.pet] = b.dataset.id; else delete S.petCos[S.pet]; persist(); sfx.tap(); draw(); return; }
+      S.pet = b.dataset.id; persist(); sfx.tap(); draw(); }); };
   draw();
 }
+function cosPetIcon(id, c) { const was = S.petCos[id]; S.petCos[id] = c; const h = petImg(id, 36); if (was) S.petCos[id] = was; else delete S.petCos[id]; return h; }
 /* 전투 속 펫 */
 function petStart() {
   const id = S.pet, lv = petLv(id); if (!lv) return null;
@@ -121,7 +146,7 @@ if (!S.dev) S.dev = Math.random().toString(36).slice(2, 8);
 function recordRun(won, stars, petGot) {
   const t = Math.round(run.time || 0), dmg = run.dmg || {};
   S.hist.push({ id: S.dev + '-' + Date.now().toString(36), dev: S.dev, nm: S.devName || '', at: Date.now(), won: won ? 1 : 0, act: actOf(), fl: floorNo(), rows: 0, lv: run.lvl, k: run.kills || 0, t, hits: run.hits || 0, by: run.hitBy || {}, el: run.elites || 0,
-    w: run.wpn.map(w => [w.id, w.lv, Math.round(dmg[w.id] || 0)]), pd: Math.round(dmg.pet || 0), ac: Math.round(dmg.acid || 0), b: run.bonus, hp: run.maxHp, pet: S.pet ? [S.pet, petLv(S.pet)] : null, pg: petGot ? petGot.id : null, st: stars, tree: S.meta.total - S.meta.pts, rel: run.relics.length });
+    w: run.wpn.map(w => [w.id, w.lv, Math.round(dmg[w.id] || 0)]), pd: Math.round(dmg.pet || 0), ac: Math.round(dmg.acid || 0), b: run.bonus, hp: run.maxHp, pet: S.pet ? [S.pet, petLv(S.pet)] : null, pg: petGot ? petGot.id : null, st: stars, tree: S.meta.total - S.meta.pts, eq: SLOTS.map(s => eqOf()[s] ? eqOf()[s].g : -1) });
   if (S.hist.length > 120) S.hist.splice(0, S.hist.length - 120);
 }
 async function exportCode() {
@@ -252,12 +277,48 @@ function tintFoes() {
   for (const n of ['jelly', 'cookie', 'ice', 'donut', 'pop', 'ginger', 'churro']) { const s = IMG[n]; if (!s) continue;
     for (const act of [2, 3]) { const fr = s.frames.map(im => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const q = c.getContext('2d'); q.filter = F[act]; q.drawImage(im, 0, 0); return foeStyle(c); }); IMG[n + '@' + act] = { im: fr[0], white: s.white, ratio: s.ratio, frames: fr, whites: s.whites }; } }
 }
+/* 주인공 꾸미기: 머리 염색 */
+const HERO_COS = {
+  pink: { name: '분홍 머리', ramp: ['#FF9AC0', '#E0507A', '#9C1E5C'] }, blond: { name: '금발', ramp: ['#FFE08A', '#E0A030', '#9A6010'] },
+  mint: { name: '민트 머리', ramp: ['#A8F0D8', '#3FBF9A', '#1E7A60'] }, lilac: { name: '보라 머리', ramp: ['#D9B8FF', '#9A6AE0', '#5A3A9A'] },
+  sky: { name: '하늘 머리', ramp: ['#BFE6FF', '#4A9AE0', '#2A5A9A'] }, silver: { name: '은발', ramp: ['#F4F4F8', '#BFC3CF', '#7A7F8E'] }
+};
+/* 주인공 그림 위에 장비를 그려요. 옷·장갑·신발은 색을 바꾸고, 투구는 머리 위에, 망토는 몸 뒤에 */
+let HERO_RAW = null, heroUrlC = null;
+function composeHero(raw, eq, dye) {
+  const W = raw.width + 4, H = raw.height, c = mk(W, H), q = c.getContext('2d'), cx = W / 2, R = (col, x, y, w = 1, h = 1) => { q.fillStyle = col; q.fillRect(x, y, w, h); };
+  const ramp = g => GRADES[g].ramp;
+  if (eq.cape) { const r = ramp(eq.cape.g); for (let y = 20; y <= 35; y++) { const hw = Math.round(8 + (y - 20) * 0.62), x0 = Math.round(cx - hw), x1 = Math.round(cx + hw); R(INK, x0 - 1, y, x1 - x0 + 3, 1); R(r[2], x0, y, 2, 1); R(r[1], x0 + 2, y, x1 - x0 - 3, 1); R(r[2], x1 - 1, y, 2, 1); } R(INK, Math.round(cx - 18), 36, 37, 1); }
+  q.drawImage(raw, 2, 0);
+  const d = q.getImageData(0, 0, W, H), D = d.data, hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const isInk = i => D[i] < 40 && D[i + 1] < 30 && D[i + 2] < 50, isHair = i => (D[i] === 0x7C && D[i + 1] === 0x3A) || (D[i] === 0xAA && D[i + 1] === 0x49) || (D[i] === 0x7A && D[i + 1] === 0x17);
+  const put = (i, h) => { const [r, g, b] = hex(h); D[i] = r; D[i + 1] = g; D[i + 2] = b; };
+  const tone = (i, rp) => { const l = (D[i] * 0.3 + D[i + 1] * 0.55 + D[i + 2] * 0.15) / 255; put(i, l > 0.88 ? rp[0] : l > 0.72 ? rp[1] : rp[2]); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, x0 = x - 2; if (D[i + 3] < 128 || x0 < 0 || x0 >= raw.width || isInk(i)) continue;
+    if (isHair(i)) { if (dye && HERO_COS[dye]) { const rp = HERO_COS[dye].ramp; put(i, D[i] === 0xAA ? rp[0] : D[i] === 0x7C ? rp[1] : rp[2]); } continue; }
+    if (y >= 23 && y <= 33 && (x0 <= 4 || x0 >= 22)) { if (eq.gloves) tone(i, ramp(eq.gloves.g)); continue; }
+    if (y >= 23 && y <= 34) { if (eq.armor) tone(i, ramp(eq.armor.g)); continue; }
+    if (y >= 35 && eq.shoes) { const rp = ramp(eq.shoes.g); tone(i, [rp[1], rp[2], rp[2]]); } }
+  q.putImageData(d, 0, 0);
+  if (eq.helm) { const r = ramp(eq.helm.g), rows = [[5, 9, 18], [6, 7, 20], [7, 6, 21], [8, 5, 22], [9, 5, 22], [10, 5, 22], [11, 5, 22]];
+    for (const [y, a, b] of rows) { R(INK, a + 1, y, b - a + 3, 1); R(r[1], a + 2, y, b - a + 1, 1); }
+    R(INK, 8 + 2 - 1, 4, 18 - 9 + 3, 1); R(r[2], 7, 11, 18, 1); R(r[2], 7, 10, 18, 1); R(INK, 6, 12, 20, 1); R(r[0], 10, 6, 2, 1); R(r[0], 9, 7, 1, 2);
+    if (eq.helm.g >= 3) { R(INK, 15, 1, 3, 4); R(r[0], 16, 2, 1, 2); } }
+  if (eq.armor && eq.armor.g === 4) { R('#FFFFFF', 13, 27); R('#FFFFFF', 17, 30); }
+  return c;
+}
+function buildHero() {
+  if (!HERO_RAW) return; const im = heroStyle(composeHero(HERO_RAW, run ? eqOf() : {}, S.heroCos));
+  IMG.hero = { im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im); IMG.hero.whites = IMG.hero.frames.map(whiteOf); heroUrlC = null;
+}
+function heroDirty() { buildHero(); }
+function heroUrl(k = 4) { if (heroUrlC && heroUrlC.k === k) return heroUrlC.u; const s = IMG.hero && IMG.hero.im; if (!s) return 'img/hero.png'; const c = mk(s.width * k, s.height * k), q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); heroUrlC = { k, u: c.toDataURL() }; return heroUrlC.u; }
 function loadImages() {
   pixelFoes();
   return Promise.all(SPRITES.map(n => new Promise(res => {
     let im = new Image();
     im.onload = () => {      // 맞았을 때 번쩍이는 흰 실루엣도 같이 만들어 둬요
-      const raw = im; im = n === 'hero' ? heroStyle(raw) : foeStyle(raw);
+      const raw = im; if (n === 'hero') HERO_RAW = raw; im = n === 'hero' ? heroStyle(raw) : foeStyle(raw);
       const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
       const x = c.getContext('2d'); x.drawImage(im, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
       IMG[n] = { im, white: c, ratio: im.width / im.height }; IMG[n].frames = n === 'hero' ? walkFrames(im) : [im, squashFrame(im)]; IMG[n].whites = IMG[n].frames.map(whiteOf); res();
@@ -392,6 +453,7 @@ function musicTick() {
 const setMusicVol = () => { if (mbus) mbus.gain.setTargetAtTime(S.muted || S.music === false ? 0 : 0.32, ac.currentTime, 0.05); };
 
 /* ───── 카드 ───── */
+const GRADES_ICON = [['#E8DCCB', '#B9A68C', '#7A6650'], ['#BFE6FF', '#59B8FF', '#2C6FB0'], ['#E3CCFF', '#B07CFF', '#6A3FC0'], ['#FFC9A8', '#FF7A3D', '#B8401A'], ['#FFF3B0', '#FFD23F', '#C98A00']];
 const ICON = {
   pin: `<rect x="14" y="40" width="72" height="20" rx="10" fill="#D9A066" transform="rotate(-35 50 50)"/><rect x="2" y="45" width="18" height="10" rx="5" fill="#B9783F" transform="rotate(-35 50 50)"/><rect x="80" y="45" width="18" height="10" rx="5" fill="#B9783F" transform="rotate(-35 50 50)"/>`,
   cream: `<path d="M50 12C62 26 78 30 78 50C78 68 66 84 50 84C34 84 22 68 22 50C22 38 34 34 40 24C44 32 50 30 50 12Z" fill="#FFFFFF" stroke="#E3B7C6" stroke-width="4"/>`,
@@ -418,6 +480,9 @@ const ICON = {
   cane: `<path d="M40 94V40a16 16 0 0 1 32 0v8" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/><path d="M40 94V40a16 16 0 0 1 32 0v8" fill="none" stroke="#E8323C" stroke-width="14" stroke-dasharray="9 9"/>`,
   cup: `<path d="M22 28H78L70 86H30Z" fill="#DDF0FF" stroke="#2F74C0" stroke-width="5" stroke-linejoin="round"/><path d="M28 50H72M30 66H70" stroke="#2F74C0" stroke-width="4"/>`
 };
+/* 장비 아이콘: 칸 5가지 × 등급 5가지 */
+{ const SH = { armor: 'M30 14L42 10Q50 18 58 10L70 14L88 30L78 44L70 38V88H30V38L22 44L12 30Z', shoes: 'M26 12H52V56L82 62Q92 64 92 76V88H18V12Z', gloves: 'M30 90V40Q30 16 48 16Q62 16 62 34V46L72 34Q82 28 88 38L70 62V90Z', helm: 'M12 72Q12 16 50 16Q88 16 88 72Z', cape: 'M30 10H70L92 90Q50 78 8 90Z' };
+  for (const s of Object.keys(SH)) for (let g = 0; g < 5; g++) { const r = GRADES_ICON[g]; ICON['eq_' + s + g] = `<path d="${SH[s]}" fill="${r[1]}" stroke="${r[2]}" stroke-width="6" stroke-linejoin="round"/>` + (s === 'helm' ? `<rect x="12" y="62" width="76" height="14" fill="${r[2]}"/>` : '') + (g === 4 ? '<path d="M70 18l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#FFFFFF"/>' : ''); } }
 /* ───── 무기 10가지: 레벨이 오를 때마다 투사체가 1개씩 늘어요. Lv5와 Lv10에 특별한 힘 ───── */
 const WMAX = 10;
 const WEAPONS = {
@@ -456,12 +521,59 @@ function wOpt(id, i, o = {}) {      // 무기 선택 줄
   const desc = lv ? (sp ? `특별 효과! ${sp} ${W.more}` : W.more) : wDescFull(id);
   return `<button class="opt${nx === 10 ? ' r2' : nx === 5 ? ' r1' : ''}" type="button" data-act="${o.act || 'pick'}" data-i="${i}"${o.off ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON[id])}</span><span class="tx"><b>${title}</b><span>${desc}</span></span>${o.price != null ? `<em>${o.price}골드</em>` : ''}</button>`;
 }
-function rollRelic() { const pool = Object.keys(RELICS).filter(id => id !== 'cape' && !run.relics.includes(id)); return pool.length ? pick(pool) : null; }
-function gainRelic(id) { run.relics.push(id); if (id === 'apron') { run.maxHp += 1; run.hp += 1; } }
 const HEART_EMPTY = `<path d="M50 86C20 64 10 48 10 34C10 20 21 12 32 12C41 12 47 17 50 23C53 17 59 12 68 12C79 12 90 20 90 34C90 48 80 64 50 86Z" fill="#4A2A4A"/>`;
 const heartsHtml = (hp, max) => Array.from({ length: max }, (_, i) => `<i class="hrt${i < hp ? '' : ' off'}">${svg(i < hp ? ICON.heart : HEART_EMPTY)}</i>`).join('');
-const has = id => run.relics.includes(id);
-const goldGain = n => Math.round(n * (has('fortune') ? 1.3 : 1));
+/* ═════ 장비: 옷, 신발, 장갑, 투구, 망토. 등급은 일반 < 희귀 < 유물 < 영웅 < 전설 ═════ */
+const SLOTS = ['armor', 'shoes', 'gloves', 'helm', 'cape'];
+const SLOT = {
+  armor: { name: '옷', main: 'inv', nouns: ['제빵 앞치마', '레이스 원피스', '설탕 갑옷'] },
+  shoes: { name: '신발', main: 'spd', nouns: ['버터 장화', '초코 운동화', '솜사탕 구두'] },
+  gloves: { name: '장갑', main: 'dmg', nouns: ['오븐 장갑', '크림 장갑', '쿠키 건틀릿'] },
+  helm: { name: '투구', main: 'crit', nouns: ['쿠키 투구', '머랭 모자', '도넛 헬멧'] },
+  cape: { name: '망토', main: 'area', nouns: ['슈크림 망토', '시럽 망토', '솜사탕 망토'] }
+};
+const GRADES = [
+  { name: '일반', pre: '평범한', ramp: ['#E8DCCB', '#B9A68C', '#7A6650'] },
+  { name: '희귀', pre: '반짝이는', ramp: ['#BFE6FF', '#59B8FF', '#2C6FB0'] },
+  { name: '유물', pre: '옛 왕국의', ramp: ['#E3CCFF', '#B07CFF', '#6A3FC0'] },
+  { name: '영웅', pre: '영웅의', ramp: ['#FFC9A8', '#FF7A3D', '#B8401A'] },
+  { name: '전설', pre: '전설의', ramp: ['#FFF3B0', '#FFD23F', '#C98A00'] }
+];
+const GMUL = [1, 1.5, 2.1, 2.9, 4], SUBS = [0, 1, 1, 2, 2];
+const EQS = {
+  dmg: { name: '공격력', base: 4 }, spd: { name: '이동 속도', base: 3 }, crit: { name: '치명타', base: 2 }, xp: { name: '경험치', base: 4 },
+  mag: { name: '줍는 거리', base: 6 }, area: { name: '무기 범위', base: 3 }, atk: { name: '공격 속도', base: 2.5 }, inv: { name: '무적 시간', base: 5 }
+};
+/* 특수 효과: 영웅은 가끔, 전설은 항상 하나 */
+const TRAITS = ['whisk', 'cup', 'boots', 'sprinkle', 'cloud'];
+const eqOf = () => (run && run.eq) || {};
+const eqList = () => SLOTS.map(s => eqOf()[s]).filter(Boolean);
+const has = id => eqList().some(it => it.tr === id);
+const eqSum = k => eqList().reduce((n, it) => n + it.st.filter(([s]) => s === k).reduce((m, [, v]) => m + v, 0) + (k === 'heart' ? it.heart || 0 : 0), 0);
+const heartsMax = () => 3 + M('hp') + ((run && run.bonus && run.bonus.heart) || 0) + eqSum('heart');
+function rollGrade(n, boss) {
+  const w = [Math.max(14, 60 - n * 1.3), 27, 10 + n * 0.35, 2.6 + n * 0.16, 0.5 + n * 0.06].map((v, i) => v * (boss && i >= 2 ? 1.8 : 1));
+  let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let g = 0; g < 5; g++) { r -= w[g]; if (r < 0) return g; } return 0;
+}
+let itemSeq = 0;
+function rollItem(n, minG = 0, slot) {
+  const s = slot || pick(SLOTS), g = Math.max(minG, rollGrade(n)), lk = 1 + 0.04 * (n - 1), r1 = v => Math.round(v * 10) / 10;
+  const st = [[SLOT[s].main, r1(EQS[SLOT[s].main].base * GMUL[g] * lk)]], pool = shuffle(Object.keys(EQS).filter(k => k !== SLOT[s].main));
+  for (let i = 0; i < SUBS[g]; i++) st.push([pool[i], r1(EQS[pool[i]].base * GMUL[g] * 0.6 * lk)]);
+  const it = { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm: `${GRADES[g].pre} ${pick(SLOT[s].nouns)}`, st };
+  if (g === 4 || (g === 3 && Math.random() < 0.25)) it.tr = pick(TRAITS);
+  if (s === 'armor' && g >= 3) it.heart = 1;
+  return it;
+}
+const itemScore = it => it ? it.st.reduce((n, [k, v]) => n + v / EQS[k].base, 0) + (it.tr ? 2.5 : 0) + (it.heart || 0) * 3 : -1;
+const betterThanWorn = it => itemScore(it) > itemScore(eqOf()[it.s]) + 0.01;
+const statLine = it => it.st.map(([k, v]) => `${EQS[k].name} +${v}%`).join(' · ') + (it.heart ? ' · 하트 +1칸' : '') + (it.tr ? ` · ${RELICS[it.tr].desc}` : '');
+function equip(it) { const e = run.eq || (run.eq = {}), inv = run.inv || (run.inv = []), k = inv.indexOf(it); if (k >= 0) inv.splice(k, 1); if (e[it.s]) inv.push(e[it.s]); e[it.s] = it; heroDirty(); }
+function unequip(s) { const e = run.eq || {}; if (!e[s]) return; (run.inv || (run.inv = [])).push(e[s]); e[s] = null; heroDirty(); }
+function autoEquip() { const inv = run.inv || []; let n = 0; for (const s of SLOTS) { const best = inv.filter(it => it.s === s).sort((a, b) => itemScore(b) - itemScore(a))[0]; if (best && betterThanWorn(best)) { equip(best); n++; } } return n; }
+function addItems(list) { const inv = run.inv || (run.inv = []); inv.push(...list); if (inv.length > 80) { inv.sort((a, b) => b.g - a.g || itemScore(b) - itemScore(a)); inv.length = 80; } }
+/* 정리: 지금 낀 것보다 약한 일반·희귀·유물 장비를 치워요 */
+function tidyItems() { const inv = run.inv || [], before = inv.length; run.inv = inv.filter(it => it.g >= 3 || betterThanWorn(it)); return before - run.inv.length; }
 
 /* ───── 적 ───── */
 const FOES = {
@@ -495,15 +607,15 @@ addEventListener('resize', resize);
 function battleStats() {
   const b = run.bonus || { spd: 0, dmg: 0, crit: 0 };
   return {
-    dmg: (has('whisk') ? 1.15 : 1) * (1 + 0.1 * b.dmg) * (1 + 0.05 * M('atk')) * (1 + 0.1 * M('veteran')),
-    crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit'), critMul: 1.8 + 0.25 * M('critd'),
-    spd: (has('boots') ? 1.12 : 1) * (1 + 0.05 * b.spd) * (1 + 0.04 * M('spd')),
-    xp: (has('cup') ? 1.25 : 1) * (1 + 0.08 * M('xp')), pickup: 88 * (1 + 0.2 * M('mag')), invK: 1 + 0.15 * M('guard'), area: 1 + 0.08 * M('size')
+    dmg: (has('whisk') ? 1.15 : 1) * (1 + 0.1 * b.dmg) * (1 + 0.05 * M('atk')) * (1 + 0.1 * M('veteran')) * (1 + eqSum('dmg') / 100),
+    crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit') + eqSum('crit') / 100, critMul: 1.8 + 0.25 * M('critd'),
+    spd: (has('boots') ? 1.12 : 1) * (1 + 0.05 * b.spd) * (1 + 0.04 * M('spd')) * (1 + eqSum('spd') / 100),
+    xp: (has('cup') ? 1.25 : 1) * (1 + 0.08 * M('xp')) * (1 + eqSum('xp') / 100), pickup: 88 * (1 + 0.2 * M('mag')) * (1 + eqSum('mag') / 100), invK: (1 + 0.15 * M('guard')) * (1 + eqSum('inv') / 100), area: (1 + 0.08 * M('size')) * (1 + eqSum('area') / 100), atk: 1 + eqSum('atk') / 100
   };
 }
 const needOf = lvl => Math.round(5 + 3 * (lvl - 1) + 0.07 * (lvl - 1) ** 2 + 0.012 * (lvl - 1) ** 3);      /* 스테이지가 끝없이 이어지니까 뒤로 갈수록 레벨이 천천히 올라요 */
 function startBattle(kind, floor, onEnd, stg) {
-  const st = battleStats(), dur = kind === 'boss' ? 300 : 180;
+  const st = battleStats(), dur = kind === 'boss' ? 300 : stg ? 120 : 180;      /* 스테이지 한 판은 2분 */
   B = {
     kind, floor, act: actOf(), onEnd, t: 0, dur, st, paused: false, over: false,
     p: { x: 0, y: 0, hp: run.hp, max: run.maxHp, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: has('cloud') || M('shield') > 0 },
@@ -517,7 +629,7 @@ function startBattle(kind, floor, onEnd, stg) {
   if (!headless) {
     ZOOM = 1; show('battle'); resize();
     $('#bossBar').hidden = true; $('#potHud').innerHTML = run.potion ? svg(ICON.cocoa) : '';
-    if (stg) { toast(`${B.stageN}. ${stg.n}`); const hint = stg.boss ? `45초 뒤에 ${FOES[stg.boss].name}이(가) 나타나요` : B.g.length ? B.g.map(k => GIM[k].hint).join(' · ') : '3분만 버텨요!'; const b0 = B; setTimeout(() => { if (B === b0 && !B.over) toast(hint); }, 2400); } else toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
+    if (stg) { toast(`${B.stageN}. ${stg.n}`); const hint = stg.boss ? `45초 뒤에 ${FOES[stg.boss].name}이(가) 나타나요` : B.g.length ? B.g.map(k => GIM[k].hint).join(' · ') : '2분만 버텨요!'; const b0 = B; setTimeout(() => { if (B === b0 && !B.over) toast(hint); }, 2400); } else toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
     if (window.__dbg.autoAll) B.auto = true;
     last = performance.now(); requestAnimationFrame(frame);
   }
@@ -554,7 +666,7 @@ const STAGES = [
   { n: '뜨거운 발자국', g: ['trail'] }, { n: '유령 주방', g: ['ghost'] }, { n: '꼬마 대장 행진', g: ['elites'] }, { n: '광란의 오븐', g: ['fast'] }, { n: '불꽃 창기사의 다리', boss: 'knight' },
   { n: '얼음 우박', g: ['ice', 'meteor'] }, { n: '소용돌이 시럽', g: ['vortex'] }, { n: '끈질긴 반죽', g: ['regen'] }, { n: '마왕성 앞마당', g: ['meteor', 'ring'] }, { n: '탄 설탕 마왕의 방', boss: 'boss3' }
 ];
-const DIFF_K = 0.8, stageDiff = n => (n - 1) * DIFF_K;
+const DIFF_K = 1.0, stageDiff = n => (n - 1) * DIFF_K;
 const G = k => !!(B && B.g && B.g.includes(k));
 function gimInit() {
   B.haz = []; B.gt = {}; B.rateK = 1; B.hpK = 1; B.fspK = 1; B.spdK = 1; B.pulseK = 1; B.ghostA = null; B.slip = G('ice'); B.shrinkR = 560;
@@ -578,7 +690,7 @@ function gimUpdate(dt) {
   if (G('ring') && every('ring', 13)) { const n = 12 + Math.floor(B.floor / 2), ty = B.floor > 12 ? 'cookie' : B.floor > 5 ? 'ice' : 'jelly', a0 = Math.random() * 6.283; for (let i = 0; i < n; i++) spawnFoe(ty, p.x + Math.cos(a0 + i / n * 6.283) * 330, p.y + Math.sin(a0 + i / n * 6.283) * 330); if (!headless) { sfx.warn(); toast('포위됐어요! 한쪽을 뚫어요'); } }
   if (G('goldrush')) { if (every('gold', 18)) { const a = Math.random() * 6.283, f = spawnFoe('jelly', p.x + Math.cos(a) * 190, p.y + Math.sin(a) * 190); f.gold = f.flee = true; f.hp *= 2; f.max = f.hp; f.spd = 140; f.life = 10; if (!headless) toast('황금 젤리다! 잡아요'); } for (const f of B.foes) if (f.gold && !f.dead) { f.life -= dt; if (f.life <= 0) f.dead = true; } }
   if (G('pulse')) { const ph = B.t % 7, k = ph < 4 ? 1.5 : 0.1; if (k !== B.pulseK) { B.pulseK = k; if (!headless) toast(k < 1 ? '얼음!' : '땡! 빨라져요'); } }
-  if (G('shrink')) { B.shrinkR = Math.max(230, 560 - B.t * 2.2); if (Math.hypot(p.x, p.y) > B.shrinkR) { T.out = (T.out || 0) + dt; if (T.out > 0.9) { T.out = 0; hurtPlayer('gim'); } } else T.out = 0; }
+  if (G('shrink')) { B.shrinkR = Math.max(250, 560 - B.t * 2.5); if (Math.hypot(p.x, p.y) > B.shrinkR) { T.out = (T.out || 0) + dt; if (T.out > 0.9) { T.out = 0; hurtPlayer('gim'); } } else T.out = 0; }
   if (G('elites') && every('el', 22)) spawnRing(pick(['donut', 'golem', 'knight'].slice(0, Math.max(1, B.act))), true);
   if (G('vortex')) { if (every('vo', 10)) { const v = B.vort[Math.floor(Math.random() * B.vort.length)], a = Math.random() * 6.283; v.x = p.x + Math.cos(a) * 200; v.y = p.y + Math.sin(a) * 200; } for (const v of B.vort) { const dx = v.x - p.x, dy = v.y - p.y, d = Math.hypot(dx, dy) || 1; if (d < 250 && d > 8) { p.x += dx / d * 70 * dt; p.y += dy / d * 70 * dt; } } }
   if (G('wind')) { if (T.wa == null || every('wi', 9)) { T.wa = Math.random() * 6.283; if (!headless) toast('바람 방향이 바뀌었어요'); } p.x += Math.cos(T.wa) * 46 * dt; p.y += Math.sin(T.wa) * 46 * dt; if (!headless && Math.random() < dt * 14) fxAdd({ k: 'line', x: p.x + rand(-vw / 2, vw / 2), y: p.y + rand(-vh / 2, vh / 2), vx: Math.cos(T.wa) * 520, vy: Math.sin(T.wa) * 520, life: 0.5, max: 0.5, col: '#FFFFFF', g: 0.0001 }); }
@@ -703,7 +815,7 @@ window.__acc = ACC;
 function fireWeapons(dt) {
   const p = B.p;
   for (const w of B.weapons) {
-    const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10; w.cd -= dt;
+    const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10; w.cd -= dt * (B.st.atk || 1);
     if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
       w.ang += dt * (s5 ? 4.2 : 3.2); w.pulse = ((w.pulse || 0) + dt) % 2.2;
       const near = nearestFoe(230), base = (s5 ? 84 : 66) * ar(), want = near ? Math.min(Math.hypot(near.x - p.x, near.y - p.y), base * 2.1) : base;   // 가까운 적까지 궤도를 넓혀요
@@ -950,16 +1062,16 @@ function update(dt) {
   if (B.auto) [mx, my] = autopilot(); else if (B.joy) { mx = B.joy.dx; my = B.joy.dy; }
   const mm = Math.hypot(mx, my); p.moving = mm > 0.12;
   if (p.moving) {
-    const sp = 172 * B.st.spd * (has('cape') && p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
+    const sp = 172 * B.st.spd * (p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
     const ux = mx / mm * sp * k * (B.spdK || 1), uy = my / mm * sp * k * (B.spdK || 1); if (B.slip) { B.ux = ux; B.uy = uy; } else { p.x += ux * dt; p.y += uy * dt; } p.dirX = mx / mm; p.dirY = my / mm; if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1; p.bob += dt * 12;
   }
   if (p.inv > 0) p.inv -= dt;
   /* 적 등장 */
-  const rate = (0.6 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * stageMul() * (B.big ? 0.5 : 1) * DF().spawn * 1.2 * (B.rateK || 1);
-  if (!B.rush && B.t >= 120) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
+  const rate = (0.6 + 2.05 * Math.min(1, B.t / Math.min(80, B.dur))) * stageMul() * (B.big ? 0.5 : 1) * DF().spawn * 1.2 * (B.rateK || 1);
+  if (!B.rush && B.t >= Math.min(120, B.dur * 0.67)) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
   if (B.rush && !headless && ZOOM > 0.78) { ZOOM = Math.max(0.78, ZOOM - dt * 0.15); resize(); }     // 화면을 천천히 넓혀서 더 많이 보여요
   B.spawnAcc += rate * (B.rush ? 1.3 : 1) * dt;
-  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.2 && Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'ginger'), 0) < 4 + Math.floor(B.floor / 2)) pool.push('ginger'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); const mi = ACTS[B.act].minion; if (mi && Math.random() < 0.07 && B.foes.reduce((n, f) => n + (f.minion ? 1 : 0), 0) < 2 + B.act) spawnRing(mi, true); else spawnRing(pick(pool)); }
+  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(80, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.2 && Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'ginger'), 0) < 4 + Math.floor(B.floor / 2)) pool.push('ginger'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); const mi = ACTS[B.act].minion; if (mi && Math.random() < 0.07 && B.foes.reduce((n, f) => n + (f.minion ? 1 : 0), 0) < 2 + B.act) spawnRing(mi, true); else spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
   gimUpdate(dt);
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing(ACTS[B.act].elite); bigIntro(); }
@@ -1181,7 +1293,7 @@ function draw() {
   }
   /* 무기 */
   for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (w.lv >= 10) putDisc(X(ox), Y(oy), 7, 7, '#FFD86B', Math.round(4 + 8 * (1 - Math.max(0, w.burstT) / 2.5))); ctx.drawImage(MAC, X(ox) - 4, Y(oy) - 4); }
-  if (B.pet) { const P = B.pet, sp = PET_SPR[P.id], px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(sp, -(sp.width >> 1), py - (sp.height >> 1)); ctx.restore(); } else ctx.drawImage(sp, px - (sp.width >> 1), py - (sp.height >> 1)); }
+  if (B.pet) { const P = B.pet, sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(sp, -(sp.width >> 1), py - (sp.height >> 1)); ctx.restore(); } else ctx.drawImage(sp, px - (sp.width >> 1), py - (sp.height >> 1)); }
   for (const s of B.shots) {
     const sx = X(s.x), sy = Y(s.y);
     if (s.k === 'skewer') {
@@ -1394,15 +1506,6 @@ function winFx(title, gold, oldGold, next, big) {
 cardEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || !onCard) return; if (b.getAttribute('aria-disabled') === 'true') { sfx.no(); return; } onCard(b.dataset.act, b); });
 
 /* ───── 지도 ───── */
-const NODE = {
-  battle: { name: '전투', desc: '3분 동안 버텨요. 이기면 골드와 하트 1칸을 받아요.', img: 'jelly' },
-  elite: { name: '엘리트 전투', desc: '1분 30초에 딱딱 도넛 기사가 나타나요. 이기면 유물을 받아요.', img: 'donut' },
-  boss: { name: '보스', desc: '3분에 보스가 나타나요. 잡거나 5분을 버티면 이겨요.', img: 'boss' },
-  shop: { name: '상점', desc: '골드로 유물, 무기 손질, 케이크, 코코아를 사요.', icon: 'shop' },
-  rest: { name: '휴식처', desc: '하트를 채우거나 무기 하나의 레벨을 올려요.', icon: 'rest' },
-  event: { name: '수상한 일', desc: '무슨 일이 생길지 몰라요. 둘 중 하나를 골라요.', icon: 'event' },
-  chest: { name: '보물 상자', desc: '유물 1개를 얻어요.', icon: 'chest' }
-};
 const MAP_ROWS = 6;                      // 막마다 보스 앞까지 6층 (보스 칸 id는 ROWS*3)
 /* 3막 구성. 난이도 값은 막이 바뀌어도 이어져요: 1막 0→5, 2막 6→11, 3막 12→17 */
 const ACTS = [null,
@@ -1410,39 +1513,14 @@ const ACTS = [null,
   { name: '얼음 디저트 나라', boss: 'boss2', elite: 'golem', minion: 'donut', base: 6, span: 5 },
   { name: '불타는 오븐 성', boss: 'boss3', elite: 'knight', minion: 'golem', base: 12, span: 5 }];
 const actOf = () => { const n = (run && (run.cur || run.stage + 1)) || 1; return 1 + Math.floor(((n - 1) % 30) / 10); };
-const diffOf = (row, rows) => ACTS[actOf()].base + row * ACTS[actOf()].span / rows;
 const floorNo = () => (run && (run.cur || (run.stage || 0) + 1)) || 1;      // 지금 몇 번째 스테이지인지
-function genMap() {
-  const ROWS = MAP_ROWS, on = Array.from({ length: ROWS }, () => [false, false, false]), E = new Set();
-  for (let p = 0; p < 4; p++) { let c = p < 3 ? p : rnd(3); for (let r = 0; r < ROWS; r++) { on[r][c] = true; if (r === ROWS - 1) break; let nc = clamp(c + rnd(3) - 1, 0, 2); if (nc !== c && E.has(`${r},${nc}>${c}`)) nc = c; E.add(`${r},${c}>${nc}`); c = nc; } }
-  const nodes = {};
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < 3; c++) if (on[r][c]) nodes[r * 3 + c] = { id: r * 3 + c, row: r, col: c, jx: rnd(9) - 4, type: 'battle', next: [] };
-  E.forEach(k => { const [a, b] = k.split('>'), [r, c] = a.split(',').map(Number); nodes[r * 3 + c].next.push((r + 1) * 3 + Number(b)); });
-  const BOSS = ROWS * 3; nodes[BOSS] = { id: BOSS, row: ROWS, col: 1, jx: 0, type: 'boss', next: [] };
-  const list = Object.values(nodes), MID = Math.floor(ROWS / 2);
-  list.forEach(n => {
-    if (n.type === 'boss') return;
-    if (n.row === ROWS - 1) { n.type = 'rest'; n.next = [BOSS]; return; }
-    if (n.row === MID) { n.type = 'chest'; return; }
-    if (n.row === 0) return;
-    const x = Math.random();
-    n.type = x < 0.45 ? 'battle' : x < 0.6 ? (n.row >= 2 ? 'elite' : 'battle') : x < 0.76 ? 'event' : x < 0.87 ? 'shop' : x < 0.94 ? 'chest' : 'rest';
-  });
-  const free = Array.from({ length: ROWS - 2 }, (_, i) => i + 1).filter(r => r !== MID);      // 종류를 바꿔도 되는 층
-  const need = (type, rows) => { if (list.some(n => n.type === type)) return; const pool = list.filter(n => n.type === 'battle' && rows.includes(n.row)); if (pool.length) pick(pool).type = type; };
-  need('elite', free.filter(r => r >= 2)); need('shop', free.filter(r => r >= 2)); need('event', free);
-  return { nodes, rows: ROWS };
-}
-const canGo = id => { const n = run.map.nodes[id]; if (run.done.includes(id)) return false; return run.at == null ? n.row === 0 : run.map.nodes[run.at].next.includes(id); };
-const mapRows = () => run.map.rows || 7;
-const xy = n => [n.type === 'boss' ? 50 : [18, 50, 82][n.col] + n.jx, (1 - n.row / mapRows()) * 100];
 let picked = null;
 function renderBar() {
-  run.maxHp = 3 + M('hp') + ((run.bonus && run.bonus.heart) || 0) + (has('apron') ? 1 : 0); run.hp = run.maxHp;
+  run.maxHp = heartsMax(); run.hp = run.maxHp;
   $('#hpChip').innerHTML = heartsHtml(run.hp, run.maxHp);
   $('#goldChip').innerHTML = `Lv ${run.lvl}`;
   $('#potChip').innerHTML = '';
-  $('#relics').innerHTML = run.relics.map(id => `<button class="relic" type="button" data-relic="${id}" aria-label="${RELICS[id].name}">${svg(ICON[RELICS[id].icon])}</button>`).join('');
+  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${svg(ICON['eq_' + s + (it ? it.g : 0)])}</button>`; }).join('');
 }
 function renderMap() {
   const N = STAGES.length, rowH = 84, H = N * rowH + 60, xs = [50, 74, 50, 26], pos = i => [xs[i % 4], (H - 46 - i * rowH) / H * 100]; let lines = '';
@@ -1467,12 +1545,12 @@ function pickNode(id, quiet) {
   picked = id; const s = STAGES[id - 1], dn = id <= run.stage, lock = id > run.stage + 1;
   document.querySelectorAll('.node').forEach(b => b.classList.toggle('sel', +b.dataset.id === id));
   if (!quiet) sfx.tap();
-  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이겨요.${dn ? '' : ' 처음 이기면 유물을 받아요.'} 이길 때마다 펫을 하나 얻어요.` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 3분을 버티면 이겨요.' : '특별한 일 없이 3분만 버티면 이겨요.';
+  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이겨요. 잡으면 장비 5개와 꾸미기나 펫을 받아요.` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 2분을 버티면 이기고 장비 3개를 받아요.' : '특별한 일 없이 2분만 버티면 이기고 장비 3개를 받아요.';
   info(`<h3>${id}. ${s.n}</h3><p>${lock ? '앞 스테이지를 먼저 깨야 열려요.' : (dn ? '이미 깬 곳이에요. 다시 하면 경험치를 더 모을 수 있어요. ' : '') + what}</p>`, lock ? null : id);
 }
 $('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
 $('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) enter(+b.dataset.id); });
-$('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; const r = RELICS[b.dataset.relic]; sfx.tap(); info(`<h3>${r.name}</h3><p>유물. ${r.desc}</p>`); });
+$('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; sfx.tap(); eqSheet(b.dataset.slot); });
 
 /* ───── 무기 보기 ───── */
 function weaponSheet() {
@@ -1480,27 +1558,81 @@ function weaponSheet() {
   sheet(`<h2 id="cardTitle">내 무기 ${run.wpn.length}개 · Lv ${run.lvl}</h2><p>공격력 ${Math.round(st.dmg * 100)}% · 치명타 ${Math.round(st.crit * 100)}% · 이동 속도 ${Math.round(st.spd * 100)}%</p><div class="opts">${list}</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`, () => closeSheet());
 }
 $('#btnDeck').addEventListener('click', () => { sfx.tap(); weaponSheet(); });
+$('#btnEq').addEventListener('click', () => { sfx.tap(); eqSheet(); });
 
 /* ───── 칸에 들어가기 ───── */
 /* 스테이지에 들어갈 때: 하트를 가득 채우고, 이번 판 기록을 새로 시작해요 */
 function stagePrep(n) {
-  run.cur = n; run.maxHp = 3 + M('hp') + ((run.bonus && run.bonus.heart) || 0) + (has('apron') ? 1 : 0); run.hp = run.maxHp;
+  run.cur = n; run.maxHp = heartsMax(); run.hp = run.maxHp;
   run.potion = M('start2') > 0; run.rerolls = 2 * M('reroll'); run.petUsed = 0; run.kills = 0; run.elites = 0; run.dmg = {}; run.hits = 0; run.hitBy = {}; run.time = 0;
 }
 function enter(id) {
   if (id > run.stage + 1 || !STAGES[id - 1]) return; const s = STAGES[id - 1]; sfx.tap(); stagePrep(id); persist();
   startBattle(s.boss ? 'boss' : 'battle', stageDiff(id), r => afterBattle(id, r), s);
 }
+/* 보스 보너스: 캐릭터 꾸미기, 펫 꾸미기, 펫 중 하나 */
+function bossBonus() {
+  const hc = Object.keys(HERO_COS).filter(k => !(S.cos.hero || []).includes(k)), pc = Object.keys(PET_COS).filter(k => !(S.cos.pet || []).includes(k)), opts = ['pet'];
+  if (hc.length) opts.push('hero'); if (pc.length) opts.push('pcos');
+  const t = pick(opts);
+  if (t === 'hero') { const k = pick(hc); S.cos.hero.push(k); return { t, k }; }
+  if (t === 'pcos') { const k = pick(pc); S.cos.pet.push(k); return { t, k }; }
+  return { t, g: gainPet() };
+}
+function bonusLine(b) {
+  if (b.t === 'pet') return petLine(b.g);
+  if (b.t === 'hero') return `<div class="opt r2 petget"><span class="ic"><img class="pxi" src="${dyePreview(b.k)}" alt=""></span><span class="tx"><b>캐릭터 꾸미기: ${HERO_COS[b.k].name}</b><span>장비 창의 꾸미기에서 바꿀 수 있어요.</span></span></div>`;
+  return `<div class="opt r2 petget"><span class="ic">${cosPetIcon(S.pet && petLv(S.pet) ? S.pet : 'kong', b.k)}</span><span class="tx"><b>펫 꾸미기: ${PET_COS[b.k].name}</b><span>펫 창에서 씌워 줄 수 있어요.</span></span></div>`;
+}
+function dyePreview(k) { const was = S.heroCos; S.heroCos = k; const c = composeHero(HERO_RAW, eqOf(), k); S.heroCos = was; const o = mk(c.width * 2, c.height * 2), q = o.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); }
+const itemRow = (it, i, o = {}) => `<button class="opt eqi g${it.g}" type="button" data-act="${o.act || 'item'}" data-i="${i}"${o.worn ? ' aria-pressed="true"' : ''}>${o.worn ? '<em class="tag wt">착용 중</em>' : o.up ? '<em class="tag up">▲ 더 좋아요</em>' : ''}<span class="ic">${svg(ICON['eq_' + it.s + it.g])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${SLOT[it.s].name} · ${statLine(it)}</span></span></button>`;
+function rewardSheet(items, bonus, title, next) {
+  addItems(items); sfx.rare();
+  const best = Math.max(...items.map(it => it.g));
+  sheet(`<h2 id="cardTitle">${title}</h2><p>장비 ${items.length}개를 얻었어요.${best >= 3 ? ` <b>${GRADES[best].name}</b> 등급이 나왔어요!` : ''}</p><div class="opts">${items.map((it, i) => itemRow(it, i, { act: 'noop', up: betterThanWorn(it) })).join('')}${bonus ? bonusLine(bonus) : ''}</div><button class="cta" type="button" data-act="wear" data-pref>더 좋은 장비 바로 끼기</button><button class="btn" type="button" data-act="bag">가방에 넣기</button>`,
+    (act, b) => { if (act === 'noop' || b.closest('.lock')) return; if (act === 'wear') { const n = autoEquip(); if (n) { sfx.good(); toastSheetMsg(`${n}개를 바꿔 꼈어요`); } } persist(); closeSheet(); next(); });
+  flipReveal(); if (!headless && best >= 3) setTimeout(() => confetti(best === 4 ? 60 : 30), 500);
+}
+function toastSheetMsg(t) { const e = $('#toast'); if (!e || headless) return; e.textContent = t; e.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { e.hidden = true; }, 1800); }
+/* 장비 창: 위에는 내 모습과 칸 5개, 아래는 가방 */
+function eqSheet(slot0, back) {
+  let tab = slot0 || 'all';
+  const draw = () => {
+    const e = eqOf(), inv = (run.inv || []).filter(it => tab === 'all' || it.s === tab).sort((a, b) => b.g - a.g || itemScore(b) - itemScore(a)), st = battleStats();
+    const sums = Object.keys(EQS).map(k => [k, eqSum(k)]).filter(([, v]) => v > 0).map(([k, v]) => `${EQS[k].name} +${Math.round(v)}%`).join(' · ') || '아직 낀 장비가 없어요';
+    const tr = [...new Set(eqList().filter(it => it.tr).map(it => RELICS[it.tr].name))];
+    sheet(`<h2 id="cardTitle">장비</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="eqslots">${SLOTS.map(s => { const it = e[s]; return `<button class="eqslot${it ? ' g' + it.g : ''}${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}"><span class="ic">${svg(ICON['eq_' + s + (it ? it.g : 0)])}</span><span class="sl">${SLOT[s].name}</span></button>`; }).join('')}</div></div>
+      <p class="eqsum">${sums}${eqSum('heart') ? ` · 하트 +${eqSum('heart')}칸` : ''}${tr.length ? `<br>특수 효과: ${tr.join(', ')}` : ''}</p>
+      <div class="tabs"><button class="tb${tab === 'all' ? ' on' : ''}" type="button" data-act="tab" data-s="all">전체</button>${SLOTS.map(s => `<button class="tb${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}">${SLOT[s].name}</button>`).join('')}</div>
+      <div class="opts">${tab !== 'all' && e[tab] ? itemRow(e[tab], -1, { act: 'off', worn: true }) : ''}${inv.length ? inv.map((it, i) => itemRow(it, i, { up: betterThanWorn(it) })).join('') : '<p>가방이 비었어요. 스테이지를 깨면 장비를 받아요.</p>'}</div>
+      <div class="row2"><button class="btn" type="button" data-act="auto">좋은 걸로 끼기</button><button class="btn" type="button" data-act="tidy">약한 장비 정리</button></div><button class="btn" type="button" data-act="cos">캐릭터 꾸미기</button><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+      (act, b) => {
+        if (act === 'close') { closeSheet(); persist(); renderBar(); if (back) back(); return; }
+        if (act === 'tab') { tab = b.dataset.s; sfx.tap(); draw(); return; }
+        if (act === 'item') { equip(inv[+b.dataset.i]); sfx.good(); persist(); draw(); return; }
+        if (act === 'off') { unequip(tab); sfx.tap(); persist(); draw(); return; }
+        if (act === 'auto') { const n = autoEquip(); sfx.good(); persist(); draw(); toastSheetMsg(n ? `${n}개를 바꿔 꼈어요` : '지금 낀 게 제일 좋아요'); return; }
+        if (act === 'tidy') { const n = tidyItems(); sfx.tap(); persist(); draw(); toastSheetMsg(n ? `${n}개를 정리했어요` : '정리할 장비가 없어요'); return; }
+        if (act === 'cos') { cosSheet(() => eqSheet(tab, back)); }
+      });
+  };
+  draw();
+}
+function cosSheet(back) {
+  const draw = () => { const own = S.cos.hero || [];
+    sheet(`<h2 id="cardTitle">캐릭터 꾸미기</h2><p>보스를 잡으면 가끔 새 머리색을 받아요.</p><div class="cosrow big"><button class="cos${S.heroCos ? '' : ' on'}" type="button" data-act="dye" data-id=""><img class="pxi" src="${dyePreview('')}" alt=""><span>기본</span></button>${own.map(k => `<button class="cos${S.heroCos === k ? ' on' : ''}" type="button" data-act="dye" data-id="${k}"><img class="pxi" src="${dyePreview(k)}" alt=""><span>${HERO_COS[k].name}</span></button>`).join('')}</div>${own.length ? '' : '<p>아직 받은 꾸미기가 없어요.</p>'}<button class="cta" type="button" data-act="close" data-pref>돌아가기</button>`,
+      (act, b) => { if (act === 'close') { closeSheet(); back(); return; } S.heroCos = b.dataset.id || null; heroDirty(); persist(); sfx.tap(); draw(); }); };
+  draw();
+}
 function afterBattle(id, r) {
   const s = STAGES[id - 1];
   if (!r.won) { gameOver(id, r); return; }
   const first = id > run.stage; if (first) run.stage = id;
   const stars = first ? (s.boss ? 6 : 3) : 1; S.meta.pts += stars; S.meta.total += stars;
-  const pg = s.boss ? gainPet() : null; recordRun(true, stars, pg); if (s.boss && first) S.wins = (S.wins || 0) + 1;
+  const pg = null; recordRun(true, stars, pg); if (s.boss && first) S.wins = (S.wins || 0) + 1;
   persist(); showMap();
   const steps = [next => winFx(s.boss ? '보스 격파!' : '스테이지 클리어!', 0, 0, next, !!s.boss)];
-  if (s.boss && first) { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '보스 보상', next)); }
-  if (pg) steps.push(next => sheet(`<h2 id="cardTitle">펫을 얻었어요</h2><div class="opts">${petLine(pg)}</div><button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); next(); }));
+  { const items = Array.from({ length: s.boss ? 5 : 3 }, (_, k) => rollItem(id, s.boss && k === 0 ? 2 : 0)), bonus = s.boss ? bossBonus() : null; steps.push(next => rewardSheet(items, bonus, s.boss ? '보스 보상' : '클리어 보상', next)); }
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
   steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
   if (first && id === STAGES.length) steps.push(next => noteSheet('지금 열린 마지막 스테이지까지 깼어요!', '새 스테이지가 곧 열려요. 그동안 깬 곳을 다시 돌면서 더 강해질 수 있어요.', 'chest', next));
@@ -1508,65 +1640,17 @@ function afterBattle(id, r) {
   go();
 }
 /* 막을 깼어요: 보상을 받고 다음 막의 새 지도로 */
-function relicSheet(id, title, next) {
-  const r = RELICS[id]; gainRelic(id); sfx.rare();
-  sheet(`<h2 id="cardTitle">${title}</h2><div class="prize"><div class="rays"></div><div class="medal">${svg(ICON[r.icon])}</div></div><div class="opts"><div class="opt r2"><span class="ic">${svg(ICON[r.icon])}</span><span class="tx"><b>유물: ${r.name}</b><span>${r.desc} 앞으로 계속 이어져요.</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>받기</button>`,
-    () => { closeSheet(); next(); });
-  cardEl.classList.add('reward'); if (!headless) setTimeout(() => { const m = cardEl.querySelector('.medal'); if (m) { const q = m.getBoundingClientRect(); sparkle(q.left + q.width / 2, q.top + q.height / 2, 16); confetti(30, q.left + q.width / 2, q.top + q.height / 2, .8); } }, 260);
-}
 function noteSheet(title, text, icon, next) {
   sheet(`<h2 id="cardTitle">${title}</h2><div class="opts"><div class="opt"><span class="ic">${svg(ICON[icon])}</span><span class="tx"><span>${text}</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); next(); });
 }
 /* 가진 무기 하나를 골라 1레벨 올려요 */
-function upWeaponSheet(title, done) {
-  const can = run.wpn.filter(w => w.lv < WMAX);
-  if (!can.length) { done(false); return; }
-  sheet(`<h2 id="cardTitle">${title}</h2><p>고른 무기의 레벨이 1 올라요.</p><div class="opts">${can.map((w, i) => wOpt(w.id, i)).join('')}</div>`, (a, b) => { const w = can[+b.dataset.i]; w.lv++; sfx.good(); closeSheet(); done(true); });
-}
-function restSheet() {
-  const heal = has('icepack') ? 3 : 2, can = run.wpn.some(w => w.lv < WMAX);
-  sheet(`<div class="pic">${svg(ICON.rest)}</div><h2 id="cardTitle">휴식처</h2><p>따뜻한 오븐 옆에서 쉬어 가요. 하나만 고를 수 있어요.</p><div class="opts"><button class="opt" type="button" data-act="heal" data-pref><span class="ic">${svg(ICON.heart)}</span><span class="tx"><b>푹 쉬기</b><span>하트를 ${heal}칸 채워요. 지금 ${run.hp}/${run.maxHp}칸.</span></span></button><button class="opt" type="button" data-act="up"${can ? '' : ' aria-disabled="true"'}><span class="ic">${svg(ICON.ench)}</span><span class="tx"><b>무기 손질하기</b><span>가진 무기 하나의 레벨이 1 올라요.</span></span></button></div>`,
-    act => {
-      if (act === 'heal') { run.hp = Math.min(run.maxHp, run.hp + heal); sfx.good(); closeSheet(); persist(); showMap(); return; }
-      upWeaponSheet('손질할 무기', () => { persist(); showMap(); });
-    });
-}
-function shopSheet() {
-  const rel = rollRelic(), state = { rel: rel ? { id: rel, price: 110, sold: false } : null, pot: !run.potion, heart: true, up: true };
-  const row = (act, ic, t, d, price, off) => `<button class="opt" type="button" data-act="${act}"${off || run.gold < price ? ' aria-disabled="true"' : ''}><span class="ic">${svg(ICON[ic])}</span><span class="tx"><b>${t}</b><span>${d}</span></span><em>${price}골드</em></button>`;
-  const draw = () => sheet(`<div class="pic">${svg(ICON.shop)}</div><h2 id="cardTitle">상점</h2><p>가진 골드는 ${run.gold}이에요.</p><div class="opts">`
-    + (state.rel && !state.rel.sold ? row('relic', RELICS[state.rel.id].icon, `유물: ${RELICS[state.rel.id].name}`, RELICS[state.rel.id].desc, state.rel.price).replace('class="opt"', 'class="opt r2"') : '')
-    + (state.up ? row('up', 'ench', '무기 손질', '가진 무기 하나의 레벨이 1 올라요.', 90, !run.wpn.some(w => w.lv < WMAX)) : '')
-    + (state.heart ? row('heart', 'heart', '딸기 케이크 한 조각', '하트를 1칸 채워요.', 45, run.hp >= run.maxHp) : '')
-    + (state.pot ? row('pot', 'cocoa', '따뜻한 코코아', '하트가 다 없어지면 저절로 마시고 다시 일어나요. 하나만 들 수 있어요.', 60) : '')
-    + `</div><button class="cta" type="button" data-act="leave" data-pref>상점 나가기</button>`,
-    act => {
-      if (act === 'leave') { closeSheet(); persist(); showMap(); return; }
-      if (act === 'relic') { run.gold -= state.rel.price; state.rel.sold = true; gainRelic(state.rel.id); }
-      else if (act === 'pot') { run.gold -= 60; run.potion = true; state.pot = false; }
-      else if (act === 'heart') { run.gold -= 45; run.hp = Math.min(run.maxHp, run.hp + 1); state.heart = false; }
-      else if (act === 'up') { upWeaponSheet('손질할 무기', ok => { if (ok) { run.gold -= 90; state.up = false; sfx.coin(); } renderBar(); draw(); }); return; }
-      sfx.coin(); renderBar(); draw();
-    });
-  draw();
-}
-function eventSheet() {
-  const EVENTS = [
-    { title: '수상한 오븐', text: '혼자 달궈진 오븐에서 좋은 냄새가 나요. 손을 넣으면 데일 것 같아요.', a: ['손을 넣어 꺼내기', '하트를 1칸 잃고 가진 무기 하나가 1레벨 올라요. 마지막 1칸은 남아요.', () => { run.hp = Math.max(1, run.hp - 1); const c = run.wpn.filter(w => w.lv < WMAX); if (c.length) pick(c).lv++; }], b: ['그냥 지나가기', '바닥에 떨어진 골드 15만 주워요.', () => { run.gold += 15; }] },
-    { title: '길 잃은 마카롱 상인', text: '보따리를 멘 마카롱이 물건 하나를 싸게 넘기겠다고 해요.', a: ['골드 45에 사기', '유물 1개를 얻어요.', () => { const r = rollRelic(); run.gold -= 45; if (r) gainRelic(r); }, () => run.gold >= 45 && !!rollRelic()], b: ['정중히 거절하기', '아무 일도 일어나지 않아요.', () => {}] },
-    { title: '설탕 샘', text: '반짝이는 설탕물이 솟는 샘을 찾았어요. 한 가지만 할 수 있어요.', a: ['한 모금 마시기', '하트를 2칸 채워요.', () => { run.hp = Math.min(run.maxHp, run.hp + 2); }], b: ['병에 담아 가기', '경험치 보석 한 움큼을 얻어요. 다음 전투가 시작되면 바로 들어와요.', () => { run.xp += needOf(run.lvl) * 0.8; }] }
-  ];
-  const ev = pick(EVENTS), row = (k, o) => `<button class="opt" type="button" data-act="${k}"${o[3] && !o[3]() ? ' aria-disabled="true"' : ''}${k === 'b' ? ' data-pref' : ''}><span class="tx"><b>${o[0]}</b><span>${o[1]}</span></span></button>`;
-  sheet(`<div class="pic">${svg(ICON.event)}</div><h2 id="cardTitle">${ev.title}</h2><p>${ev.text}</p><div class="opts">${row('a', ev.a)}${row('b', ev.b)}</div>`,
-    act => { ev[act][2](); sfx.good(); closeSheet(); persist(); showMap(); });
-}
 
 /* ───── 모험의 시작과 끝 ───── */
 function newRun() {
-  run = S.run = { v: 2, stage: 0, cur: null, hp: 3 + M('hp'), maxHp: 3 + M('hp'), gold: 0, potion: false, kills: 0, elites: 0,
-    wpn: [], lvl: 1, xp: 0, bonus: { spd: 0, dmg: 0, crit: 0, heart: 0 }, rerolls: 0, relics: ['cape'], dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0 };
-  persist(); showMap();
-  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>상한 간식들이 왕국을 차지했어요. 스테이지를 하나씩 깨며 나아가요. 5번째 스테이지마다 보스가 기다려요.</p><p>화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 레벨이 오르면 무기와 능력을 골라요. 한 번 얻은 건 계속 이어지고, 쓰러져도 사라지지 않아요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
+  run = S.run = { v: 3, stage: 0, cur: null, hp: 3 + M('hp'), maxHp: 3 + M('hp'), gold: 0, potion: false, kills: 0, elites: 0,
+    wpn: [], lvl: 1, xp: 0, bonus: { spd: 0, dmg: 0, crit: 0, heart: 0 }, rerolls: 0, relics: [], eq: {}, inv: [], dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0 };
+  heroDirty(); persist(); showMap();
+  sheet(`<div class="pic"><img src="${heroUrl(4)}" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>상한 간식들이 왕국을 차지했어요. 스테이지를 하나씩 깨며 나아가요. 5번째 스테이지마다 보스가 기다려요.</p><p>화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 레벨이 오르면 무기와 능력을 골라요. 스테이지를 깨면 장비를 받아요. 한 번 얻은 건 계속 이어지고, 쓰러져도 사라지지 않아요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
 }
 /* 출발할 때 첫 무기를 골라요 (성장 트리에 따라 하나 더, 또는 Lv3으로) */
 function starterPick() {
@@ -1585,13 +1669,16 @@ function gameOver(id, r) {
 }
 /* 예전 저장(지도 모험)을 새 구조로 옮겨요: 무기와 레벨은 그대로, 스테이지는 1부터 */
 function migrate() {
-  const o = S.run; if (!o || o.v === 2) return;
-  S.run = { v: 2, stage: 0, cur: null, hp: o.maxHp || 3, maxHp: o.maxHp || 3, gold: 0, potion: false, kills: 0, elites: 0, wpn: (o.wpn || []).filter(w => WEAPONS[w.id]), lvl: o.lvl || 1, xp: o.xp || 0,
-    bonus: Object.assign({ spd: 0, dmg: 0, crit: 0, heart: 0 }, o.bonus || {}), rerolls: 0, relics: (o.relics || ['cape']).filter(id => RELICS[id]), dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0, picks: o.picks || 0 };
-  persist();
+  const o = S.run; if (!o || o.v === 3) return;
+  /* 예전 유물은 같은 효과를 가진 영웅 장비로 바꿔서 가방에 넣어 줘요 */
+  const inv = [], slotOf = { whisk: 'gloves', cup: 'helm', boots: 'shoes', sprinkle: 'cape', cloud: 'armor', apron: 'armor' };
+  for (const id of (o.relics || [])) if (slotOf[id]) { const it = rollItem(Math.max(1, o.stage || 1), 3, slotOf[id]); it.g = 3; it.tr = TRAITS.includes(id) ? id : null; if (id === 'apron') it.heart = 1; inv.push(it); }
+  S.run = { v: 3, stage: o.v === 2 ? o.stage || 0 : 0, cur: null, hp: 3, maxHp: 3, gold: 0, potion: false, kills: 0, elites: 0, wpn: (o.wpn || []).filter(w => WEAPONS[w.id]), lvl: o.lvl || 1, xp: o.xp || 0,
+    bonus: Object.assign({ spd: 0, dmg: 0, crit: 0, heart: 0 }, o.bonus || {}), rerolls: 0, relics: [], eq: {}, inv, dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0, picks: o.picks || 0 };
+  run = S.run; autoEquip(); run = null; persist();
 }
 function resetSheet() {
-  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 유물과 깬 스테이지 기록이 지워져요. 성장 트리와 펫은 그대로 남아요.</p><button class="cta" type="button" data-act="yes">지우고 처음부터</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; persist(); renderTitle(); } });
+  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">지우고 처음부터</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); renderTitle(); } });
 }
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
@@ -1646,7 +1733,7 @@ function menuSheet(home) {
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
-    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : S.run ? row('reset', '처음부터 다시 시작', '캐릭터와 스테이지 기록을 지워요. 성장 트리와 펫은 남아요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : S.run ? row('reset', '처음부터 다시 시작', '캐릭터와 스테이지 기록을 지워요. 성장 트리, 펫, 꾸미기는 남아요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
     act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
@@ -1683,4 +1770,4 @@ function drawBg() {
   r('#1A0E22', 0, hz, W, H - hz); for (let k = 0; k < W; k += 2) r('#2A1838', k, hz, 1, 1);
 }
 addEventListener('resize', drawBg);
-Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); drawBg(); show('title'); renderTitle(); });
+Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });

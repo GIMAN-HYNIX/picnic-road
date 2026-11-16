@@ -56,10 +56,10 @@ img,canvas,.pxi{image-rendering:pixelated}
 #title .col{justify-content:flex-end; text-align:center; gap:14px}
 .t-art{position:relative; height:min(230px, 30vh); flex:none}
 .t-art img{position:absolute; bottom:0}
-.t-art .h{left:50%; height:160px; margin-left:-54px; z-index:2; animation:hop 1s steps(2) infinite}
+.t-art .h{left:50%; height:160px; transform:translateX(-50%); z-index:2; animation:hop 1s steps(2) infinite}
 .t-art .b{display:none}
 .t-art .e1{left:6%; height:72px; animation:hop .8s steps(2) .2s infinite} .t-art .e2{right:6%; height:84px; animation:hop .9s steps(2) .5s infinite}
-@keyframes hop{50%{transform:translateY(-6px)}}
+@keyframes hop{50%{translate:0 -6px}}
 .wordmark{margin:0; font-family:var(--font-sign); font-weight:400; font-size:44px; line-height:1.05; color:var(--ink); text-shadow:3px 0 0 var(--pink),-3px 0 0 var(--pink),0 3px 0 var(--pink),0 -3px 0 var(--pink),3px 3px 0 var(--pink),-3px -3px 0 var(--pink),3px -3px 0 var(--pink),-3px 3px 0 var(--pink),0 9px 0 #3A1240,6px 9px 0 #3A1240}
 .wordmark .s{display:block; margin-bottom:8px; font-size:24px; color:var(--gold); text-shadow:3px 3px 0 #6B2A55}
 .sub{margin:6px auto 0; max-width:26em; font-family:var(--font-sm); font-size:15px; color:var(--cyan); text-wrap:balance}
@@ -70,6 +70,7 @@ img,canvas,.pxi{image-rendering:pixelated}
 .bar .l,.bar .r{display:flex; align-items:center; gap:11px}
 .chip{display:flex; align-items:center; gap:4px; min-height:30px; padding:2px 8px; background:var(--bg); box-shadow:var(--box)}
 .chip:empty{display:none}
+#goldChip{white-space:nowrap}
 .chip i{display:block; width:21px; height:21px}
 .mini-btn{min-height:44px; padding:0 8px; white-space:nowrap; font-size:15px; color:var(--ink); background:var(--panel)}
 .relics{display:flex; gap:12px; flex-wrap:wrap; min-height:44px; padding-left:3px}
@@ -242,6 +243,32 @@ img,canvas,.pxi{image-rendering:pixelated}
 textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:84px; resize:none; font:12px/1.3 monospace; color:var(--ink-2); background:var(--bg); border:0; padding:8px; box-shadow:0 0 0 3px var(--edge); word-break:break-all}
 .row2 .btn{margin:3px; min-height:46px; font-size:16px}
 .petget .ic{padding:6px}
+/* 장비 등급 색: 일반 회갈색, 희귀 파랑, 유물 보라, 영웅 주황, 전설 금빛 */
+.g0{--gc:#B9A68C} .g1{--gc:#59B8FF} .g2{--gc:#B07CFF} .g3{--gc:#FF7A3D} .g4{--gc:#FFD23F}
+.opt.eqi{box-shadow:0 0 0 3px var(--gc)}
+.opt.eqi .ic{box-shadow:0 0 0 3px var(--gc)}
+.opt.eqi.g4{animation:lv10Flash .8s steps(1) infinite}
+.opt.eqi .gn{font-style:normal; color:var(--gc)}
+.opt.eqi b{font-size:16px}
+.opt .tag.up{background:var(--green)} .opt .tag.wt{background:var(--cyan)}
+.relic.eqs{box-shadow:0 0 0 3px var(--gc,var(--edge))} .relic.eqs.none{opacity:.5; box-shadow:0 0 0 3px var(--edge)}
+.eqtop{display:flex; gap:14px; align-items:center; margin-top:10px}
+.eqhero{flex:none; width:108px; height:132px; display:grid; place-items:center; background:var(--bg); box-shadow:0 0 0 3px var(--edge)}
+.eqhero img{height:120px}
+.eqslots{flex:1; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:3px}
+.eqslot{display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0; background:var(--panel-2); box-shadow:0 0 0 3px var(--gc,var(--edge))}
+.eqslot .ic{width:34px; height:34px} .eqslot .sl{font-family:var(--font-sm); font-size:13px; color:var(--ink-2)}
+.eqslot.on{background:var(--pink-d)}
+.eqsum{font-size:13px!important}
+.tabs{display:flex; gap:6px; flex-wrap:wrap; margin:12px 3px 0}
+.tb{min-height:34px; padding:0 10px; font-family:var(--font-sm); font-size:14px; color:var(--ink-2); background:var(--panel-2); box-shadow:0 0 0 2px var(--edge)}
+.tb.on{color:var(--bg); background:var(--gold); box-shadow:0 0 0 2px var(--gold)}
+.sub3{margin:18px 0 0; text-align:center; font-family:var(--font-sign); font-weight:400; font-size:18px; color:var(--gold)}
+.cosrow{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:12px 3px 0}
+.cos{width:52px; height:52px; padding:5px; display:grid; place-items:center; font-family:var(--font-sm); font-size:13px; color:var(--ink-2); background:var(--panel-2); box-shadow:0 0 0 3px var(--edge)}
+.cos.on{box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink)}
+.cosrow.big .cos{width:84px; height:auto; gap:4px; padding:6px}
+.cosrow.big .cos img{height:64px; width:auto}
 .vertag{align-self:center; min-height:44px; padding:0 12px; font-family:var(--font-sm); font-size:13px; color:var(--ink-2); background:none; border:0; box-shadow:none; text-decoration:underline}
 .opt .tx span b,.card p b{display:inline; font-family:var(--font-sign); font-weight:400; font-size:inherit; color:var(--gold)}
 </style>
@@ -267,7 +294,7 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
 
 <section class="screen" id="map" hidden>
   <div class="col">
-    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">무기</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
+    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">무기</button><button class="mini-btn" id="btnEq" type="button">장비</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
     <div class="relics" id="relics"></div>
     <div class="map" id="mapBox"></div>
     <div class="info" id="info"></div>
