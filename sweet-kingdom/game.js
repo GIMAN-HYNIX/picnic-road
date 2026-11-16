@@ -480,7 +480,7 @@ function startBattle(kind, floor, onEnd) {
   B = {
     kind, floor, onEnd, t: 0, dur, st, paused: false, over: false,
     p: { x: 0, y: 0, hp: run.hp, max: run.maxHp, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: has('cloud') || M('shield') > 0 },
-    foes: [], shots: [], foeShots: [], gems: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
+    foes: [], shots: [], foeShots: [], gems: [], magnets: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
     weapons: run.wpn.map(x => ({ id: x.id, lv: x.lv, src: x, cd: 0.3 + Math.random() * 0.6, ang: 0 })),
     lvl: run.lvl, xp: run.xp, need: needOf(run.lvl), kills: 0, spawnAcc: 0, shake: 0, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
     eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? 180 : -1, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
@@ -534,8 +534,8 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
 function killFoe(f, w) {
   f.dead = true; B.kills++;
   const d = FOES[f.type], col = FOE_COL[f.type], big = f === B.big;
-  if (!big && !B.magnet && Math.random() < 1 / 90) B.magnet = { x: f.x, y: f.y, ph: 0 };      // 가끔 자석을 떨어뜨려요
-  if (big && !B.magnet) B.magnet = { x: f.x + 20, y: f.y, ph: 0 };
+  if (!big && B.magnets.length < 6 && Math.random() < 1 / 90) B.magnets.push({ x: f.x, y: f.y, ph: 0 });      // 가끔 자석을 떨어뜨려요 (여러 개가 같이 있을 수 있어요)
+  if (big) B.magnets.push({ x: f.x + 20, y: f.y, ph: 0 });
   if (d.xp) { const n = big ? 6 : 1; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = big ? rand(60, 160) : rand(20, 60); B.gems.push({ x: f.x, y: f.y, v: big ? Math.ceil(d.xp / n) + 1 : d.xp, pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); } }
   burst(f.x, f.y - d.h * 0.3, col, big ? 40 : 10, big ? 320 : 190); burst(f.x, f.y - d.h * 0.3, '#FFFFFF', big ? 14 : 4, 120);
   fxAdd({ k: 'ghost', img: d.img, x: f.x, y: f.y + f.r * 0.7, h: d.h, flip: f.x > B.p.x ? -1 : 1, life: big ? 0.5 : 0.2, max: big ? 0.5 : 0.2 });
@@ -830,7 +830,8 @@ function update(dt) {
   B.gems = B.gems.filter(g => !g.got); if (B.gems.length > 220) B.gems.splice(0, B.gems.length - 220);
   if (B.gemT > 0) B.gemT -= dt; if (B.xpFlash > 0) B.xpFlash -= dt;
   /* 자석: 먹으면 화면 밖까지 모든 보석이 빨려 와요 */
-  if (B.magnet) { const m = B.magnet; m.ph += dt * 5; if ((p.x - m.x) ** 2 + (p.y - m.y) ** 2 < 26 * 26) { B.magnet = null; for (const g of B.gems) { g.vz = null; g.z = 0; if (!g.pull) { g.pull = true; g.sp = 200; } } sfx.magnet(); if (!headless) { toast('자석! 보석이 전부 모여요'); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.5, max: 0.5, col: '#FF4F6B', w: 6 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: 200, life: 0.4, max: 0.4, col: '#FFFFFF', w: 4 }); } } }
+  for (const m of B.magnets) { m.ph += dt * 5; if ((p.x - m.x) ** 2 + (p.y - m.y) ** 2 < 26 * 26) { m.got = true; for (const g of B.gems) { g.vz = null; g.z = 0; if (!g.pull) { g.pull = true; g.sp = 200; } } sfx.magnet(); if (!headless) { toast('자석! 보석이 전부 모여요'); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.5, max: 0.5, col: '#FF4F6B', w: 6 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: 200, life: 0.4, max: 0.4, col: '#FFFFFF', w: 4 }); } } }
+  if (B.magnets.some(m => m.got)) B.magnets = B.magnets.filter(m => !m.got);
   /* 걸을 때 발밑 먼지 */
   if (p.moving && !headless) { B.dustT = (B.dustT || 0) - dt; if (B.dustT <= 0) { B.dustT = 0.16; fxAdd({ k: 'dot', x: p.x + rand(-6, 6), y: p.y + 2, vx: -p.dirX * 30 + rand(-15, 15), vy: rand(-30, -10), life: 0.4, max: 0.4, col: 'rgba(200,150,90,.55)', r: rand(3, 5) }); } }
   while (B.xp >= B.need && !B.over && !B.paused && !B.lvlPending) levelUp();
@@ -853,7 +854,7 @@ function autopilot() {
   for (const t of B.telegraphs) if (t.k === 'circle') { const dx = p.x - t.x, dy = p.y - t.y, d = Math.hypot(dx, dy) || 1; if (d < t.r + 30) { x += dx / d * 3; y += dy / d * 3; } }
   let g = null, gd = 300 * 300; for (const q of B.gems) { const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < gd) { gd = d; g = q; } }
   if (g) { const dx = g.x - p.x, dy = g.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 1.1; y += dy / d * 1.1; }
-  if (B.magnet) { const dx = B.magnet.x - p.x, dy = B.magnet.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 1.5; y += dy / d * 1.5; }
+  if (B.magnets.length && B.gems.length > 12) { const mg = B.magnets.reduce((a, b) => (a.x - p.x) ** 2 + (a.y - p.y) ** 2 < (b.x - p.x) ** 2 + (b.y - p.y) ** 2 ? a : b), dx = mg.x - p.x, dy = mg.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 1.5; y += dy / d * 1.5; }
   if (Math.hypot(x, y) < 0.05) { x = Math.cos(B.t * 0.7); y = Math.sin(B.t * 0.7); }
   return [x, y];
 }
@@ -952,7 +953,7 @@ function draw() {
     if (Math.sin(g.ph * 0.7 + g.x) > 0.95) pstar(gx + 2, gy - z - 3, 1, '#FFFFFF');
   }
   /* 자석 아이템 */
-  if (B.magnet) { const m = B.magnet, mx = X(m.x), my = Y(m.y) - 3 - Math.round(Math.abs(Math.sin(m.ph)) * 3), big = Math.floor(B.t * 4) % 2;
+  for (const m of B.magnets) { const mx = X(m.x), my = Y(m.y) - 3 - Math.round(Math.abs(Math.sin(m.ph)) * 3), big = Math.floor(B.t * 4) % 2;
     ctx.drawImage(dDisc(big ? 11 : 9, big ? 8 : 6, '#FF4F6B', 6), mx - (big ? 11 : 9), my - (big ? 8 : 6)); R('rgba(14,6,20,.5)', mx - 4, Y(m.y) + 2, 8, 1);
     R(INK, mx - 6, my - 6, 13, 12); R('#E8323C', mx - 5, my - 5, 11, 9); R(INK, mx - 2, my - 5, 5, 6); R('#DDE3EA', mx - 5, my + 2, 3, 2); R('#DDE3EA', mx + 3, my + 2, 3, 2); R('#FF9AA6', mx - 4, my - 4, 2, 1);
     if (big) pstar(mx + 6, my - 7, 2, '#FFFFFF'); }
@@ -1057,6 +1058,18 @@ function draw() {
     tx.font = `${size}px ${t.big ? 'Galmuri11B' : 'Galmuri9'}, sans-serif`; tx.fillStyle = INK;
     for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) tx.fillText(t.t, sx + a * U, sy + b * U);
     tx.fillStyle = t.col === '#4A2040' ? '#FFFFFF' : t.col; tx.fillText(t.t, sx, sy);
+  }
+  /* 화면 밖 자석: 가장자리에 방향 화살표 */
+  for (const m of B.magnets) {
+    const sx = X(m.x) * U, sy = Y(m.y) * U, W = cv2.width, H = cv2.height, top = 118 * d, pad = 26 * d;
+    if (sx > 0 && sx < W && sy > top - 40 * d && sy < H) continue;
+    const ax = Math.max(pad, Math.min(W - pad, sx)), ay = Math.max(top, Math.min(H - pad * 1.6, sy)), a = Math.atan2(sy - ay, sx - ax), blink = Math.floor(B.t * 5) % 2, s = 9 * d;
+    tx.save(); tx.translate(Math.round(ax), Math.round(ay));
+    tx.fillStyle = INK; tx.fillRect(-s - U, -s - U, (s + U) * 2, (s + U) * 2); tx.fillStyle = blink ? '#FF4F6B' : '#E8323C'; tx.fillRect(-s, -s, s * 2, s * 2);
+    tx.fillStyle = INK; tx.fillRect(-s * 0.3, -s, s * 0.6, s * 1.2); tx.fillStyle = '#DDE3EA'; tx.fillRect(-s, s * 0.45, s * 0.7, s * 0.55); tx.fillRect(s * 0.3, s * 0.45, s * 0.7, s * 0.55);      // 작은 자석 그림
+    tx.rotate(a); tx.fillStyle = INK; tx.beginPath(); tx.moveTo(s * 2.9 + U, 0); tx.lineTo(s * 1.5 - U, -s - U); tx.lineTo(s * 1.5 - U, s + U); tx.closePath(); tx.fill();
+    tx.fillStyle = blink ? '#FFD86B' : '#FFFFFF'; tx.beginPath(); tx.moveTo(s * 2.7, 0); tx.lineTo(s * 1.5, -s * 0.8); tx.lineTo(s * 1.5, s * 0.8); tx.closePath(); tx.fill();
+    tx.restore();
   }
   if (B.joy) { const q = v => Math.round(v * d); tx.strokeStyle = 'rgba(255,243,230,.5)'; tx.lineWidth = U; tx.setLineDash([U * 2, U * 2]); tx.beginPath(); tx.arc(q(B.joy.ox), q(B.joy.oy), 46 * d, 0, 6.283); tx.stroke(); tx.setLineDash([]); const kx = q(B.joy.ox + B.joy.dx * 46), ky = q(B.joy.oy + B.joy.dy * 46), s = 16 * d; tx.fillStyle = INK; tx.fillRect(kx - s - U, ky - s - U, (s + U) * 2, (s + U) * 2); tx.fillStyle = '#FF4F9A'; tx.fillRect(kx - s, ky - s, s * 2, s * 2); tx.fillStyle = '#FFB0D2'; tx.fillRect(kx - s, ky - s, s * 2, U); }
   /* 위쪽 표시 */
