@@ -290,26 +290,48 @@ let HERO_RAW = null, heroUrlC = null;
 const RAGS = ['#D8CBB0', '#A8957A', '#76664F'];
 function composeHero(raw, eq, dye) {
   const W = raw.width + 4, H = raw.height, c = mk(W, H), q = c.getContext('2d'), cx = W / 2, R = (col, x, y, w = 1, h = 1) => { q.fillStyle = col; q.fillRect(x, y, w, h); };
-  const ramp = g => GRADES[g].ramp;
-  if (eq.cape) { const r = ramp(eq.cape.g); for (let y = 20; y <= 35; y++) { const hw = Math.round(8 + (y - 20) * 0.62), x0 = Math.round(cx - hw), x1 = Math.round(cx + hw); R(INK, x0 - 1, y, x1 - x0 + 3, 1); R(r[2], x0, y, 2, 1); R(r[1], x0 + 2, y, x1 - x0 - 3, 1); R(r[2], x1 - 1, y, 2, 1); } R(INK, Math.round(cx - 18), 36, 37, 1); }
+  const ramp = g => GRADES[g].ramp, V = it => it ? varOf(it) : -1, shine = it => it && it.g === 4;
+  /* 망토: 몸 뒤에. 끝단은 무기 색 */
+  if (eq.cape) { const r = ramp(eq.cape.g), wc = WCOL[fxOf(eq.cape).w] || r[0]; for (let y = 20; y <= 35; y++) { const hw = Math.round(8 + (y - 20) * 0.62), x0 = Math.round(cx - hw), x1 = Math.round(cx + hw); R(INK, x0 - 1, y, x1 - x0 + 3, 1); R(r[2], x0, y, 2, 1); R(y >= 33 ? wc : r[1], x0 + 2, y, x1 - x0 - 3, 1); R(r[2], x1 - 1, y, 2, 1); if (y >= 33 && fxOf(eq.cape).w === 'cane') for (let x = x0 + 2; x < x1 - 1; x += 2) R('#FFFFFF', x, y); } R(INK, Math.round(cx - 18), 36, 37, 1); }
   q.drawImage(raw, 2, 0);
-  const d = q.getImageData(0, 0, W, H), D = d.data, hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-  const isInk = i => D[i] < 40 && D[i + 1] < 30 && D[i + 2] < 50, isHair = i => (D[i] === 0x7C && D[i + 1] === 0x3A) || (D[i] === 0xAA && D[i + 1] === 0x49) || (D[i] === 0x7A && D[i + 1] === 0x17);
-  const put = (i, h) => { const [r, g, b] = hex(h); D[i] = r; D[i + 1] = g; D[i + 2] = b; };
-  const tone = (i, rp) => { const l = (D[i] * 0.3 + D[i + 1] * 0.55 + D[i + 2] * 0.15) / 255; put(i, l > 0.88 ? rp[0] : l > 0.72 ? rp[1] : rp[2]); };
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, x0 = x - 2; if (D[i + 3] < 128 || x0 < 0 || x0 >= raw.width || isInk(i)) continue;
-    if (isHair(i)) { if (dye && HERO_COS[dye]) { const rp = HERO_COS[dye].ramp; put(i, D[i] === 0xAA ? rp[0] : D[i] === 0x7C ? rp[1] : rp[2]); } continue; }
-    if (y >= 23 && y <= 33 && (x0 <= 4 || x0 >= 22)) { if (eq.gloves) tone(i, ramp(eq.gloves.g)); continue; }
-    if (y >= 23 && y <= 34) { tone(i, eq.armor ? ramp(eq.armor.g) : RAGS); continue; }
+  const d = q.getImageData(0, 0, W, H), Dd = d.data, hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const isInk = i => Dd[i] < 40 && Dd[i + 1] < 30 && Dd[i + 2] < 50, isHair = i => (Dd[i] === 0x7C && Dd[i + 1] === 0x3A) || (Dd[i] === 0xAA && Dd[i + 1] === 0x49) || (Dd[i] === 0x7A && Dd[i + 1] === 0x17);
+  const put = (i, h) => { const [r, g, b] = hex(h); Dd[i] = r; Dd[i + 1] = g; Dd[i + 2] = b; };
+  const tone = (i, rp) => { const l = (Dd[i] * 0.3 + Dd[i + 1] * 0.55 + Dd[i + 2] * 0.15) / 255; put(i, l > 0.88 ? rp[0] : l > 0.72 ? rp[1] : rp[2]); };
+  const sv = V(eq.shoes), shoeTop = sv === 0 ? 35 : sv === 1 ? 37 : 38;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, x0 = x - 2; if (Dd[i + 3] < 128 || x0 < 0 || x0 >= raw.width || isInk(i)) continue;
+    if (isHair(i)) { if (dye && HERO_COS[dye]) { const rp = HERO_COS[dye].ramp; put(i, Dd[i] === 0xAA ? rp[0] : Dd[i] === 0x7C ? rp[1] : rp[2]); } continue; }
+    if (y >= 23 && y <= 33 && (x0 <= 4 || x0 >= 22)) { if (eq.gloves) { const r = ramp(eq.gloves.g); tone(i, V(eq.gloves) === 1 ? ['#FFFFFF', r[0], r[1]] : r); } continue; }
+    if (y >= 23 && y <= 34) { const r = eq.armor ? ramp(eq.armor.g) : RAGS; tone(i, V(eq.armor) === 0 ? [r[1], r[2], r[2]] : r); continue; }
     if (y <= 8 && !eq.helm) { tone(i, RAGS); continue; }
-    if (y >= 35 && eq.shoes) { const rp = ramp(eq.shoes.g); tone(i, [rp[1], rp[2], rp[2]]); } }
+    if (y >= shoeTop && eq.shoes) { const rp = ramp(eq.shoes.g); tone(i, [rp[1], rp[2], rp[2]]); } }
   q.putImageData(d, 0, 0);
+  /* 옷 */
   if (!eq.armor) { R('#8A7556', 7, 27, 2, 2); R('#5A4A36', 7, 27); R('#8A7556', 19, 31, 3, 2); R('#5A4A36', 21, 32); R(INK, 9, 34); R(INK, 16, 34); R(INK, 23, 33); }
-  if (eq.helm) { const r = ramp(eq.helm.g), rows = [[5, 9, 18], [6, 7, 20], [7, 6, 21], [8, 5, 22], [9, 5, 22], [10, 5, 22], [11, 5, 22]];
-    for (const [y, a, b] of rows) { R(INK, a + 1, y, b - a + 3, 1); R(r[1], a + 2, y, b - a + 1, 1); }
-    R(INK, 8 + 2 - 1, 4, 18 - 9 + 3, 1); R(r[2], 7, 11, 18, 1); R(r[2], 7, 10, 18, 1); R(INK, 6, 12, 20, 1); R(r[0], 10, 6, 2, 1); R(r[0], 9, 7, 1, 2);
-    if (eq.helm.g >= 3) { R(INK, 15, 1, 3, 4); R(r[0], 16, 2, 1, 2); } }
-  if (eq.armor && eq.armor.g === 4) { R('#FFFFFF', 13, 27); R('#FFFFFF', 17, 30); }
+  else { const r = ramp(eq.armor.g), v = V(eq.armor);
+    if (v === 0) { for (let y = 26; y <= 34; y++) { const hw = 4 + Math.floor((y - 26) / 3); R(r[2], Math.round(cx - hw) - 1, y, 1, 1); R(r[0], Math.round(cx - hw), y, hw * 2, 1); R(r[2], Math.round(cx + hw), y, 1, 1); } R(r[0], 11, 23, 1, 3); R(r[0], 20, 23, 1, 3); R(r[1], 13, 30, 5, 1); }
+    if (v === 1) { for (let x = 10; x <= 21; x++) R(x % 2 ? '#FFFFFF' : r[0], x, 23); for (let x = 6; x <= 25; x++) if (x % 2) R('#FFFFFF', x, 34); R(r[2], 15, 25, 2, 1); R(r[2], 14, 26); R(r[2], 17, 26); }
+    if (v === 2) { R(INK, 9, 24, 14, 8); R(r[1], 10, 25, 12, 6); R(r[0], 11, 25, 2, 6); R(r[2], 10, 30, 12, 1); for (const sx of [3, 21]) { R(INK, sx, 21, 8, 5); R(r[1], sx + 1, 22, 6, 3); R(r[0], sx + 1, 22, 3, 1); } R('#FFFFFF', 11, 26); R('#FFFFFF', 20, 26); } }
+  /* 장갑 */
+  if (eq.gloves) { const r = ramp(eq.gloves.g), v = V(eq.gloves);
+    if (v === 0) for (const sx of [1, W - 4]) { R(INK, sx, 26, 3, 6); R(r[1], sx + (sx === 1 ? 1 : 0), 27, 2, 4); R(r[0], sx + 1, 27); }
+    if (v === 1) { R(r[1], 4, 30, 3, 2); R(r[1], W - 7, 30, 3, 2); }
+    if (v === 2) { R('#3A2420', 4, 26); R('#3A2420', 5, 29); R('#3A2420', W - 6, 26); R('#3A2420', W - 7, 29); R(r[0], 3, 24, 2, 1); R(r[0], W - 5, 24, 2, 1); } }
+  /* 신발 */
+  if (eq.shoes) { const r = ramp(eq.shoes.g), v = V(eq.shoes);
+    if (v === 0) { R(r[0], 12, 35, 3, 1); R(r[0], 18, 35, 3, 1); }
+    if (v === 1) { R('#FFFFFF', 13, 38, 3, 1); R('#FFFFFF', 18, 38, 3, 1); }
+    if (v === 2) { R(r[0], 13, 37); R(r[0], 19, 37); } }
+  /* 투구 */
+  if (eq.helm) { const r = ramp(eq.helm.g), v = V(eq.helm);
+    if (v === 0) { const rows = [[5, 9, 18], [6, 7, 20], [7, 6, 21], [8, 5, 22], [9, 5, 22], [10, 5, 22], [11, 5, 22]];
+      for (const [y, a, b] of rows) { R(INK, a + 1, y, b - a + 3, 1); R(r[1], a + 2, y, b - a + 1, 1); }
+      R(INK, 9, 4, 12, 1); R(r[2], 7, 10, 18, 2); R(INK, 6, 12, 20, 1); R(r[0], 10, 6, 2, 1); R(r[0], 9, 7, 1, 2); R('#5A3418', 14, 7); R('#5A3418', 18, 6); R('#5A3418', 20, 9); R('#5A3418', 12, 9); }
+    if (v === 1) { const tiers = [[11, 7, 24], [9, 9, 22], [7, 11, 20], [5, 12, 19], [3, 13, 18], [1, 14, 17]];
+      R(INK, 15, 0, 2, 1); for (const [y, a, b] of tiers) { R(INK, a - 1, y, b - a + 2, 2); R(r[0], a, y, b - a, 2); R(r[1], a, y + 1, b - a, 1); } R(INK, 6, 13, 20, 1); R('#FFFFFF', 13, 4); R('#FFFFFF', 11, 8); }
+    if (v === 2) { R(INK, 4, 6, 24, 7); R(INK, 3, 8, 26, 3); R('#E3B36A', 5, 7, 22, 5); R('#E3B36A', 4, 9, 24, 1); R(r[1], 5, 7, 22, 2); R(r[1], 4, 9, 3, 1); R(r[1], 25, 9, 3, 1); for (const [x, y, col] of [[7, 7, '#FFFFFF'], [11, 8, '#59B8FF'], [15, 7, '#FFFFFF'], [19, 8, '#5CD66A'], [23, 7, '#FFFFFF']]) R(col, x, y); R(INK, 6, 12, 20, 1); }
+    if (eq.helm.g >= 3) { R(INK, 15, v === 1 ? 0 : 1, 3, 4); R(r[0], 16, v === 1 ? 1 : 2, 1, 2); } }
+  for (const it of [eq.armor, eq.helm, eq.cape]) if (shine(it)) { R('#FFFFFF', 13, 27); R('#FFFFFF', 22, 5); R('#FFFFFF', 4, 33); break; }
   return c;
 }
 function buildHero() {
@@ -459,6 +481,8 @@ const setMusicVol = () => { if (mbus) mbus.gain.setTargetAtTime(S.muted || S.mus
 
 /* ───── 카드 ───── */
 const GRADES_ICON = [['#E8DCCB', '#B9A68C', '#7A6650'], ['#BFE6FF', '#59B8FF', '#2C6FB0'], ['#E3CCFF', '#B07CFF', '#6A3FC0'], ['#FFC9A8', '#FF7A3D', '#B8401A'], ['#FFF3B0', '#FFD23F', '#C98A00']];
+/* 무기마다 대표 색 (망토 문양, 망토 끝단) */
+const WCOL = { pin: '#D9A066', cream: '#FFFFFF', star: '#FFD23F', macaron: '#FF8FB8', honey: '#F7B733', lemon: '#E8E04D', skewer: '#E8323C', choco: '#6B3A1E', cotton: '#FFB3D9', cane: '#E8323C' };
 const ICON = {
   pin: `<rect x="14" y="40" width="72" height="20" rx="10" fill="#D9A066" transform="rotate(-35 50 50)"/><rect x="2" y="45" width="18" height="10" rx="5" fill="#B9783F" transform="rotate(-35 50 50)"/><rect x="80" y="45" width="18" height="10" rx="5" fill="#B9783F" transform="rotate(-35 50 50)"/>`,
   cream: `<path d="M50 12C62 26 78 30 78 50C78 68 66 84 50 84C34 84 22 68 22 50C22 38 34 34 40 24C44 32 50 30 50 12Z" fill="#FFFFFF" stroke="#E3B7C6" stroke-width="4"/>`,
@@ -486,8 +510,26 @@ const ICON = {
   cup: `<path d="M22 28H78L70 86H30Z" fill="#DDF0FF" stroke="#2F74C0" stroke-width="5" stroke-linejoin="round"/><path d="M28 50H72M30 66H70" stroke="#2F74C0" stroke-width="4"/>`
 };
 /* 장비 아이콘: 칸 5가지 × 등급 5가지 */
-{ const SH = { armor: 'M30 14L42 10Q50 18 58 10L70 14L88 30L78 44L70 38V88H30V38L22 44L12 30Z', shoes: 'M26 12H52V56L82 62Q92 64 92 76V88H18V12Z', gloves: 'M30 90V40Q30 16 48 16Q62 16 62 34V46L72 34Q82 28 88 38L70 62V90Z', helm: 'M12 72Q12 16 50 16Q88 16 88 72Z', cape: 'M30 10H70L92 90Q50 78 8 90Z' };
-  for (const s of Object.keys(SH)) for (let g = 0; g < 5; g++) { const r = GRADES_ICON[g]; ICON['eq_' + s + g] = `<path d="${SH[s]}" fill="${r[1]}" stroke="${r[2]}" stroke-width="6" stroke-linejoin="round"/>` + (s === 'helm' ? `<rect x="12" y="62" width="76" height="14" fill="${r[2]}"/>` : '') + (g === 4 ? '<path d="M70 18l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#FFFFFF"/>' : ''); } }
+{ /* 장비 아이콘: 종류(앞치마, 원피스, 갑옷...)마다 모양이 다르고 등급마다 색이 달라요. 망토는 무기 문양 */
+  const D = {
+    armor0: (a, b, c) => `<path d="M30 14L42 10Q50 18 58 10L70 14L88 30L78 44L70 38V88H30V38L22 44L12 30Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M36 40H64V86H36Z" fill="${a}" stroke="${c}" stroke-width="5"/><path d="M42 62H58" stroke="${c}" stroke-width="6"/>`,
+    armor1: (a, b, c) => `<path d="M38 10H62L66 34L88 84H12L34 34Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M38 10Q50 24 62 10" fill="none" stroke="${a}" stroke-width="7"/><path d="M12 84Q19 94 26 84Q33 94 40 84Q47 94 54 84Q61 94 68 84Q75 94 82 84Q86 90 88 84" fill="none" stroke="${a}" stroke-width="7"/>`,
+    armor2: (a, b, c) => `<circle cx="20" cy="26" r="14" fill="${b}" stroke="${c}" stroke-width="6"/><circle cx="80" cy="26" r="14" fill="${b}" stroke="${c}" stroke-width="6"/><path d="M24 20H76L78 64L50 90L22 64Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M34 30V62" stroke="${a}" stroke-width="8"/><circle cx="64" cy="32" r="5" fill="#FFFFFF"/>`,
+    shoes0: (a, b, c) => `<path d="M26 10H52V56L82 62Q92 64 92 76V88H18V10Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M22 22H50" stroke="${a}" stroke-width="8"/>`,
+    shoes1: (a, b, c) => `<path d="M8 60Q10 38 30 38L52 46L72 58Q94 62 94 76V80H8Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M8 80H94V90H8Z" fill="#FFFFFF" stroke="${c}" stroke-width="5"/><path d="M36 46L44 54M46 44L54 52" stroke="${a}" stroke-width="6"/>`,
+    shoes2: (a, b, c) => `<path d="M10 62Q40 50 62 62L90 58V74H64L60 90H52L50 74H10Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M24 52L34 60L24 66ZM44 52L34 60L44 66Z" fill="${a}" stroke="${c}" stroke-width="3"/>`,
+    gloves0: (a, b, c) => `<path d="M24 92V40Q24 12 46 12Q64 12 64 34V44L76 32Q88 26 92 40L72 66V92Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M24 78H72" stroke="${a}" stroke-width="10"/>`,
+    gloves1: (a, b, c) => `<path d="M30 92V50L22 30Q20 22 28 22L36 40V14Q36 8 42 8Q48 8 48 14V38V10Q48 4 54 4Q60 4 60 10V38V14Q60 8 66 8Q72 8 72 14V60L80 46Q86 40 90 46L76 76V92Z" fill="${a}" stroke="${c}" stroke-width="5" stroke-linejoin="round"/><path d="M30 80H76V92H30Z" fill="${b}"/>`,
+    gloves2: (a, b, c) => `<path d="M22 92V36L34 20H70L80 36V92Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><path d="M22 52H80M22 70H80" stroke="${c}" stroke-width="5"/><circle cx="36" cy="36" r="5" fill="${a}"/><circle cx="66" cy="36" r="5" fill="${a}"/>`,
+    helm0: (a, b, c) => `<path d="M10 74Q10 16 50 16Q90 16 90 74Z" fill="${b}" stroke="${c}" stroke-width="6"/><rect x="10" y="64" width="80" height="14" fill="${c}"/><circle cx="34" cy="40" r="6" fill="#5A3418"/><circle cx="60" cy="32" r="6" fill="#5A3418"/><circle cx="70" cy="52" r="5" fill="#5A3418"/>`,
+    helm1: (a, b, c) => `<path d="M14 86H86L78 68H22ZM24 66H76L68 48H32ZM34 46H66L60 30H40ZM42 28H58L50 6Z" fill="${a}" stroke="${c}" stroke-width="5" stroke-linejoin="round"/><path d="M22 76H78M32 56H68" stroke="${b}" stroke-width="6"/>`,
+    helm2: (a, b, c) => `<ellipse cx="50" cy="56" rx="42" ry="30" fill="#E3B36A" stroke="${c}" stroke-width="6"/><path d="M8 52Q10 26 50 26Q90 26 92 52Q80 46 70 54Q60 44 50 54Q40 44 30 54Q20 46 8 52Z" fill="${b}"/><ellipse cx="50" cy="58" rx="14" ry="9" fill="#3A2420"/><path d="M28 36L34 40M62 34L66 40M46 32L50 36M76 42L80 46" stroke="#FFFFFF" stroke-width="5"/>`,
+    cape: (a, b, c, w) => `<path d="M30 10H70L92 90Q50 78 8 90Z" fill="${b}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/><circle cx="50" cy="52" r="18" fill="${WCOL[w] || a}" stroke="${c}" stroke-width="5"/>`
+  };
+  for (let g = 0; g < 5; g++) { const [a, b, c] = GRADES_ICON[g], spark = g === 4 ? '<path d="M78 8l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#FFFFFF"/>' : '';
+    for (const s of ['armor', 'shoes', 'gloves', 'helm']) for (let v = 0; v < 3; v++) ICON[`eq_${s}${v}_${g}`] = D[s + v](a, b, c) + spark;
+    for (const w of Object.keys(WCOL)) ICON[`eq_cape_${w}_${g}`] = D.cape(a, b, c, w) + spark; }
+}
 /* ───── 무기 10가지: 레벨이 오를 때마다 투사체가 1개씩 늘어요. Lv5와 Lv10에 특별한 힘 ───── */
 const WMAX = 10;
 const WEAPONS = {
@@ -602,9 +644,11 @@ function rollItem(n, minG = 0, slot) {
   if (s === 'gloves') { fx.atk = r1([3, 4.5, 6, 8, 10][g]); if (g >= 2) { const k = pick(['open', 'rush']), i = g - 2; fx[k] = { open: [15, 22, 30], rush: [8, 12, 16] }[k][i]; } }
   if (s === 'helm') { fx.crit = r1([1.5, 2.2, 3, 4, 5][g]); if (g >= 2) fx.critd = [15, 22, 30][g - 2]; }
   if (s === 'cape') { const own = run && run.wpn && run.wpn.length && Math.random() < 0.65 ? pick(run.wpn).id : pick(Object.keys(WEAPONS)); fx.w = own; fx.wd = [8, 12, 16, 22, 30][g]; if (g >= 2) { const [k, , v] = CAPE_FX[own]; fx[k] = v[g - 2]; } if (g === 4) fx.proj = (fx.proj || 0) + 1; }
-  const nm = s === 'cape' ? `${GRADES[g].pre} ${WEAPONS[fx.w].name} 망토` : `${GRADES[g].pre} ${pick(SLOT[s].nouns)}`;
-  return { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm, fx };
+  const v = rnd(SLOT[s].nouns.length), nm = s === 'cape' ? `${GRADES[g].pre} ${WEAPONS[fx.w].name} 망토` : `${GRADES[g].pre} ${SLOT[s].nouns[v]}`;
+  return { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm, fx, v };
 }
+const varOf = it => it.v != null ? it.v : Math.max(0, SLOT[it.s].nouns.findIndex(n => it.nm.endsWith(n)));
+const eqIcon = (it, s) => !it ? `eq_${s === 'cape' ? 'cape_pin' : s + '0'}_0` : it.s === 'cape' ? `eq_cape_${fxOf(it).w}_${it.g}` : `eq_${it.s}${varOf(it)}_${it.g}`;
 const fxOf = it => (it && it.fx) || {};
 const eqSum = k => eqList().reduce((n, it) => n + (typeof fxOf(it)[k] === 'number' ? fxOf(it)[k] : 0), 0);
 const eqMax = k => eqList().reduce((n, it) => Math.max(n, fxOf(it)[k] || 0), 0);
@@ -1608,7 +1652,7 @@ function renderBar() {
   $('#hpChip').innerHTML = heartsHtml(run.hp, run.maxHp);
   $('#goldChip').innerHTML = `Lv ${run.lvl}`;
   $('#potChip').innerHTML = '';
-  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${svg(ICON['eq_' + s + (it ? it.g : 0)])}</button>`; }).join('');
+  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${svg(ICON[eqIcon(it, s)])}</button>`; }).join('');
 }
 function renderMap() {
   const N = STAGES.length, rowH = 84, H = N * rowH + 60, xs = [50, 74, 50, 26], pos = i => [xs[i % 4], (H - 46 - i * rowH) / H * 100]; let lines = '';
@@ -1651,7 +1695,7 @@ function charSheet() {
   const stats = row('하트', `${heartsMax()}칸`) + row('공격력', pc(st.dmg), st.dmg > 1) + row('공격 속도', pc(st.atk), st.atk > 1) + row('이동 속도', pc(st.spd), st.spd > 1)
     + row('치명타 확률', pc(st.crit), st.crit > 0.05) + row('치명타 피해', pc(st.critMul), st.critMul > 1.8) + row('맞은 뒤 무적', `${(DF().inv * st.invK).toFixed(1)}초`, st.invK > 1)
     + row('방패', st.guard ? `${st.guard}초마다` : M('shield') ? '전투마다 1번' : '없음', !!st.guard) + row('무기 범위', pc(st.area), st.area > 1) + row('줍는 거리', pc(st.pickup / 88), st.pickup > 88) + row('경험치', pc(st.xp), st.xp > 1);
-  const slots = SLOTS.map(sl => { const it = e[sl]; return it ? `<button class="opt eqi g${it.g}" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON['eq_' + sl + it.g])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${statLine(it)}</span></span></button>` : `<button class="opt eqi empty" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON['eq_' + sl + 0])}</span><span class="tx"><b>${SLOT[sl].name}</b><span>비어 있어요. 눌러서 끼울 수 있어요.</span></span></button>`; }).join('');
+  const slots = SLOTS.map(sl => { const it = e[sl]; return it ? `<button class="opt eqi g${it.g}" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON[eqIcon(it)])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${statLine(it)}</span></span></button>` : `<button class="opt eqi empty" type="button" data-act="eq" data-s="${sl}"><span class="ic">${svg(ICON[eqIcon(null, sl)])}</span><span class="tx"><b>${SLOT[sl].name}</b><span>비어 있어요. 눌러서 끼울 수 있어요.</span></span></button>`; }).join('');
   const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설</i>` : w.lv >= WMAX ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}</b>: ${LEG[w.id].desc} ` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
   sheet(`<h2 id="cardTitle">내 캐릭터</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="who"><b>Lv ${run.lvl}</b><span>스테이지 ${Math.min(run.stage + 1, STAGES.length)}에 도전 중</span><span>무기 ${run.wpn.length}개 · 장비 ${eqList().length}/5칸</span></div></div>
     <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
@@ -1686,7 +1730,7 @@ function bonusLine(b) {
   return `<div class="opt r2 petget"><span class="ic">${cosPetIcon(S.pet && petLv(S.pet) ? S.pet : 'kong', b.k)}</span><span class="tx"><b>펫 꾸미기: ${PET_COS[b.k].name}</b><span>펫 창에서 씌워 줄 수 있어요.</span></span></div>`;
 }
 function dyePreview(k) { const was = S.heroCos; S.heroCos = k; const c = composeHero(HERO_RAW, eqOf(), k); S.heroCos = was; const o = mk(c.width * 2, c.height * 2), q = o.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); }
-const itemRow = (it, i, o = {}) => `<button class="opt eqi g${it.g}" type="button" data-act="${o.act || 'item'}" data-i="${i}"${o.worn ? ' aria-pressed="true"' : ''}>${o.worn ? '<em class="tag wt">착용 중</em>' : o.up ? '<em class="tag up">▲ 더 좋아요</em>' : ''}<span class="ic">${svg(ICON['eq_' + it.s + it.g])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${SLOT[it.s].name} · ${statLine(it)}</span></span></button>`;
+const itemRow = (it, i, o = {}) => `<button class="opt eqi g${it.g}" type="button" data-act="${o.act || 'item'}" data-i="${i}"${o.worn ? ' aria-pressed="true"' : ''}>${o.worn ? '<em class="tag wt">착용 중</em>' : o.up ? '<em class="tag up">▲ 더 좋아요</em>' : ''}<span class="ic">${svg(ICON[eqIcon(it)])}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${SLOT[it.s].name} · ${statLine(it)}</span></span></button>`;
 function rewardSheet(items, bonus, title, next) {
   addItems(items); sfx.rare();
   const best = Math.max(...items.map(it => it.g));
@@ -1702,7 +1746,7 @@ function eqSheet(slot0, back) {
     const e = eqOf(), inv = (run.inv || []).filter(it => tab === 'all' || it.s === tab).sort((a, b) => b.g - a.g || itemScore(b) - itemScore(a)), st = battleStats();
     const sums = eqList().length ? `${eqList().length}칸 착용` : '아직 낀 장비가 없어요';
     const tr = [];
-    sheet(`<h2 id="cardTitle">장비</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="eqslots">${SLOTS.map(s => { const it = e[s]; return `<button class="eqslot${it ? ' g' + it.g : ''}${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}"><span class="ic">${svg(ICON['eq_' + s + (it ? it.g : 0)])}</span><span class="sl">${SLOT[s].name}</span></button>`; }).join('')}</div></div>
+    sheet(`<h2 id="cardTitle">장비</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="eqslots">${SLOTS.map(s => { const it = e[s]; return `<button class="eqslot${it ? ' g' + it.g : ''}${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}"><span class="ic">${svg(ICON[eqIcon(it, s)])}</span><span class="sl">${SLOT[s].name}</span></button>`; }).join('')}</div></div>
       <p class="eqsum">${sums} · 자세한 능력치는 캐릭터 창에서 봐요</p>
       <div class="tabs"><button class="tb${tab === 'all' ? ' on' : ''}" type="button" data-act="tab" data-s="all">전체</button>${SLOTS.map(s => `<button class="tb${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}">${SLOT[s].name}</button>`).join('')}</div>
       <div class="opts">${tab !== 'all' && e[tab] ? itemRow(e[tab], -1, { act: 'off', worn: true }) : ''}${inv.length ? inv.map((it, i) => itemRow(it, i, { up: betterThanWorn(it) })).join('') : '<p>가방이 비었어요. 스테이지를 깨면 장비를 받아요.</p>'}</div>
