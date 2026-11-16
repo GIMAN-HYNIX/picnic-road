@@ -1,5 +1,5 @@
 /* Keeps a copy of the game on the phone so it opens instantly and works with no connection. */
-const CACHE = 'sweet-b5c6047c9d';
+const CACHE = 'sweet-5c9cf83a29';
 const FILES = ["./", "index.html", "game.js", "manifest.webmanifest", "fonts/galmuri11.woff2", "fonts/galmuri11-bold.woff2", "fonts/galmuri9.woff2", "icons/icon-192.png", "icons/icon-512.png", "img/hero.png", "img/jelly.png", "img/cookie.png", "img/ice.png", "img/donut.png", "img/boss.png", "img/boss2.png", "img/boss3.png", "img/golem.png", "img/knight.png"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('sweet-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -120,7 +120,7 @@ if (!Array.isArray(S.hist)) S.hist = [];
 if (!S.dev) S.dev = Math.random().toString(36).slice(2, 8);
 function recordRun(won, stars, petGot) {
   const t = Math.round(run.time || 0), dmg = run.dmg || {};
-  S.hist.push({ id: S.dev + '-' + Date.now().toString(36), dev: S.dev, nm: S.devName || '', at: Date.now(), won: won ? 1 : 0, act: actOf(), fl: floorNo(), rows: run.map.rows || 8, lv: run.lvl, k: run.kills || 0, t, hits: run.hits || 0, by: run.hitBy || {}, el: run.elites || 0,
+  S.hist.push({ id: S.dev + '-' + Date.now().toString(36), dev: S.dev, nm: S.devName || '', at: Date.now(), won: won ? 1 : 0, act: actOf(), fl: floorNo(), rows: 0, lv: run.lvl, k: run.kills || 0, t, hits: run.hits || 0, by: run.hitBy || {}, el: run.elites || 0,
     w: run.wpn.map(w => [w.id, w.lv, Math.round(dmg[w.id] || 0)]), pd: Math.round(dmg.pet || 0), ac: Math.round(dmg.acid || 0), b: run.bonus, hp: run.maxHp, pet: S.pet ? [S.pet, petLv(S.pet)] : null, pg: petGot ? petGot.id : null, st: stars, tree: S.meta.total - S.meta.pts, rel: run.relics.length });
   if (S.hist.length > 120) S.hist.splice(0, S.hist.length - 120);
 }
@@ -165,11 +165,11 @@ const TREE = [
   { id: 'shield', name: '솜사탕 방패', desc: '전투마다 처음 맞는 공격 1번을 막아요', max: 1, cost: [6], col: 2, row: 2, req: 'guard', icon: 'cream' },
   { id: 'xp', name: '계량 노트', desc: '경험치 +8%', max: 5, cost: [2, 2, 3, 3, 4], col: 3, row: 2, req: 'mag', icon: 'cup' },
   { id: 'size', name: '큰 손', desc: '무기 범위 +8%', max: 3, cost: [3, 4, 5], col: 0, row: 3, req: 'critd', icon: 'glove' },
-  { id: 'start2', name: '두 번째 무기', desc: '무기 1개를 더 들고 출발해요', max: 1, cost: [8], col: 2, row: 3, req: 'shield', icon: 'chest' },
-  { id: 'gold', name: '행운 지갑', desc: '골드 +15%', max: 3, cost: [1, 2, 3], col: 4, row: 3, req: 'xp', icon: 'coin' },
+  { id: 'start2', name: '두 번째 바람', desc: '스테이지마다 한 번, 쓰러지면 하트 1칸으로 다시 일어나요', max: 1, cost: [8], col: 2, row: 3, req: 'shield', icon: 'chest' },
+  { id: 'gold', name: '반짝 자석', desc: '적이 자석을 30% 더 자주 떨어뜨려요', max: 3, cost: [1, 2, 3], col: 4, row: 3, req: 'xp', icon: 'coin' },
   { id: 'choice', name: '넓은 선택', desc: '레벨업 선택지가 4장이 돼요', max: 1, cost: [10], col: 1, row: 4, req: 'size', icon: 'event' },
-  { id: 'reroll', name: '다시 굽기', desc: '모험마다 레벨업 선택지를 다시 뽑는 기회 +2번', max: 2, cost: [4, 6], col: 3, row: 4, req: 'gold', icon: 'rest' },
-  { id: 'veteran', name: '숙련 제빵사', desc: '처음 무기가 Lv3으로 시작해요', max: 1, cost: [12], col: 2, row: 5, req: 'start2', icon: 'ench' }
+  { id: 'reroll', name: '다시 굽기', desc: '스테이지마다 레벨업 선택지를 다시 뽑는 기회 +2번', max: 2, cost: [4, 6], col: 3, row: 4, req: 'gold', icon: 'rest' },
+  { id: 'veteran', name: '숙련 제빵사', desc: '모든 피해 +10%', max: 1, cost: [12], col: 2, row: 5, req: 'start2', icon: 'ench' }
 ];
 if (!S.meta || typeof S.meta !== 'object' || !S.meta.n) S.meta = { pts: 0, total: 0, n: {} };
 const M = id => S.meta.n[id] || 0;
@@ -444,10 +444,7 @@ const RELICS = {
   cup: { name: '계량컵', desc: '경험치를 25% 더 얻어요.', icon: 'ench' },
   boots: { name: '버터 장화', desc: '이동 속도가 12% 빨라져요.', icon: 'honey' },
   apron: { name: '두꺼운 앞치마', desc: '최대 하트가 1칸 늘어요.', icon: 'dough' },
-  fortune: { name: '행운의 쿠키', desc: '골드를 30% 더 얻어요.', icon: 'coin' },
-  icepack: { name: '얼음 주머니', desc: '휴식처에서 하트를 1칸 더 채워요.', icon: 'rest' },
   sprinkle: { name: '스프링클 통', desc: '레벨이 오르면 주변 적에게 피해를 줘요.', icon: 'sour' },
-  jar: { name: '꿀단지', desc: '엘리트 전투를 이기면 하트를 1칸 더 채워요.', icon: 'honey' },
   cloud: { name: '솜사탕 구름', desc: '전투마다 처음 맞는 공격 한 번을 막아 줘요.', icon: 'cream' }
 };
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
@@ -498,14 +495,14 @@ addEventListener('resize', resize);
 function battleStats() {
   const b = run.bonus || { spd: 0, dmg: 0, crit: 0 };
   return {
-    dmg: (has('whisk') ? 1.15 : 1) * (1 + 0.1 * b.dmg) * (1 + 0.05 * M('atk')),
+    dmg: (has('whisk') ? 1.15 : 1) * (1 + 0.1 * b.dmg) * (1 + 0.05 * M('atk')) * (1 + 0.1 * M('veteran')),
     crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit'), critMul: 1.8 + 0.25 * M('critd'),
     spd: (has('boots') ? 1.12 : 1) * (1 + 0.05 * b.spd) * (1 + 0.04 * M('spd')),
     xp: (has('cup') ? 1.25 : 1) * (1 + 0.08 * M('xp')), pickup: 88 * (1 + 0.2 * M('mag')), invK: 1 + 0.15 * M('guard'), area: 1 + 0.08 * M('size')
   };
 }
-const needOf = lvl => Math.round(5 + 3 * (lvl - 1) + 0.07 * (lvl - 1) ** 2);
-function startBattle(kind, floor, onEnd) {
+const needOf = lvl => Math.round(5 + 3 * (lvl - 1) + 0.07 * (lvl - 1) ** 2 + 0.012 * (lvl - 1) ** 3);      /* 스테이지가 끝없이 이어지니까 뒤로 갈수록 레벨이 천천히 올라요 */
+function startBattle(kind, floor, onEnd, stg) {
   const st = battleStats(), dur = kind === 'boss' ? 300 : 180;
   B = {
     kind, floor, act: actOf(), onEnd, t: 0, dur, st, paused: false, over: false,
@@ -513,16 +510,101 @@ function startBattle(kind, floor, onEnd) {
     foes: [], shots: [], foeShots: [], gems: [], magnets: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
     weapons: run.wpn.map(x => ({ id: x.id, lv: x.lv, src: x, cd: 0.3 + Math.random() * 0.6, ang: 0 })),
     lvl: run.lvl, xp: run.xp, need: needOf(run.lvl), kills: 0, spawnAcc: 0, shake: 0, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
-    eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? 180 : -1, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
+    eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? (stg ? 45 : 180) : -1, g: (stg && stg.g) || [], bigType: stg && stg.boss, stageN: stg ? floorNo() : 0, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
   };
   B.pet = petStart();
+  gimInit();
   if (!headless) {
     ZOOM = 1; show('battle'); resize();
     $('#bossBar').hidden = true; $('#potHud').innerHTML = run.potion ? svg(ICON.cocoa) : '';
-    toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
+    if (stg) { toast(`${B.stageN}. ${stg.n}`); const hint = stg.boss ? `45초 뒤에 ${FOES[stg.boss].name}이(가) 나타나요` : B.g.length ? B.g.map(k => GIM[k].hint).join(' · ') : '3분만 버텨요!'; const b0 = B; setTimeout(() => { if (B === b0 && !B.over) toast(hint); }, 2400); } else toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
     if (window.__dbg.autoAll) B.auto = true;
     last = performance.now(); requestAnimationFrame(frame);
   }
+}
+/* ═════ 스테이지: 끝없이 이어지고, 5번째마다 보스. 스테이지마다 기믹이 달라요 ═════ */
+const GIM = {
+  gemrain: { name: '보석 비', hint: '보석이 쏟아져요', desc: '여기저기서 보석이 솟아나요. 주우러 다니면 빨리 커요.' },
+  charge: { name: '돌진 떼', hint: '츄러스 떼가 돌진해 와요', desc: '츄러스가 줄지어 돌진해 와요. 빨간 줄이 보이면 옆으로 피해요.' },
+  fog: { name: '안개', hint: '안개 때문에 가까이만 보여요', desc: '안개가 껴서 내 주변만 보여요.' },
+  ice: { name: '빙판', hint: '바닥이 미끄러워요', desc: '바닥이 미끄러워서 바로 멈추거나 꺾을 수 없어요.' },
+  bombs: { name: '팝콘 밭', hint: '팝콘 폭탄이 몰려와요', desc: '팝콘 폭탄이 계속 달려와요. 빨간 원 밖으로 피해요.' },
+  meteor: { name: '사탕 우박', hint: '빨간 원을 피해요', desc: '빨간 원이 생긴 자리에 사탕이 떨어져요.' },
+  giant: { name: '거인의 날', hint: '적이 적지만 크고 단단해요', desc: '적이 적게 나오지만 두 배로 크고 단단해요. 대신 보석을 많이 줘요.' },
+  wind: { name: '바람', hint: '바람에 밀려요', desc: '센 바람이 나를 한쪽으로 밀어요. 방향이 가끔 바뀌어요.' },
+  swarm: { name: '개미 떼', hint: '약한 적이 엄청 많아요', desc: '약한 적이 떼로 몰려와요.' },
+  mud: { name: '꿀 늪', hint: '꿀 늪에서는 느려져요', desc: '노란 꿀 늪을 밟으면 느려져요.' },
+  ring: { name: '포위', hint: '적이 둥글게 에워싸요', desc: '가끔 적이 사방에서 둥글게 에워싸요. 한쪽을 뚫고 나가요.' },
+  beams: { name: '번개 줄', hint: '빨간 줄을 피해요', desc: '빨간 줄이 그어진 곳에 번개가 쳐요.' },
+  goldrush: { name: '황금 젤리', hint: '도망가는 황금 젤리를 잡아요', desc: '도망 다니는 황금 젤리가 나와요. 잡으면 노란 보석이 쏟아져요.' },
+  pulse: { name: '얼음땡', hint: '적이 멈췄다 빨라졌다 해요', desc: '적이 잠깐 얼어붙었다가, 풀리면 훨씬 빨라져요.' },
+  shrink: { name: '설탕 울타리', hint: '분홍 울타리 안에 있어요', desc: '분홍 울타리가 점점 좁아져요. 밖에 오래 있으면 다쳐요.' },
+  trail: { name: '뜨거운 발자국', hint: '계속 움직여요', desc: '내가 서 있던 자리가 곧 뜨거워져요. 멈추지 말아요.' },
+  ghost: { name: '유령', hint: '적이 보였다 안 보였다 해요', desc: '적이 가끔 거의 안 보이게 흐려져요.' },
+  elites: { name: '꼬마 대장', hint: '꼬마 대장이 계속 나와요', desc: '꼬마 대장들이 줄지어 나와요.' },
+  fast: { name: '광란', hint: '적이 아주 빨라요', desc: '적이 평소보다 훨씬 빨리 달려와요.' },
+  vortex: { name: '소용돌이', hint: '소용돌이가 끌어당겨요', desc: '시럽 소용돌이가 나를 끌어당겨요.' },
+  regen: { name: '끈질긴 반죽', hint: '안 맞은 적은 다시 회복해요', desc: '잠깐 안 맞은 적은 체력을 다시 채워요. 한 번에 몰아서 잡아요.' }
+};
+const STAGES = [
+  { n: '과자 골목', g: [] }, { n: '보석 비 광장', g: ['gemrain'] }, { n: '츄러스 돌진로', g: ['charge'] }, { n: '안개 낀 뒷골목', g: ['fog'] }, { n: '도넛 기사의 문', boss: 'donut' },
+  { n: '버터 빙판', g: ['ice'] }, { n: '팝콘 밭', g: ['bombs'] }, { n: '사탕 우박 언덕', g: ['meteor'] }, { n: '거인의 날', g: ['giant'] }, { n: '곰팡이 케이크의 방', boss: 'boss' },
+  { n: '눈보라 길', g: ['wind'] }, { n: '개미 떼 창고', g: ['swarm'] }, { n: '꿀 늪', g: ['mud'] }, { n: '포위된 광장', g: ['ring'] }, { n: '얼음사탕 골렘의 동굴', boss: 'golem' },
+  { n: '번개 얼음길', g: ['beams'] }, { n: '황금 젤리 사냥터', g: ['goldrush'] }, { n: '얼음땡 호수', g: ['pulse'] }, { n: '좁아지는 설탕 울타리', g: ['shrink'] }, { n: '초코 분수 대왕의 궁전', boss: 'boss2' },
+  { n: '뜨거운 발자국', g: ['trail'] }, { n: '유령 주방', g: ['ghost'] }, { n: '꼬마 대장 행진', g: ['elites'] }, { n: '광란의 오븐', g: ['fast'] }, { n: '불꽃 창기사의 다리', boss: 'knight' },
+  { n: '얼음 우박', g: ['ice', 'meteor'] }, { n: '소용돌이 시럽', g: ['vortex'] }, { n: '끈질긴 반죽', g: ['regen'] }, { n: '마왕성 앞마당', g: ['meteor', 'ring'] }, { n: '탄 설탕 마왕의 방', boss: 'boss3' }
+];
+const DIFF_K = 0.8, stageDiff = n => (n - 1) * DIFF_K;
+const G = k => !!(B && B.g && B.g.includes(k));
+function gimInit() {
+  B.haz = []; B.gt = {}; B.rateK = 1; B.hpK = 1; B.fspK = 1; B.spdK = 1; B.pulseK = 1; B.ghostA = null; B.slip = G('ice'); B.shrinkR = 560;
+  if (G('giant')) { B.rateK *= 0.45; B.hpK *= 3; } if (G('swarm')) { B.rateK *= 2.1; B.hpK *= 0.4; B.fspK *= 1.1; } if (G('fast')) { B.fspK *= 1.35; B.rateK *= 0.85; } if (G('ring')) B.rateK *= 0.7; if (G('bombs')) B.rateK *= 0.8;
+  if (G('vortex')) B.vort = [{ x: 180, y: -120 }, { x: -200, y: 160 }];
+  B.gt.gold = 10; B.gt.ring = 6;
+}
+/* 위험 예고: 원(c) 또는 긴 줄(l). 시간이 다 되면 그 안에 있을 때 다쳐요 */
+function hazard(o) { B.haz.push(o); if (o.k === 'c') B.telegraphs.push({ k: 'circle', x: o.x, y: o.y, r: o.r, life: o.t, max: o.t }); else B.telegraphs.push({ k: 'line', f: { x: o.x, y: o.y, r: o.w }, a: o.a, len: o.len, w: o.w, life: o.t, max: o.t }); }
+function mudAt(x, y) { const C = 230, cx = Math.floor(x / C), cy = Math.floor(y / C); for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) { const h = (Math.imul(i, 73856093) ^ Math.imul(j, 19349663)) >>> 0; if (h % 5 > 1) continue; const mx = (i + 0.5) * C + (h % 61) - 30, my = (j + 0.5) * C + ((h >> 8) % 61) - 30; if ((x - mx) ** 2 + (y - my) ** 2 < 66 * 66) return true; } return false; }
+function gimUpdate(dt) {
+  const p = B.p, T = B.gt, every = (k, s) => { T[k] = (T[k] || 0) + dt; if (T[k] >= s) { T[k] -= s; return true; } return false; }, far = Math.hypot(vw, vh) / 2 + 40;
+  if (B.slip) { const tx = p.moving ? B.ux : 0, ty = p.moving ? B.uy : 0, k = Math.min(1, dt * (p.moving ? 2.6 : 1.4)); p.vx = (p.vx || 0) + (tx - (p.vx || 0)) * k; p.vy = (p.vy || 0) + (ty - (p.vy || 0)) * k; p.x += p.vx * dt; p.y += p.vy * dt; }
+  if (!B.g.length && !B.haz.length) return;
+  if (G('gemrain') && every('gr', 5)) for (let i = 0; i < 6; i++) { const a = Math.random() * 6.283, d = rand(70, 260); B.gems.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d * 0.8, v: i ? 1 : 3, pull: false, vx: 0, vy: 0, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: p.x, py: p.y }); }
+  if (G('charge') && every('ch', 11)) { const a = Math.random() * 6.283, c = Math.cos(a), s = Math.sin(a); for (let i = -3; i <= 3; i++) spawnFoe('churro', p.x + c * far - s * i * 44, p.y + s * far + c * i * 44); if (!headless) sfx.warn(); }
+  if (G('bombs') && every('bo', 2.4)) { spawnRing('pop'); spawnRing('pop'); }
+  if (G('meteor') && every('me', 1.8)) { const a = Math.random() * 6.283, d = Math.random() < 0.4 ? 0 : rand(40, 150); hazard({ k: 'c', x: p.x + Math.cos(a) * d + (p.moving ? p.dirX * 50 : 0), y: p.y + Math.sin(a) * d + (p.moving ? p.dirY * 50 : 0), r: 56, t: 1.25 }); }
+  if (G('beams') && every('be', 4.2)) { const off = rand(-30, 30); if (Math.random() < 0.5) hazard({ k: 'l', x: p.x - 520, y: p.y + off, a: 0, len: 1040, w: 24, t: 1.3 }); else hazard({ k: 'l', x: p.x + off, y: p.y - 520, a: 1.5708, len: 1040, w: 24, t: 1.3 }); if (!headless) sfx.warn(); }
+  if (G('trail') && every('tr', 0.7)) hazard({ k: 'c', x: p.x, y: p.y, r: 34, t: 1.5 });
+  if (G('ring') && every('ring', 13)) { const n = 12 + Math.floor(B.floor / 2), ty = B.floor > 12 ? 'cookie' : B.floor > 5 ? 'ice' : 'jelly', a0 = Math.random() * 6.283; for (let i = 0; i < n; i++) spawnFoe(ty, p.x + Math.cos(a0 + i / n * 6.283) * 330, p.y + Math.sin(a0 + i / n * 6.283) * 330); if (!headless) { sfx.warn(); toast('포위됐어요! 한쪽을 뚫어요'); } }
+  if (G('goldrush')) { if (every('gold', 18)) { const a = Math.random() * 6.283, f = spawnFoe('jelly', p.x + Math.cos(a) * 190, p.y + Math.sin(a) * 190); f.gold = f.flee = true; f.hp *= 2; f.max = f.hp; f.spd = 140; f.life = 10; if (!headless) toast('황금 젤리다! 잡아요'); } for (const f of B.foes) if (f.gold && !f.dead) { f.life -= dt; if (f.life <= 0) f.dead = true; } }
+  if (G('pulse')) { const ph = B.t % 7, k = ph < 4 ? 1.5 : 0.1; if (k !== B.pulseK) { B.pulseK = k; if (!headless) toast(k < 1 ? '얼음!' : '땡! 빨라져요'); } }
+  if (G('shrink')) { B.shrinkR = Math.max(230, 560 - B.t * 2.2); if (Math.hypot(p.x, p.y) > B.shrinkR) { T.out = (T.out || 0) + dt; if (T.out > 0.9) { T.out = 0; hurtPlayer('gim'); } } else T.out = 0; }
+  if (G('elites') && every('el', 22)) spawnRing(pick(['donut', 'golem', 'knight'].slice(0, Math.max(1, B.act))), true);
+  if (G('vortex')) { if (every('vo', 10)) { const v = B.vort[Math.floor(Math.random() * B.vort.length)], a = Math.random() * 6.283; v.x = p.x + Math.cos(a) * 200; v.y = p.y + Math.sin(a) * 200; } for (const v of B.vort) { const dx = v.x - p.x, dy = v.y - p.y, d = Math.hypot(dx, dy) || 1; if (d < 250 && d > 8) { p.x += dx / d * 70 * dt; p.y += dy / d * 70 * dt; } } }
+  if (G('wind')) { if (T.wa == null || every('wi', 9)) { T.wa = Math.random() * 6.283; if (!headless) toast('바람 방향이 바뀌었어요'); } p.x += Math.cos(T.wa) * 46 * dt; p.y += Math.sin(T.wa) * 46 * dt; if (!headless && Math.random() < dt * 14) fxAdd({ k: 'line', x: p.x + rand(-vw / 2, vw / 2), y: p.y + rand(-vh / 2, vh / 2), vx: Math.cos(T.wa) * 520, vy: Math.sin(T.wa) * 520, life: 0.5, max: 0.5, col: '#FFFFFF', g: 0.0001 }); }
+  if (G('mud')) B.spdK = mudAt(p.x, p.y) ? 0.5 : 1;
+  if (G('ghost')) B.ghostA = B.t % 5 < 2.6 ? 1 : 0.14;
+  if (G('regen') && every('re', 1)) for (const f of B.foes) if (!f.dead && f !== B.big && f.hp < f.max && B.t - (f.lastHit || 0) > 2) f.hp = Math.min(f.max, f.hp + f.max * 0.12);
+  if (B.haz.length) {
+    for (const o of B.haz) { o.t -= dt; if (o.t > 0) continue;
+      let hit; if (o.k === 'c') hit = (p.x - o.x) ** 2 + (p.y - o.y) ** 2 < (o.r - 4) ** 2; else { const c = Math.cos(o.a), s = Math.sin(o.a), rx = p.x - o.x, ry = p.y - o.y, al = rx * c + ry * s; hit = al > 0 && al < o.len && Math.abs(-rx * s + ry * c) < o.w - 3; }
+      if (hit) hurtPlayer('gim');
+      if (!headless) { if (o.k === 'c') { fxAdd({ k: 'ring', x: o.x, y: o.y, r: o.r * 0.4, to: o.r, life: 0.25, max: 0.25, col: '#FF3B5C', w: 6 }); burst(o.x, o.y, '#FF8FA8', 6, 140); } else { for (let d = 0; d < o.len; d += 60) fxAdd({ k: 'flash', x: o.x + Math.cos(o.a) * d, y: o.y + Math.sin(o.a) * d, r: 22, life: 0.12, max: 0.12, col: '#FFE066' }); B.shake = Math.max(B.shake, 0.12); } }
+    }
+    B.haz = B.haz.filter(o => o.t > 0);
+  }
+}
+/* 바닥에 그리는 기믹: 꿀 늪, 울타리, 소용돌이 */
+function gimGround() {
+  const p = B.p;
+  if (G('mud')) { const C = 230; for (let j = Math.floor((p.y - vh) / C); j <= Math.floor((p.y + vh) / C); j++) for (let i = Math.floor((p.x - vw) / C); i <= Math.floor((p.x + vw) / C); i++) { const h = (Math.imul(i, 73856093) ^ Math.imul(j, 19349663)) >>> 0; if (h % 5 > 1) continue; const mx = (i + 0.5) * C + (h % 61) - 30, my = (j + 0.5) * C + ((h >> 8) % 61) - 30; putDisc(X(mx), Y(my), 33, 27, '#E0A020', 9); pcircle(X(mx), Y(my), 33, '#FFD86B'); } }
+  if (G('shrink')) { const r = Math.round(B.shrinkR / WP); pcircle(X(0), Y(0), r, Math.floor(B.t * 6) % 2 ? '#FF4F9A' : '#FFD0E4', 2); pcircle(X(0), Y(0), r + 3, '#9C1E5C'); }
+  if (G('vortex')) for (const v of B.vort) { const vx = X(v.x), vy = Y(v.y); putDisc(vx, vy, 30, 24, '#8B5A3C', 7); for (let k = 0; k < 3; k++) { const a = B.t * 3 + k * 2.094; pline(Math.round(vx + Math.cos(a) * 26), Math.round(vy + Math.sin(a) * 20), Math.round(vx + Math.cos(a + 0.9) * 10), Math.round(vy + Math.sin(a + 0.9) * 8), '#FFE1A8'); } }
+}
+/* 화면 위에 덮는 기믹: 안개 */
+function gimOver() {
+  if (!G('fog')) return; const p = B.p, px = X(p.x), py = Y(p.y) - 10, r = 62 + (Math.floor(B.t * 3) % 2);
+  for (const [rr, a] of [[r + 12, 0.5], [r, 0.82]]) { ctx.fillStyle = `rgba(20,10,30,${a})`; ctx.beginPath(); ctx.rect(0, 0, lw, lh); ctx.moveTo(px + rr, py); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.closePath(); ctx.fill('evenodd'); }
 }
 let toastTimer = 0;
 function toast(t) { if (headless) return; const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { e.hidden = true; }, 2200); }
@@ -537,7 +619,7 @@ function spawnFoe(type, x, y, minion) {
   const big = !!d.big && !minion;
   const f = { type, x, y, r: d.r, hp: d.hp * (big ? (1 + 0.2 * B.floor + 0.012 * B.floor * B.floor) * lateMul() : grow) * DF().hp, spd: d.spd * DF().spd * Math.min(1.5, 0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : rand(0.8, 2.5), vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   if (minion) { f.minion = true; f.hp = d.hp * 0.15 * grow * DF().hp; f.r = d.r * 0.85; }     // 지난 막의 엘리트가 일반 몬스터로: 체력은 엘리트의 15%
-  f.max = f.hp; B.foes.push(f); return f;
+  if (!big && B.hpK && B.hpK !== 1) f.hp *= B.hpK; if (!big && G('giant')) { f.r *= 1.5; f.sc = 2; f.xpK = 3; } f.max = f.hp; B.foes.push(f); return f;
 }
 function spawnRing(type, minion) {
   const a = Math.random() * 6.283, R = Math.hypot(vw, vh) / 2 + 40;
@@ -553,6 +635,7 @@ const FOE_COL = { golem: '#59B8FF', knight: '#FF6B3D', ginger: '#C9823E', boss2:
 function hitStop(t) { if (!headless && B.hsCool <= 0) { B.hitstop = Math.max(B.hitstop, t); B.hsCool = 0.12; } }
 
 function hurtFoe(f, d, w, ax, ay, kbm = 1) {
+  f.lastHit = B.t;
   if (f.dead) return;
   const crit = Math.random() < B.st.crit; if (crit) d *= B.st.critMul;
   if (w && FOES[f.type].big && (w.id === 'pin' || w.id === 'macaron' || w.id === 'honey')) d *= 1.5;      // 근접 무기는 보스·엘리트에게 더 세게
@@ -568,11 +651,12 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
 }
 function killFoe(f, w) {
   f.dead = true; B.kills++;
+  if (f.gold) for (let k = 0; k < 12; k++) { const a = Math.random() * 6.283, sp = rand(40, 130); B.gems.push({ gold: true, x: f.x, y: f.y, v: 4, pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); }
   const d = FOES[f.type], col = FOE_COL[f.type], big = f === B.big;
-  if (!big && B.magnets.length < 6 && Math.random() < 1 / 90) B.magnets.push({ x: f.x, y: f.y, ph: 0 });      // 가끔 자석을 떨어뜨려요 (여러 개가 같이 있을 수 있어요)
+  if (!big && B.magnets.length < 6 && Math.random() < (1 + 0.3 * M('gold')) / 90) B.magnets.push({ x: f.x, y: f.y, ph: 0 });      // 가끔 자석을 떨어뜨려요 (여러 개가 같이 있을 수 있어요)
   if (big) B.magnets.push({ x: f.x + 20, y: f.y, ph: 0 });
   const elite = ['donut', 'golem', 'knight'].includes(f.type);
-  if (d.xp) { const n = big ? 6 : 1; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = big ? rand(60, 160) : rand(20, 60); B.gems.push({ gold: elite, x: f.x, y: f.y, v: big ? Math.ceil(d.xp / n) + 1 : elite ? 6 : d.xp, pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); } }
+  if (d.xp) { const n = big ? 6 : 1; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = big ? rand(60, 160) : rand(20, 60); B.gems.push({ gold: elite, x: f.x, y: f.y, v: big ? Math.ceil(d.xp / n) + 1 : elite ? 6 : d.xp * (f.xpK || 1), pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); } }
   burst(f.x, f.y - d.h * 0.3, col, big ? 40 : 10, big ? 320 : 190); burst(f.x, f.y - d.h * 0.3, '#FFFFFF', big ? 14 : 4, 120);
   fxAdd({ k: 'ghost', img: d.img, x: f.x, y: f.y + f.r * 0.7, h: d.h, flip: f.x > B.p.x ? -1 : 1, life: big ? 0.5 : 0.2, max: big ? 0.5 : 0.2 });
   fxAdd({ k: 'ring', x: f.x, y: f.y - d.h * 0.3, r: f.r * 0.6, to: f.r * (big ? 5 : 2.6), life: big ? 0.45 : 0.22, max: big ? 0.45 : 0.22, col: big ? '#FFC83D' : '#FFFFFF', w: big ? 8 : 4 });
@@ -598,7 +682,7 @@ function hurtPlayer(src) {
     if (run.potion) {      // 따뜻한 코코아: 저절로 마시고 하트 1칸으로 다시 일어나요
       run.potion = false; p.hp = 1; p.inv = 2.2;
       push(200, 700);
-      fxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 200, life: 0.5, max: 0.5, col: '#FFC83D', w: 8 }); toast('코코아를 마시고 다시 일어났어요!'); sfx.revive();
+      fxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 200, life: 0.5, max: 0.5, col: '#FFC83D', w: 8 }); toast('두 번째 바람! 다시 일어났어요'); sfx.revive();
       if (!headless) $('#potHud').innerHTML = '';
     } else if (!petRevive()) { p.hp = 0; endBattle(false); }
   }
@@ -724,7 +808,7 @@ function levelUp() {
 }
 /* 선택지: 아직 Lv10이 아닌 무기 10가지 + 능력 3가지가 모두 같은 확률 */
 function rollLevelOpts() {
-  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(Object.keys(STATS).filter(id => id !== 'heart' || run.maxHp < 8).map(id => ({ t: 's', id })));
+  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(Object.keys(STATS).filter(id => id === 'heart' ? run.maxHp < 8 : id === 'spd' ? (run.bonus.spd || 0) < 8 : id === 'crit' ? (run.bonus.crit || 0) < 10 : true).map(id => ({ t: 's', id })));
   return shuffle(pool).slice(0, M('choice') ? 4 : 3);
 }
 function applyLevel(o) {
@@ -867,18 +951,19 @@ function update(dt) {
   const mm = Math.hypot(mx, my); p.moving = mm > 0.12;
   if (p.moving) {
     const sp = 172 * B.st.spd * (has('cape') && p.hp <= 1 ? 1.25 : 1), k = Math.min(1, mm);
-    p.x += mx / mm * sp * k * dt; p.y += my / mm * sp * k * dt; p.dirX = mx / mm; p.dirY = my / mm; if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1; p.bob += dt * 12;
+    const ux = mx / mm * sp * k * (B.spdK || 1), uy = my / mm * sp * k * (B.spdK || 1); if (B.slip) { B.ux = ux; B.uy = uy; } else { p.x += ux * dt; p.y += uy * dt; } p.dirX = mx / mm; p.dirY = my / mm; if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1; p.bob += dt * 12;
   }
   if (p.inv > 0) p.inv -= dt;
   /* 적 등장 */
-  const rate = (0.6 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * stageMul() * (B.big ? 0.5 : 1) * DF().spawn * 1.2;
+  const rate = (0.6 + 2.05 * Math.min(1, B.t / Math.min(120, B.dur))) * stageMul() * (B.big ? 0.5 : 1) * DF().spawn * 1.2 * (B.rateK || 1);
   if (!B.rush && B.t >= 120) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
   if (B.rush && !headless && ZOOM > 0.78) { ZOOM = Math.max(0.78, ZOOM - dt * 0.15); resize(); }     // 화면을 천천히 넓혀서 더 많이 보여요
   B.spawnAcc += rate * (B.rush ? 1.3 : 1) * dt;
   while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.2 && Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'ginger'), 0) < 4 + Math.floor(B.floor / 2)) pool.push('ginger'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); const mi = ACTS[B.act].minion; if (mi && Math.random() < 0.07 && B.foes.reduce((n, f) => n + (f.minion ? 1 : 0), 0) < 2 + B.act) spawnRing(mi, true); else spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
+  gimUpdate(dt);
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing(ACTS[B.act].elite); bigIntro(); }
-  if (B.bossAt > 0 && B.t >= B.bossAt && !B.big) { B.big = spawnRing(ACTS[B.act].boss); bigIntro(); }
+  if (B.bossAt > 0 && B.t >= B.bossAt && !B.big) { B.big = spawnRing(B.bigType || ACTS[B.act].boss); bigIntro(); }
   /* 적 움직임 */
   for (const f of B.foes) {
     if (f.dead) continue;
@@ -890,9 +975,9 @@ function update(dt) {
     const dx = p.x - f.x, dy = p.y - f.y, m = Math.hypot(dx, dy) || 1;
     if (f.sq > 0) f.sq = Math.max(0, f.sq - dt * 3);
     if (f.kx || f.ky) { f.x += f.kx * dt; f.y += f.ky * dt; const dec = Math.exp(-dt * 11); f.kx *= dec; f.ky *= dec; if (Math.abs(f.kx) + Math.abs(f.ky) < 8) f.kx = f.ky = 0; }
-    if (!busy && !(f.stun > 0)) { const sp = f.spd * (f.slow > 0 ? 0.55 : 1) * (f.kx || f.ky ? 0.25 : 1); f.x += dx / m * sp * dt; f.y += dy / m * sp * dt; }
+    if (!busy && !(f.stun > 0)) { const sp = f.spd * (f.slow > 0 ? 0.55 : 1) * (f.kx || f.ky ? 0.25 : 1) * (f === B.big ? 1 : (B.fspK || 1) * (B.pulseK || 1)), dir = f.flee ? -1 : 1; f.x += dx / m * sp * dt * dir; f.y += dy / m * sp * dt * dir; }
     f.ph += dt * 7;
-    if (m < f.r + HERO_R) hurtPlayer(f.type);
+    if (m < f.r + HERO_R && !f.flee) hurtPlayer(f.type);
     if (m > 900) { const a = Math.random() * 6.283, R = Math.hypot(vw, vh) / 2 + 40; f.x = p.x + Math.cos(a) * R; f.y = p.y + Math.sin(a) * R; }   // 너무 멀어지면 다시 근처로
   }
   /* 서로 겹치지 않게 살짝 밀어내요 */
@@ -959,6 +1044,7 @@ function bigIntro() { if (!['donut', 'golem', 'knight'].includes(B.big.type) && 
 /* 테스트와 구경용 자동 조종: 가까운 적과 위험 표시에서 멀어지고, 보석 쪽으로 살짝 끌려요 */
 function autopilot() {
   const p = B.p; let x = 0, y = 0;
+  if (G('shrink')) { const d = Math.hypot(p.x, p.y) || 1; if (d > B.shrinkR * 0.7) return [-p.x / d, -p.y / d]; }
   for (const f of B.foes) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1, reach = 120 + f.r; if (d < reach) { const k = (reach - d) / reach; x += dx / d * k * 2; y += dy / d * k * 2; } }
   for (const s of B.foeShots) { const dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1; if (d < 110) { const sv = Math.hypot(s.vx, s.vy) || 1, side = (dx * -s.vy + dy * s.vx) / sv >= 0 ? 1 : -1; x += -s.vy / sv * side * 2.5 + dx / d; y += s.vx / sv * side * 2.5 + dy / d; } }
   for (const t of B.telegraphs) if (t.k === 'line') { const c = Math.cos(t.a), sn = Math.sin(t.a), rx = p.x - t.f.x, ry = p.y - t.f.y, along = rx * c + ry * sn, side = -rx * sn + ry * c; if (along > -30 && along < t.len + 60 && Math.abs(side) < (t.w || t.f.r) + 50) { const sg = side >= 0 ? 1 : -1; x += -sn * sg * 4; y += c * sg * 4; } }
@@ -1051,6 +1137,7 @@ function draw() {
   for (let y = -(((pcy % 64) + 64) % 64); y < lh; y += 64) for (let x = -(((pcx % 64) + 64) % 64); x < lw; x += 64) ctx.drawImage(FLOORS[B.act] || FLOORS[1], x, y);
   /* 꿀 장판, 크림 웅덩이 */
   for (const z of B.zones) { const r = Math.round(z.r / WP), col = z.cream ? '#FFF3E6' : z.follow ? '#FFC23D' : '#F7B733'; if (z.life < 0.5 && Math.floor(B.t * 14) % 2) continue; putDisc(X(z.x), Y(z.y), r, Math.round(r * 0.8), col, z.cream ? 9 : 7); if (z.follow) pcircle(X(z.x), Y(z.y), r, '#FFE27A'); }
+  gimGround();
   /* 위험 예고 */
   for (const t of B.telegraphs) {
     const k = 1 - t.life / t.max, on = Math.floor(B.t * 10) % 2;
@@ -1085,7 +1172,10 @@ function draw() {
       R('rgba(140,12,44,.55)', ox - rr, oy + Math.round(rr * 0.6), rr * 2, 2);     // 적 발밑은 붉은 그림자
       if (o !== B.big && o.hp < o.max && o.max > 25) { const bw = rr * 2; R(INK, ox - rr - 1, oy + rr + 2, bw + 2, 3); R('#FF4F6B', ox - rr, oy + rr + 3, Math.max(0, Math.round(bw * o.hp / o.max)), 1); }
       const up = Math.sin(o.ph) > 0, hop = (o.type === 'jelly' && up ? 2 : 0) + (o.sq > 0.15 ? 1 : 0);
-      spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1);
+      if (o.gold) putDisc(ox, oy - 6, 13, 13, '#FFD23F', Math.floor(B.t * 6) % 2 ? 7 : 5);
+      if (B.ghostA != null && o !== B.big) ctx.globalAlpha = B.ghostA;
+      if (o.sc) { const gx = X(o.x), gy = Y(o.y + o.r * 0.7); ctx.save(); ctx.translate(gx, gy); ctx.scale(o.sc, o.sc); ctx.translate(-gx, -gy); spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1); ctx.restore(); } else spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1);
+      ctx.globalAlpha = 1;
       if (o.acid > 0) { R(INK, ox + rr - 1, oy - Math.round(d.h * 0.3) - 1, 4, 4); R('#B9F03E', ox + rr, oy - Math.round(d.h * 0.3), 2, 2); }
     }
   }
@@ -1162,6 +1252,7 @@ function draw() {
   }
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
   ctx.drawImage(vignette(), 0, 0);
+  gimOver();
   for (let i = 0; i < 14; i++) { const sx = Math.round(((i * 53 + B.t * (4 + i % 5 * 2)) % (lw + 10)) - 5), sy = Math.round(((i * 91 - B.t * (7 + i % 4 * 3)) % lh + lh) % lh); if (Math.sin(B.t * 2 + i) > -0.3) R(i % 3 ? 'rgba(255,231,240,.45)' : 'rgba(201,182,217,.45)', sx, sy, 1, 1); }
   /* 글자, 번쩍임, 조이스틱은 위에 겹친 선명한 판에 그려요 */
   const d = cv2.width / innerWidth, U = PZ * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
@@ -1318,9 +1409,9 @@ const ACTS = [null,
   { name: '과자 도시', boss: 'boss', elite: 'donut', base: 0, span: 5 },
   { name: '얼음 디저트 나라', boss: 'boss2', elite: 'golem', minion: 'donut', base: 6, span: 5 },
   { name: '불타는 오븐 성', boss: 'boss3', elite: 'knight', minion: 'golem', base: 12, span: 5 }];
-const actOf = () => (run && run.act) || 1;
+const actOf = () => { const n = (run && (run.cur || run.stage + 1)) || 1; return 1 + Math.floor(((n - 1) % 30) / 10); };
 const diffOf = (row, rows) => ACTS[actOf()].base + row * ACTS[actOf()].span / rows;
-const floorNo = () => (actOf() - 1) * MAP_ROWS + (run.floor || 0) + 1;      // 모험 전체에서 몇 번째 층인지
+const floorNo = () => (run && (run.cur || (run.stage || 0) + 1)) || 1;      // 지금 몇 번째 스테이지인지
 function genMap() {
   const ROWS = MAP_ROWS, on = Array.from({ length: ROWS }, () => [false, false, false]), E = new Set();
   for (let p = 0; p < 4; p++) { let c = p < 3 ? p : rnd(3); for (let r = 0; r < ROWS; r++) { on[r][c] = true; if (r === ROWS - 1) break; let nc = clamp(c + rnd(3) - 1, 0, 2); if (nc !== c && E.has(`${r},${nc}>${c}`)) nc = c; E.add(`${r},${c}>${nc}`); c = nc; } }
@@ -1347,43 +1438,41 @@ const mapRows = () => run.map.rows || 7;
 const xy = n => [n.type === 'boss' ? 50 : [18, 50, 82][n.col] + n.jx, (1 - n.row / mapRows()) * 100];
 let picked = null;
 function renderBar() {
+  run.maxHp = 3 + M('hp') + ((run.bonus && run.bonus.heart) || 0) + (has('apron') ? 1 : 0); run.hp = run.maxHp;
   $('#hpChip').innerHTML = heartsHtml(run.hp, run.maxHp);
-  $('#goldChip').innerHTML = `<i>${svg(ICON.coin)}</i>${run.gold}`;
-  $('#potChip').innerHTML = run.potion ? `<i>${svg(ICON.cocoa)}</i>` : '';
+  $('#goldChip').innerHTML = `Lv ${run.lvl}`;
+  $('#potChip').innerHTML = '';
   $('#relics').innerHTML = run.relics.map(id => `<button class="relic" type="button" data-relic="${id}" aria-label="${RELICS[id].name}">${svg(ICON[RELICS[id].icon])}</button>`).join('');
 }
 function renderMap() {
-  const N = run.map.nodes; let lines = '';
-  Object.values(N).forEach(n => n.next.forEach(t => { const [a, b] = xy(n), [c, d] = xy(N[t]), walked = run.done.includes(n.id) && run.done.includes(t); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"${walked ? ' class="walked"' : ''}/>`; }));
-  const m = $('#mapBox'); m.innerHTML = `<div class="map-in" style="height:${mapRows() * 92}px"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg></div>`;
-  Object.values(N).forEach(n => {
-    const [x, y] = xy(n), d = NODE[n.type], dn = run.done.includes(n.id);
-    const b = el('button', `node ${n.type}${dn ? ' done' : ''}${n.id === run.at ? ' here' : ''}${canGo(n.id) ? ' open' : ''}`, d.img ? `<img src="img/${d.img}.png" alt="">` : svg(ICON[d.icon]));
-    b.type = 'button'; b.dataset.id = n.id; b.style.left = x + '%'; b.style.top = y + '%'; b.setAttribute('aria-label', d.name + (dn ? ', 지나온 곳' : canGo(n.id) ? ', 지금 갈 수 있는 곳' : ''));
+  const N = STAGES.length, rowH = 84, H = N * rowH + 60, xs = [50, 74, 50, 26], pos = i => [xs[i % 4], (H - 46 - i * rowH) / H * 100]; let lines = '';
+  for (let i = 0; i < N - 1; i++) { const [a, b] = pos(i), [c, d] = pos(i + 1); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"${i + 2 <= run.stage ? ' class="walked"' : ''}/>`; }
+  const m = $('#mapBox'); m.innerHTML = `<div class="map-in" style="height:${H}px"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg><p class="soon">다음 스테이지는 곧 열려요</p></div>`;
+  STAGES.forEach((s, i) => {
+    const n = i + 1, [x, y] = pos(i), dn = n <= run.stage, open = n === run.stage + 1;
+    const b = el('button', `node${s.boss ? ' boss' : ''}${dn ? ' done' : ''}${open ? ' open' : ''}${!dn && !open ? ' lock' : ''}`, s.boss ? `<img src="img/${FOES[s.boss].img}.png" alt=""><b class="sn2">${n}</b>` : `<b class="sn">${n}</b>`);
+    b.type = 'button'; b.dataset.id = n; b.style.left = x + '%'; b.style.top = y + '%'; b.setAttribute('aria-label', `스테이지 ${n} ${s.n}` + (dn ? ', 깬 곳' : open ? ', 지금 도전할 곳' : ', 아직 잠긴 곳'));
     m.firstElementChild.appendChild(b);
   });
-  /* 지금 갈 수 있는 칸이 화면 아래쪽 2/3 지점에 오도록 스크롤해요 */
-  const t = m.querySelector('.node.open') || m.querySelector('.node.here');
+  const t = m.querySelector('.node.open') || [...m.querySelectorAll('.node.done')].pop();
   if (t) m.scrollTo({ top: t.offsetTop + 56 - m.clientHeight * 0.62, behavior: 'instant' });
 }
 function info(html, goId) { $('#info').innerHTML = `<div>${html}</div>${goId != null ? `<button class="cta" type="button" id="btnGo" data-id="${goId}">들어가기</button>` : ''}`; }
 function showMap() {
-  show('map'); renderBar(); picked = null; renderMap();
+  show('map'); run.cur = null; renderBar(); picked = null; renderMap();
   if (!run.wpn.length && overlay.hidden) { starterPick(); return; }     // 첫 무기를 고르기 전에 앱을 껐다 켠 경우
-  const open = Object.values(run.map.nodes).filter(n => canGo(n.id));
-  if (open.length === 1) pickNode(open[0].id, true);
-  else info(`<h3>${actOf()}막 ${ACTS[actOf()].name} · ${run.at == null ? '어느 길로 출발할까요?' : '다음엔 어디로 갈까요?'}</h3><p>금빛으로 빛나는 칸이 지금 갈 수 있는 곳이에요. 위아래로 밀어서 지도를 볼 수 있어요. 눌러 보면 어떤 곳인지 알려 줘요. 하트는 3칸이고, 무엇에 맞든 1칸씩 줄어요. 전투에서 이기면 1칸 차요.</p>`);
+  pickNode(Math.min(run.stage + 1, STAGES.length), true);
 }
 function pickNode(id, quiet) {
-  picked = id; const n = run.map.nodes[id], d = n.type === 'elite' ? { ...NODE.elite, desc: `1분 30초에 ${FOES[ACTS[actOf()].elite].name}이(가) 나타나요. 이기면 유물을 받고, 잡으면 노란 경험치 보석이 쏟아져요.` } : n.type === 'boss' ? { ...NODE.boss, name: `${actOf()}막 보스: ${FOES[ACTS[actOf()].boss].name}`, desc: NODE.boss.desc + (actOf() < 3 ? ' 이기면 다음 막으로 가요.' : ' 마지막 보스예요.') } : NODE[n.type];
+  picked = id; const s = STAGES[id - 1], dn = id <= run.stage, lock = id > run.stage + 1;
   document.querySelectorAll('.node').forEach(b => b.classList.toggle('sel', +b.dataset.id === id));
   if (!quiet) sfx.tap();
-  info(`<h3>${d.name}</h3><p>${run.done.includes(id) ? '이미 지나온 곳이에요.' : d.desc}</p>`, canGo(id) ? id : null);
+  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이겨요.${dn ? '' : ' 처음 이기면 유물을 받아요.'} 이길 때마다 펫을 하나 얻어요.` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 3분을 버티면 이겨요.' : '특별한 일 없이 3분만 버티면 이겨요.';
+  info(`<h3>${id}. ${s.n}</h3><p>${lock ? '앞 스테이지를 먼저 깨야 열려요.' : (dn ? '이미 깬 곳이에요. 다시 하면 경험치를 더 모을 수 있어요. ' : '') + what}</p>`, lock ? null : id);
 }
 $('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
 $('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) enter(+b.dataset.id); });
 $('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; const r = RELICS[b.dataset.relic]; sfx.tap(); info(`<h3>${r.name}</h3><p>유물. ${r.desc}</p>`); });
-function arrive(id) { run.at = id; run.done.push(id); run.floor = run.map.nodes[id].row; persist(); }
 
 /* ───── 무기 보기 ───── */
 function weaponSheet() {
@@ -1393,41 +1482,35 @@ function weaponSheet() {
 $('#btnDeck').addEventListener('click', () => { sfx.tap(); weaponSheet(); });
 
 /* ───── 칸에 들어가기 ───── */
+/* 스테이지에 들어갈 때: 하트를 가득 채우고, 이번 판 기록을 새로 시작해요 */
+function stagePrep(n) {
+  run.cur = n; run.maxHp = 3 + M('hp') + ((run.bonus && run.bonus.heart) || 0) + (has('apron') ? 1 : 0); run.hp = run.maxHp;
+  run.potion = M('start2') > 0; run.rerolls = 2 * M('reroll'); run.petUsed = 0; run.kills = 0; run.elites = 0; run.dmg = {}; run.hits = 0; run.hitBy = {}; run.time = 0;
+}
 function enter(id) {
-  if (!canGo(id)) return; const n = run.map.nodes[id]; sfx.tap();
-  if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') startBattle(n.type, diffOf(n.row, mapRows()), r => afterBattle(id, r));
-  else if (n.type === 'rest') { arrive(id); showMap(); restSheet(); }
-  else if (n.type === 'shop') { arrive(id); showMap(); shopSheet(); }
-  else if (n.type === 'chest') { arrive(id); showMap(); const r = rollRelic(); if (r) relicSheet(r, '보물 상자를 열었어요', showMap); else { run.gold += 40; renderBar(); noteSheet('보물 상자를 열었어요', '유물을 다 모아서 대신 골드 40을 찾았어요.', 'coin', showMap); } }
-  else { arrive(id); showMap(); eventSheet(); }
+  if (id > run.stage + 1 || !STAGES[id - 1]) return; const s = STAGES[id - 1]; sfx.tap(); stagePrep(id); persist();
+  startBattle(s.boss ? 'boss' : 'battle', stageDiff(id), r => afterBattle(id, r), s);
 }
 function afterBattle(id, r) {
-  if (!r.won) { gameOver(r); return; }
-  arrive(id); if (r.kind === 'elite' && r.bigDead) run.elites = (run.elites || 0) + 1;
-  run.hp = Math.min(run.maxHp, run.hp + 1 + (has('jar') && r.kind === 'elite' ? 1 : 0));
-  const gold = goldGain(18 + 6 * r.floor + (r.kind === 'elite' ? 25 : 0)), oldGold = run.gold; run.gold += gold; persist();
-  if (r.kind === 'boss') { if (actOf() >= 3) victory(r); else actClear(r, gold, oldGold); return; }
-  showMap();
-  const steps = [next => winFx(r.kind === 'elite' ? '엘리트 격파!' : '승리!', gold, oldGold, next)];
-  if (r.kind === 'elite') { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '엘리트 전투 보상', next)); if (!run.potion && Math.random() < 0.5) steps.push(next => { run.potion = true; noteSheet('따뜻한 코코아를 얻었어요', '하트가 다 없어지면 저절로 마시고 하트 1칸으로 다시 일어나요.', 'cocoa', next); }); }
+  const s = STAGES[id - 1];
+  if (!r.won) { gameOver(id, r); return; }
+  const first = id > run.stage; if (first) run.stage = id;
+  const stars = first ? (s.boss ? 6 : 3) : 1; S.meta.pts += stars; S.meta.total += stars;
+  const pg = s.boss ? gainPet() : null; recordRun(true, stars, pg); if (s.boss && first) S.wins = (S.wins || 0) + 1;
+  persist(); showMap();
+  const steps = [next => winFx(s.boss ? '보스 격파!' : '스테이지 클리어!', 0, 0, next, !!s.boss)];
+  if (s.boss && first) { const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, '보스 보상', next)); }
+  if (pg) steps.push(next => sheet(`<h2 id="cardTitle">펫을 얻었어요</h2><div class="opts">${petLine(pg)}</div><button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); next(); }));
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
-  const go = () => { const s = steps.shift(); if (s) s(go); else { persist(); showMap(); } };
-  go();
-}
-/* 막을 깼어요: 보상을 받고 다음 막의 새 지도로 */
-function actClear(r, gold, oldGold) {
-  const was = actOf(), nextAct = was + 1; showMap();
-  const steps = [next => winFx(`${was}막 클리어!`, gold, oldGold, next, true)];
-  const rel = rollRelic(); if (rel) steps.push(next => relicSheet(rel, `${was}막 보스 보상`, next));
-  for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
-  steps.push(next => { run.hp = Math.min(run.maxHp, run.hp + 2); run.act = nextAct; run.map = genMap(); run.at = null; run.done = []; run.floor = 0; persist(); showMap();
-    noteSheet(`${nextAct}막: ${ACTS[nextAct].name}`, `하트를 2칸 채웠어요. 무기와 레벨은 그대로 이어져요. 적이 더 많고 빨라지고, 색이 다른 변종이 나와요. 이 막의 보스는 ${FOES[ACTS[nextAct].boss].name}예요.`, 'chest', next); });
+  steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
+  if (first && id === STAGES.length) steps.push(next => noteSheet('지금 열린 마지막 스테이지까지 깼어요!', '새 스테이지가 곧 열려요. 그동안 깬 곳을 다시 돌면서 더 강해질 수 있어요.', 'chest', next));
   const go = () => { const st = steps.shift(); if (st) st(go); else { persist(); showMap(); } };
   go();
 }
+/* 막을 깼어요: 보상을 받고 다음 막의 새 지도로 */
 function relicSheet(id, title, next) {
   const r = RELICS[id]; gainRelic(id); sfx.rare();
-  sheet(`<h2 id="cardTitle">${title}</h2><div class="prize"><div class="rays"></div><div class="medal">${svg(ICON[r.icon])}</div></div><div class="opts"><div class="opt r2"><span class="ic">${svg(ICON[r.icon])}</span><span class="tx"><b>유물: ${r.name}</b><span>${r.desc} 이번 모험 내내 이어져요.</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>받기</button>`,
+  sheet(`<h2 id="cardTitle">${title}</h2><div class="prize"><div class="rays"></div><div class="medal">${svg(ICON[r.icon])}</div></div><div class="opts"><div class="opt r2"><span class="ic">${svg(ICON[r.icon])}</span><span class="tx"><b>유물: ${r.name}</b><span>${r.desc} 앞으로 계속 이어져요.</span></span></div></div><button class="cta" type="button" data-act="go" data-pref>받기</button>`,
     () => { closeSheet(); next(); });
   cardEl.classList.add('reward'); if (!headless) setTimeout(() => { const m = cardEl.querySelector('.medal'); if (m) { const q = m.getBoundingClientRect(); sparkle(q.left + q.width / 2, q.top + q.height / 2, 16); confetti(30, q.left + q.width / 2, q.top + q.height / 2, .8); } }, 260);
 }
@@ -1480,35 +1563,35 @@ function eventSheet() {
 
 /* ───── 모험의 시작과 끝 ───── */
 function newRun() {
-  const hearts = 3 + M('hp');
-  run = S.run = { map: genMap(), at: null, done: [], floor: 0, hp: hearts, maxHp: hearts, act: 1, gold: 30, potion: true, kills: 0, elites: 0,
-    wpn: [], lvl: 1, xp: 0, bonus: { spd: 0, dmg: 0, crit: 0, heart: 0 }, rerolls: 2 * M('reroll'), relics: ['cape'], dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0 };
+  run = S.run = { v: 2, stage: 0, cur: null, hp: 3 + M('hp'), maxHp: 3 + M('hp'), gold: 0, potion: false, kills: 0, elites: 0,
+    wpn: [], lvl: 1, xp: 0, bonus: { spd: 0, dmg: 0, crit: 0, heart: 0 }, rerolls: 0, relics: ['cape'], dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0 };
   persist(); showMap();
-  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>곰팡이 케이크와 그 뒤의 두 대왕이 간식들을 상하게 만들고 있어요. 길을 골라 올라가서 3막의 마지막 보스까지 물리쳐요.</p><p>전투에서는 화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 레벨이 오르면 무기와 능력을 골라요. 고른 것은 모험이 끝날 때까지 이어져요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
+  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>상한 간식들이 왕국을 차지했어요. 스테이지를 하나씩 깨며 나아가요. 5번째 스테이지마다 보스가 기다려요.</p><p>화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 레벨이 오르면 무기와 능력을 골라요. 한 번 얻은 건 계속 이어지고, 쓰러져도 사라지지 않아요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
 }
 /* 출발할 때 첫 무기를 골라요 (성장 트리에 따라 하나 더, 또는 Lv3으로) */
-function starterPick(second) {
+function starterPick() {
   const ids = shuffle(['pin', 'cream', 'lemon', 'skewer', 'choco', 'cotton', 'cane'].filter(id => !wLv(id))).slice(0, 3);     // 혼자서도 싸울 수 있는 무기 중에서
-  sheet(`<h2 id="cardTitle">${second ? '두 번째 무기 고르기' : '첫 무기 고르기'}</h2><p>${second ? '성장 트리 덕분에 무기를 하나 더 들고 가요.' : `무기 1개를 골라 들고 가요.${M('veteran') ? ' 숙련 제빵사라서 Lv3으로 시작해요.' : ''}`}</p><div class="opts">${ids.map((id, i) => wOpt(id, i)).join('')}</div>`,
-    (act, b) => {
-      if (act !== 'pick' || b.closest('.lock')) return;
-      run.wpn.push({ id: ids[+b.dataset.i], lv: !second && M('veteran') ? 3 : 1 }); persist(); sfx.good(); closeSheet();
-      if (!second && M('start2')) starterPick(true); else showMap();
-    });
+  sheet(`<h2 id="cardTitle">첫 무기 고르기</h2><p>무기 1개를 골라 들고 가요.</p><div class="opts">${ids.map((id, i) => wOpt(id, i)).join('')}</div>`,
+    (act, b) => { if (act !== 'pick' || b.closest('.lock')) return; run.wpn.push({ id: ids[+b.dataset.i], lv: 1 }); persist(); sfx.good(); closeSheet(); showMap(); });
   flipReveal();
 }
 function endStars(r, won) { const n = sugarStars(r, won); S.meta.pts += n; S.meta.total += n; return n; }
-function victory(r) {
-  const stars = endStars(r, true), pg = gainPet(); recordRun(true, stars, pg);
-  S.wins++; const kills = run.kills, lvl = run.lvl, nw = run.wpn.length; run = S.run = null; persist();
-  show('title'); renderTitle(); winFx('왕국을 지켰어요!', 0, 0, () => {}, true); setTimeout(() => confetti(50, innerWidth / 2, innerHeight * 0.3, 1.3), 1500);
-  sheet(`<div class="pic"><img src="img/hero.png" alt=""></div><h2 id="cardTitle">간식 왕국을 지켰어요!</h2><p>${r.bigDead ? '3막의 탄 설탕 마왕까지 물리쳤어요.' : '탄 설탕 마왕의 공격을 끝까지 버텨 냈어요.'} 적 ${kills}마리를 잡았고, Lv ${lvl}, 무기 ${nw}개로 끝까지 왔어요.</p><p class="pts">설탕 별 <b>+${stars}</b>개 · 지금 ${S.meta.pts}개</p><div class="opts">${petLine(pg)}</div><button class="cta" type="button" data-act="tree" data-pref>성장 트리 열기</button><button class="btn" type="button" data-act="go">처음 화면으로</button>`, act => { closeSheet(); if (act === 'tree') treeSheet(); });
+function gameOver(id, r) {
+  const s = STAGES[id - 1]; S.meta.pts += 1; S.meta.total += 1; recordRun(false, 1, null); persist(); showMap();
+  const steps = []; for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
+  steps.push(() => sheet(`<div class="pic"><img src="img/${s.boss ? FOES[s.boss].img : 'jelly'}.png" alt=""></div><h2 id="cardTitle">쓰러졌어요</h2><p>${id}. ${s.n}에서 쓰러졌어요. 적 ${r.kills}마리를 잡았어요. 이번에 얻은 경험치와 레벨은 그대로 남아요.</p><p class="pts">설탕 별 <b>+1</b>개 · 지금 ${S.meta.pts}개</p><button class="cta" type="button" data-act="retry" data-pref>다시 도전하기</button><button class="btn" type="button" data-act="tree">성장 트리에서 강해지기</button><button class="btn" type="button" data-act="go">스테이지 고르기</button>`, act => { closeSheet(); persist(); if (act === 'retry') enter(id); else if (act === 'tree') treeSheet(() => showMap()); else showMap(); }));
+  const go = () => { const st = steps.shift(); if (st) st(go); };
+  go();
 }
-function gameOver(r) {
-  const stars = endStars(r, false), pg = gainPet(); recordRun(false, stars, pg);
-  const kills = run.kills, floor = `${actOf()}막 ${run.floor + 1}`; run = S.run = null; persist();
-  show('title'); renderTitle();
-  sheet(`<div class="pic"><img src="img/${r.kind === 'boss' ? 'boss' : r.kind === 'elite' ? 'donut' : 'jelly'}.png" alt=""></div><h2 id="cardTitle">쓰러졌어요</h2><p>${floor}층에서 쓰러졌어요. 적 ${kills}마리를 잡았어요.</p><p class="pts">설탕 별 <b>+${stars}</b>개 · 지금 ${S.meta.pts}개</p><div class="opts">${petLine(pg)}</div><button class="cta" type="button" data-act="tree" data-pref>성장 트리에서 강해지기</button><button class="btn" type="button" data-act="go">처음 화면으로</button>`, act => { closeSheet(); if (act === 'tree') treeSheet(); });
+/* 예전 저장(지도 모험)을 새 구조로 옮겨요: 무기와 레벨은 그대로, 스테이지는 1부터 */
+function migrate() {
+  const o = S.run; if (!o || o.v === 2) return;
+  S.run = { v: 2, stage: 0, cur: null, hp: o.maxHp || 3, maxHp: o.maxHp || 3, gold: 0, potion: false, kills: 0, elites: 0, wpn: (o.wpn || []).filter(w => WEAPONS[w.id]), lvl: o.lvl || 1, xp: o.xp || 0,
+    bonus: Object.assign({ spd: 0, dmg: 0, crit: 0, heart: 0 }, o.bonus || {}), rerolls: 0, relics: (o.relics || ['cape']).filter(id => RELICS[id]), dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0, picks: o.picks || 0 };
+  persist();
+}
+function resetSheet() {
+  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 유물과 깬 스테이지 기록이 지워져요. 성장 트리와 펫은 그대로 남아요.</p><button class="cta" type="button" data-act="yes">지우고 처음부터</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; persist(); renderTitle(); } });
 }
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
@@ -1537,10 +1620,10 @@ function installHelp() {
     act => { if (act === 'install') { installEvt.prompt(); installEvt = null; renderTitle(); } if (act !== 'none') closeSheet(); });
 }
 function renderTitle() {
-  const going = !!(S.run && S.run.map);
-  $('#btnContinue').hidden = !going;
-  const b = $('#btnNew'); b.className = going ? 'btn' : 'cta green'; b.textContent = going ? '새 모험 떠나기' : '모험 떠나기';
-  $('#titleSub').textContent = going ? `${S.run.act || 1}막 ${(S.run.floor || 0) + 1}층까지 왔어요. 하트 ${S.run.hp}/${S.run.maxHp}칸, Lv ${S.run.lvl}.` : S.wins ? `간식 왕국을 ${S.wins}번 지켜 냈어요.` : '자동으로 공격하는 전투와, 길을 골라 올라가는 모험.';
+  const going = !!S.run;
+  $('#btnContinue').hidden = true;
+  const b = $('#btnNew'); b.className = 'cta green'; b.textContent = going ? '모험 계속하기' : '모험 떠나기';
+  $('#titleSub').textContent = going ? `스테이지 ${Math.min(S.run.stage + 1, STAGES.length)} · Lv ${S.run.lvl} · 무기 ${S.run.wpn.length}개` : '저절로 공격하는 전투. 스테이지를 하나씩 깨며 계속 강해져요.';
   $('#btnTree').textContent = `성장 트리 · 설탕 별 ${S.meta.pts}개`;
   $('#btnPet').textContent = S.pet ? `펫 · ${PETS[S.pet].name.split(' ').pop()} Lv${petLv(S.pet)}` : '펫';
   $('#btnInstall').hidden = isInstalled; $('#btnInstall').textContent = inApp ? '크롬에서 열어야 설치돼요' : installEvt ? '홈 화면에 앱으로 설치하기' : '홈 화면에 설치하는 방법'; clearTimeout(newArmed); newArmed = 0;
@@ -1557,18 +1640,14 @@ $('#btnContinue').addEventListener('click', () => { run = S.run; sfx.tap(); show
 $('#btnTree').addEventListener('click', () => { sfx.tap(); treeSheet(() => renderTitle()); });
 $('#btnPet').addEventListener('click', () => { sfx.tap(); petSheet(() => renderTitle()); });
 $('#btnRec').addEventListener('click', () => { sfx.tap(); exportSheet(); });
-$('#btnNew').addEventListener('click', () => {
-  const b = $('#btnNew');
-  if (S.run && S.run.map && !newArmed) { b.textContent = '한 번 더 누르면 지금 모험을 버리고 새로 떠나요'; newArmed = setTimeout(() => { newArmed = 0; b.textContent = '새 모험 떠나기'; }, 3000); return; }
-  clearTimeout(newArmed); newArmed = 0; sfx.tap(); newRun();
-});
+$('#btnNew').addEventListener('click', () => { sfx.tap(); if (S.run) { run = S.run; showMap(); } else newRun(); });
 function menuSheet(home) {
   const row = (act, t, d) => `<button class="opt" type="button" data-act="${act}"><span class="tx"><b>${t}</b><span>${d}</span></span></button>`;
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
-    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
-    act => { if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
+    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : S.run ? row('reset', '처음부터 다시 시작', '캐릭터와 스테이지 기록을 지워요. 성장 트리와 펫은 남아요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
 $('#btnMenu').addEventListener('click', () => menuSheet(true));
@@ -1588,6 +1667,7 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 /* 테스트용: 화면을 그리지 않고 전투 하나를 끝까지 빨리 돌려요 */
 window.__dbg = {
   simBattle(kind, floor) { headless = true; startBattle(kind, floor, () => {}); B.auto = true; for (let i = 0; i < 30 * 320 && !B.over; i++) update(1 / 30); const out = B.result; B = null; headless = false; return out; },
+  simStage(n) { headless = true; stagePrep(n); const s = STAGES[n - 1]; startBattle(s.boss ? 'boss' : 'battle', stageDiff(n), () => {}, s); B.auto = true; for (let i = 0; i < 30 * 320 && !B.over; i++) update(1 / 30); const out = B.result; B = null; headless = false; return out; },
   auto(on) { if (B) B.auto = on; }
 };
 
@@ -1603,4 +1683,4 @@ function drawBg() {
   r('#1A0E22', 0, hz, W, H - hz); for (let k = 0; k < W; k += 2) r('#2A1838', k, hz, 1, 1);
 }
 addEventListener('resize', drawBg);
-Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { drawBg(); show('title'); renderTitle(); });
+Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); drawBg(); show('title'); renderTitle(); });
