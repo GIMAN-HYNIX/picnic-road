@@ -218,28 +218,46 @@ const FOE_ART = {
     '.....o.......', '....kyk......', '..kkwwkkwk...', '.kwwwwwwwwk..', 'kwwywwwwywwk.', 'kwwwwywwwwwk.', '.kkkkkkkkkk..', '.krcrcrcrck..', '.krkkrckkrk..', '.krkcrckcrk..', '.krcrcrcrck..', '.krckkkkcrk..', '.krcrcrcrck..', '..kkkkkkkk...'] },
   gum: { pal: { k: '#1A0E22', p: '#FF8FD0', l: '#FFD0EC', d: '#C2508E', w: '#FFFFFF', m: '#7A1E52' }, rows: [
     '....kkkkkk....', '..kkppppppkk..', '.kpllppppppdk.', '.kplpppppppdk.', 'kpppppppppppdk', 'kppkwppkwpppdk', 'kppkkppkkpppdk', 'kpppppppppppdk', 'kppppmmmppppdk', '.kpppmwmpppdk.', '.kpppppppppdk.', '..kkdpppddkk..', '...kdk..kdk...', '...kk....kk...'] },
+  ginger: { pal: { k: '#1A0E22', g: '#C9823E', d: '#8B5228', l: '#E9AE6A', w: '#FFFFFF', m: '#9AA6B4', s: '#DDE3EA', r: '#E8323C' }, rows: [
+    '....kkkkk....', '...kmssmmk...', '...kmmmmmk...', '..kkkkkkkkk..', '...kgwggwk...', '...kgggggk...', '...kgrrrgk...', '.kkkkgggkkkk.', 'kmsmkgwgkgggk', 'kmmmkgggkgdk.', 'kmsmkgwgkkk..', '.kkkgggggk...', '...kgdkgdk...', '...kgk.kgk...', '...kkk.kkk...'] },
   churro: { pal: { k: '#1A0E22', b: '#C98A4E', t: '#E9B878', d: '#8B5A2C', w: '#FFFFFF', s: '#FFF3E6', m: '#5A2E14' }, rows: [
     '.kkkkkkkkkkkkkk.', 'kbtbtbtbsbtbtbdk', 'kbbbbbbbbbbbbbdk', 'kbkwbbbbbbkwbbdk', 'kbkkbbbbbbkkbbdk', 'kbbbbbmmmmbbbbdk', 'kbtbsbtbtbtbsbdk', 'kddddddddddddddk', '.kkkkkkkkkkkkkk.', '..kdk......kdk..', '..kk........kk..'] }
 };
+/* 적은 테두리를 진한 붉은색으로, 주인공은 바깥에 크림색 한 줄을 더 둘러서 한눈에 구분돼요 */
+function foeStyle(src) {
+  const w = src.width, h = src.height, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d'); q.drawImage(src, 0, 0);
+  const d = q.getImageData(0, 0, w, h), a = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? 0 : d.data[(y * w + x) * 4 + 3];
+  const edge = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (a(x, y) > 0 && (!a(x - 1, y) || !a(x + 1, y) || !a(x, y - 1) || !a(x, y + 1))) edge.push((y * w + x) * 4);
+  for (const i of edge) { d.data[i] = 150; d.data[i + 1] = 18; d.data[i + 2] = 52; d.data[i + 3] = 255; }
+  q.putImageData(d, 0, 0); return c;
+}
+function heroStyle(src) {
+  const w = src.width + 2, h = src.height + 2, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d');
+  q.drawImage(src, 1, 1); const d = q.getImageData(0, 0, w, h), a = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? 0 : d.data[(y * w + x) * 4 + 3], ring = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!a(x, y) && (a(x - 1, y) || a(x + 1, y) || a(x, y - 1) || a(x, y + 1))) ring.push((y * w + x) * 4);
+  for (const i of ring) { d.data[i] = 255; d.data[i + 1] = 243; d.data[i + 2] = 214; d.data[i + 3] = 255; }
+  q.putImageData(d, 0, 0); return c;
+}
 function pixelFoes() {
   for (const [id, a] of Object.entries(FOE_ART)) {
     const w = Math.max(...a.rows.map(r => r.length)), h = a.rows.length, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d');
     a.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (a.pal[ch]) { q.fillStyle = a.pal[ch]; q.fillRect(x, y, 1, 1); } }));
-    IMG[id] = { im: c, white: whiteOf(c), ratio: w / h }; IMG[id].frames = [c, squashFrame(c)]; IMG[id].whites = IMG[id].frames.map(whiteOf);
+    const st = foeStyle(c); IMG[id] = { im: st, white: whiteOf(st), ratio: w / h }; IMG[id].frames = [st, squashFrame(st)]; IMG[id].whites = IMG[id].frames.map(whiteOf);
   }
 }
 /* 2막·3막 변종: 같은 적을 얼음빛, 불빛으로 물들여 둬요 (지원하지 않는 브라우저에서는 원래 색) */
 function tintFoes() {
   const probe = document.createElement('canvas').getContext('2d'); if (!('filter' in probe)) return;
   const F = { 2: 'hue-rotate(150deg) saturate(0.85) brightness(1.12)', 3: 'hue-rotate(-95deg) saturate(1.25) brightness(0.92)' };
-  for (const n of ['jelly', 'cookie', 'ice', 'donut', 'pop', 'gum', 'churro']) { const s = IMG[n]; if (!s) continue;
-    for (const act of [2, 3]) { const fr = s.frames.map(im => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const q = c.getContext('2d'); q.filter = F[act]; q.drawImage(im, 0, 0); return c; }); IMG[n + '@' + act] = { im: fr[0], white: s.white, ratio: s.ratio, frames: fr, whites: s.whites }; } }
+  for (const n of ['jelly', 'cookie', 'ice', 'donut', 'pop', 'ginger', 'churro']) { const s = IMG[n]; if (!s) continue;
+    for (const act of [2, 3]) { const fr = s.frames.map(im => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const q = c.getContext('2d'); q.filter = F[act]; q.drawImage(im, 0, 0); return foeStyle(c); }); IMG[n + '@' + act] = { im: fr[0], white: s.white, ratio: s.ratio, frames: fr, whites: s.whites }; } }
 }
 function loadImages() {
   pixelFoes();
   return Promise.all(SPRITES.map(n => new Promise(res => {
-    const im = new Image();
+    let im = new Image();
     im.onload = () => {      // 맞았을 때 번쩍이는 흰 실루엣도 같이 만들어 둬요
+      const raw = im; im = n === 'hero' ? heroStyle(raw) : foeStyle(raw);
       const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
       const x = c.getContext('2d'); x.drawImage(im, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
       IMG[n] = { im, white: c, ratio: im.width / im.height }; IMG[n].frames = n === 'hero' ? walkFrames(im) : [im, squashFrame(im)]; IMG[n].whites = IMG[n].frames.map(whiteOf); res();
@@ -456,6 +474,7 @@ const FOES = {
   donut: { img: 'donut', big: true, hp: 520, spd: 78, dmg: 16, r: 28, h: 88, xp: 12, name: '딱딱 도넛 기사' },
   pop: { img: 'pop', hp: 10, spd: 104, dmg: 1, r: 11, h: 30, xp: 1, ai: 'bomb' },          // 팝콘 폭탄: 달려와서 터져요
   gum: { img: 'gum', hp: 18, spd: 62, dmg: 1, r: 13, h: 30, xp: 2, ai: 'shoot' },          // 풍선껌: 멀리서 풍선을 쏴요
+  ginger: { img: 'ginger', hp: 38, spd: 36, dmg: 1, r: 15, h: 32, xp: 3, noKb: true },   // 진저 병정: 맞아도 밀려나지 않고 꾸준히 걸어와요
   churro: { img: 'churro', hp: 34, spd: 58, dmg: 1, r: 14, h: 22, xp: 3, ai: 'dash' },     // 츄러스: 멈췄다가 돌진해요
   boss: { img: 'boss', big: true, hp: 1500, spd: 34, dmg: 20, r: 56, h: 152, xp: 0, name: '곰팡이 케이크' },
   boss2: { img: 'boss2', big: true, hp: 1850, spd: 40, dmg: 20, r: 56, h: 152, xp: 0, name: '초코 분수 대왕' },
@@ -527,7 +546,7 @@ function textAdd(x, y, t, col, big) { if (!headless && B.texts.length < 40) B.te
 function burst(x, y, col, n = 6, sp = 150) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = rand(sp * 0.3, sp); fxAdd({ k: 'dot', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, g: 420, life: rand(0.3, 0.55), max: 0.55, col, r: rand(2, 5) }); } }
 /* 맞은 자리에 별 모양 섬광 */
 function spark(x, y, a, col = '#FFFFFF', big) { fxAdd({ k: 'flash', x, y, r: big ? 26 : 16, life: 0.09, max: 0.09, col }); for (let i = 0; i < (big ? 6 : 4); i++) { const aa = a + rand(-1.1, 1.1), s = rand(220, 420); fxAdd({ k: 'line', x, y, vx: Math.cos(aa) * s, vy: Math.sin(aa) * s, life: rand(0.1, 0.18), max: 0.18, col, w: big ? 3.5 : 2.5 }); } }
-const FOE_COL = { boss2: '#8B5A3C', boss3: '#FF6B3D', jelly: '#3FCF7A', cookie: '#B9783F', ice: '#9FDBFF', donut: '#FF8FB8', boss: '#C77DFF', pop: '#FFF3C0', gum: '#FF8FD0', churro: '#C98A4E' };
+const FOE_COL = { ginger: '#C9823E', boss2: '#8B5A3C', boss3: '#FF6B3D', jelly: '#3FCF7A', cookie: '#B9783F', ice: '#9FDBFF', donut: '#FF8FB8', boss: '#C77DFF', pop: '#FFF3C0', gum: '#FF8FD0', churro: '#C98A4E' };
 function hitStop(t) { if (!headless && B.hsCool <= 0) { B.hitstop = Math.max(B.hitstop, t); B.hsCool = 0.12; } }
 
 function hurtFoe(f, d, w, ax, ay, kbm = 1) {
@@ -537,7 +556,7 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (w && w.id && run) { const D = run.dmg || (run.dmg = {}); D[w.id] = (D[w.id] || 0) + Math.min(d, f.hp + d); }
   /* 맞은 방향으로 밀려나요 (큰 적은 조금만) */
   let dx = ax, dy = ay; if (dx == null) { dx = f.x - B.p.x; dy = f.y - B.p.y; } const m = Math.hypot(dx, dy) || 1, kb = (f === B.big ? 40 : 230) * (crit ? 1.5 : 1) * kbm;
-  f.kx = dx / m * kb; f.ky = dy / m * kb;
+  if (!FOES[f.type].noKb) { f.kx = dx / m * kb; f.ky = dy / m * kb; }
   if (!headless) { const a = Math.atan2(dy, dx); spark(f.x - dx / m * f.r * 0.5, f.y - FOES[f.type].h * 0.35 - dy / m * f.r * 0.3, a, crit ? '#FFE066' : '#FFFFFF', crit); }
   textAdd(f.x, f.y - FOES[f.type].h * 0.8, Math.round(d) + (crit ? '!' : ''), crit ? '#FF9A1F' : '#4A2040', crit);
   if (crit) { sfx.crit(); hitStop(0.06); B.shake = Math.max(B.shake, 0.08); fxAdd({ k: 'slash', x: f.x, y: f.y - FOES[f.type].h * 0.4, a: Math.atan2(dy, dx), life: 0.16, max: 0.16 }); } else { sfx.hit(); if (f.hp > 0) hitStop(0.012); }
@@ -564,7 +583,7 @@ function killFoe(f, w) {
 /* 하트 3칸: 무엇에 맞든 한 번에 1칸 */
 function hurtPlayer(src) {
   const p = B.p; if (p.inv > 0 || B.over) return; if (window.__dbg) (window.__dbg.hits = window.__dbg.hits || {})[src || '?'] = ((window.__dbg.hits || {})[src || '?'] || 0) + 1;
-  const push = (R, d) => B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < R && f !== B.big) { f.kx = dx / m * d; f.ky = dy / m * d; } });
+  const push = (R, d) => B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < R && f !== B.big && !FOES[f.type].noKb) { f.kx = dx / m * d; f.ky = dy / m * d; } });
   if (p.shield) { p.shield = false; p.inv = 0.8; textAdd(p.x, p.y - 50, '막음!', '#59B8FF', true); sfx.block(); push(120, 400); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 30, to: 120, life: 0.3, max: 0.3, col: '#59B8FF', w: 6 }); return; }
   run.hits = (run.hits || 0) + 1; const HB = run.hitBy || (run.hitBy = {}); HB[src || '?'] = (HB[src || '?'] || 0) + 1;
   p.hp -= 1; p.inv = DF().inv * B.st.invK; B.shake = 0.35; B.hitstop = 0.12; B.slow = 0.35; B.flashScr = { col: '224,68,90', t: 0.35, max: 0.35 }; B.heartPop = 0.5;
@@ -657,7 +676,7 @@ function updateLobs(dt) {
       blast(L.x, L.y, L.r, L.dmg, L.w, '#8B5A3C'); sfx.boom();
       if (L.cluster && !L.mini) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, d = rand(40, 70); B.lobs.push({ k: 'bomb', mini: true, x0: L.x, y0: L.y, x: L.x + Math.cos(a) * d, y: L.y + Math.sin(a) * d, t: 0, dur: 0.3, r: L.r * 0.55, dmg: 10, w: L.w }); }
     } else {
-      blast(L.x, L.y, L.r, L.dmg, L.w, '#E8323C'); sfx.thud(); B.shake = Math.max(B.shake, 0.06);
+      blast(L.x, L.y, L.r, L.dmg, L.w, '#FFF3C0'); sfx.thud(); B.shake = Math.max(B.shake, 0.06);
       if (L.shards) for (let i = 0; i < 6; i++) { const a = i * 1.047 + Math.random() * 0.3; B.shots.push({ k: 'star', x: L.x, y: L.y, vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, r: 6, dmg: 9, pierce: 1, life: 0.5, w: L.w, hit: new Set() }); }
     }
   }
@@ -672,7 +691,7 @@ function levelUp() {
   fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.9, max: 0.9 });
   [0, 0.12, 0.24].forEach((dl, i) => fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 16, to: 150 + i * 40, life: 0.5 + dl, max: 0.5 + dl, col: i === 1 ? '#FFFFFF' : '#FFD23F', w: 7 - i * 2 }));
   for (let i = 0; i < 26; i++) { const a = i / 26 * 6.283, sp = rand(160, 300); fxAdd({ k: 'star', x: p.x, y: p.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, life: rand(0.5, 0.8), max: 0.8, col: pick(['#FFD23F', '#FFFFFF', '#FF8FB8', '#8FD3FF']), r: rand(4, 7) }); }
-  B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < 170 && f !== B.big) { f.kx = dx / m * 600; f.ky = dy / m * 600; } });
+  B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < 170 && f !== B.big && !FOES[f.type].noKb) { f.kx = dx / m * 600; f.ky = dy / m * 600; } });
   B.flashScr = { col: '255,230,140', t: 0.4, max: 0.4 };
   const ban = el('div', 'lvl-ban', `<b>LEVEL UP!</b><span>Lv ${B.lvl}</span>`); fxLayer.appendChild(ban); setTimeout(() => ban.remove(), 760);
   const lv = $('#lvText'); lv.classList.remove('pop'); void lv.offsetWidth; lv.classList.add('pop');
@@ -721,7 +740,7 @@ function foeAI(f, dt, ai) {
   if (f.stun > 0) return true;
   if (ai === 'bomb') {
     if (f.st === 0 && m < 52) { f.st = 1; f.stT = 0.8 * DF().warn; B.telegraphs.push({ k: 'circle', x: f.x, y: f.y, r: 52, life: f.stT, max: f.stT, f }); sfx.warn(); }
-    if (f.st === 1) { f.stT -= dt; f.flash = Math.floor(f.stT * 12) % 2 ? 0.05 : 0; if (f.stT <= 0) { if (m < 52 + HERO_R) hurtPlayer('pop'); fxAdd({ k: 'ring', x: f.x, y: f.y, r: 12, to: 60, life: 0.25, max: 0.25, col: '#FFD86B', w: 6 }); burst(f.x, f.y, '#FFF3C0', 12, 220); sfx.boom(); B.shake = Math.max(B.shake, 0.12); f.hp = 0; killFoe(f, null); } return true; }
+    if (f.st === 1) { f.stT -= dt; f.flash = Math.floor(f.stT * 12) % 2 ? 0.05 : 0; if (f.stT <= 0) { if (m < 52 + HERO_R) hurtPlayer('pop'); fxAdd({ k: 'ring', x: f.x, y: f.y, r: 12, to: 60, life: 0.25, max: 0.25, col: '#FF2E4D', w: 6 }); burst(f.x, f.y, '#FF6B7A', 12, 220); sfx.boom(); B.shake = Math.max(B.shake, 0.12); f.hp = 0; killFoe(f, null); } return true; }
     return false;
   }
   if (ai === 'shoot') {
@@ -746,7 +765,7 @@ function bossThink(f, dt) {
     else { f.st = 0; f.stT = 4; for (let i = 0; i < 6; i++) { const a = Math.random() * 6.283; spawnFoe('jelly', f.x + Math.cos(a) * 80, f.y + Math.sin(a) * 80); } }
   } else if (f.st === 1 && f.stT <= 0) {
     if ((p.x - f.tx) ** 2 + (p.y - f.ty) ** 2 < 92 * 92) hurtPlayer('slam');
-    fxAdd({ k: 'ring', x: f.tx, y: f.ty, r: 20, to: 96, life: 0.3, max: 0.3, col: '#9B59D0', w: 8 }); burst(f.tx, f.ty, '#9B59D0', 16, 260); B.shake = 0.4; sfx.slam(); f.st = 0; f.stT = 3.2;
+    fxAdd({ k: 'ring', x: f.tx, y: f.ty, r: 20, to: 96, life: 0.3, max: 0.3, col: '#FF2E4D', w: 8 }); burst(f.tx, f.ty, '#FF6B7A', 16, 260); B.shake = 0.4; sfx.slam(); f.st = 0; f.stT = 3.2;
   } else if (f.st === 2 && f.stT <= 0) {
     for (let i = 0; i < 14; i++) { const a = i * 6.283 / 14 + Math.random() * 0.2; B.foeShots.push({ x: f.x, y: f.y, vx: Math.cos(a) * 190, vy: Math.sin(a) * 190, r: 8, dmg: 1, life: 3 }); }
     sfx.slam(); f.st = 0; f.stT = 3.4;
@@ -762,7 +781,7 @@ function boss2Think(f, dt) {
     else { f.stT = 4.5; for (let i = 0; i < 4; i++) { const a = Math.random() * 6.283; spawnFoe('churro', f.x + Math.cos(a) * 90, f.y + Math.sin(a) * 90); } }
   } else if (f.st === 1) {
     if (f.n > 0 && f.stT <= 0) { const wt = 1.15 * DF().warn; f.n--; f.stT = 0.5; const T = { k: 'circle', x: p.x, y: p.y, r: 74, life: wt, max: wt }; B.telegraphs.push(T); f.slams.push({ x: p.x, y: p.y, t: wt }); sfx.warn(); }
-    for (const sl of f.slams) { sl.t -= dt; if (sl.t <= 0 && !sl.done) { sl.done = true; if ((p.x - sl.x) ** 2 + (p.y - sl.y) ** 2 < 74 * 74) hurtPlayer('slam'); fxAdd({ k: 'ring', x: sl.x, y: sl.y, r: 16, to: 78, life: 0.3, max: 0.3, col: '#8B5A3C', w: 8 }); burst(sl.x, sl.y, '#8B5A3C', 14, 240); B.shake = 0.3; sfx.slam(); } }
+    for (const sl of f.slams) { sl.t -= dt; if (sl.t <= 0 && !sl.done) { sl.done = true; if ((p.x - sl.x) ** 2 + (p.y - sl.y) ** 2 < 74 * 74) hurtPlayer('slam'); fxAdd({ k: 'ring', x: sl.x, y: sl.y, r: 16, to: 78, life: 0.3, max: 0.3, col: '#FF2E4D', w: 8 }); burst(sl.x, sl.y, '#8B5A3C', 14, 240); B.shake = 0.3; sfx.slam(); } }
     if (f.n <= 0 && f.slams.every(sl => sl.done)) { f.st = 0; f.stT = 3; }
   } else if (f.st === 2) {
     f.sT -= dt; if (f.stT < 2 && f.sT <= 0) { f.sT = 0.16; f.sa += 0.45; for (const k of [0, Math.PI]) B.foeShots.push({ x: f.x, y: f.y, vx: Math.cos(f.sa + k) * 150, vy: Math.sin(f.sa + k) * 150, r: 7, dmg: 1, life: 3 }); }
@@ -780,7 +799,7 @@ function boss3Think(f, dt) {
     else if (r < 0.82) { const wt = 0.9 * DF().warn; f.st = 4; f.stT = wt; f.da = Math.atan2(p.y - f.y, p.x - f.x); B.telegraphs.push({ k: 'line', f, a: f.da, len: 300, life: wt, max: wt }); sfx.warn(); }
     else { f.stT = 4.5; for (let i = 0; i < 5; i++) { const a = Math.random() * 6.283; spawnFoe('pop', f.x + Math.cos(a) * 100, f.y + Math.sin(a) * 100); } }
   } else if (f.st === 1 && f.stT <= 0) {       // 불기둥이 터져요
-    for (let k = 0; k < 4; k++) { const a = f.ba + k * 1.5708, c = Math.cos(a), sn = Math.sin(a), rx = p.x - f.x, ry = p.y - f.y, along = rx * c + ry * sn, side = Math.abs(-rx * sn + ry * c); if (along > 0 && along < 460 && side < 20 + HERO_R) hurtPlayer('beam'); fxAdd({ k: 'bolt', pts: [[f.x, f.y], [f.x + c * 460, f.y + sn * 460]], life: 0.22, max: 0.22 }); }
+    for (let k = 0; k < 4; k++) { const a = f.ba + k * 1.5708, c = Math.cos(a), sn = Math.sin(a), rx = p.x - f.x, ry = p.y - f.y, along = rx * c + ry * sn, side = Math.abs(-rx * sn + ry * c); if (along > 0 && along < 460 && side < 20 + HERO_R) hurtPlayer('beam'); fxAdd({ k: 'bolt', foe: true, pts: [[f.x, f.y], [f.x + c * 460, f.y + sn * 460]], life: 0.22, max: 0.22 }); }
     B.shake = 0.3; sfx.slam(); f.n--;
     if (f.n > 0) beams(f.ba + 0.785); else { f.st = 0; f.stT = 3; }
   } else if (f.st === 3 && f.stT <= 0) {
@@ -814,7 +833,7 @@ function update(dt) {
   if (!B.rush && B.t >= 120) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
   if (B.rush && !headless && ZOOM > 0.78) { ZOOM = Math.max(0.78, ZOOM - dt * 0.15); resize(); }     // 화면을 천천히 넓혀서 더 많이 보여요
   B.spawnAcc += rate * (B.rush ? 1.3 : 1) * dt;
-  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.6 && Math.random() < 0.45 && B.foes.reduce((n, f) => n + (f.type === 'gum'), 0) < 3 + Math.floor(B.floor / 2)) pool.push('gum'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); spawnRing(pick(pool)); }
+  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.2 && Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'ginger'), 0) < 4 + Math.floor(B.floor / 2)) pool.push('ginger'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing('donut'); bigIntro(); }
   if (B.bossAt > 0 && B.t >= B.bossAt && !B.big) { B.big = spawnRing(ACTS[B.act].boss); bigIntro(); }
@@ -1020,7 +1039,7 @@ function draw() {
     } else {
       const d = FOES[o.type], age = B.t - (o.born || 0), ox = X(o.x), oy = Y(o.y), rr = Math.round(o.r / WP);
       if (o === B.big) putDisc(ox, oy, Math.round(rr * 2.2), Math.round(rr * 1.6), '#C77DFF', Math.floor(B.t * 5) % 2 ? 4 : 3);
-      R('rgba(14,6,20,.5)', ox - rr, oy + Math.round(rr * 0.6), rr * 2, 2);
+      R('rgba(140,12,44,.55)', ox - rr, oy + Math.round(rr * 0.6), rr * 2, 2);     // 적 발밑은 붉은 그림자
       if (o !== B.big && o.hp < o.max && o.max > 25) { const bw = rr * 2; R(INK, ox - rr - 1, oy + rr + 2, bw + 2, 3); R('#FF4F6B', ox - rr, oy + rr + 3, Math.max(0, Math.round(bw * o.hp / o.max)), 1); }
       const up = Math.sin(o.ph) > 0, hop = (o.type === 'jelly' && up ? 2 : 0) + (o.sq > 0.15 ? 1 : 0);
       spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1);
@@ -1040,11 +1059,12 @@ function draw() {
       continue;
     }
     const col = SHOT_COL[s.k] || '#FFFFFF', t = s.trail;
+    ctx.drawImage(dDisc(4, 4, '#FFF3D6', 4), sx - 4, sy - 4);
     if (t) for (let i = Math.max(0, t.length - 6); i < t.length; i += 2) { ctx.globalAlpha = 0.25 + 0.12 * (i - t.length + 6); R(s.aw ? '#FFD86B' : col, X(t[i]), Y(t[i + 1]), 2, 2); } ctx.globalAlpha = 1;
     if (s.k === 'star') { const big = Math.floor(B.t * 12 + s.x) % 2; R(INK, sx - 2, sy - 2, 5, 5); if (big) { R(col, sx - 2, sy, 5, 1); R(col, sx, sy - 2, 1, 5); R('#FFFFFF', sx, sy, 1, 1); } else { R(col, sx - 1, sy - 1, 3, 3); R('#FFFFFF', sx - 1, sy - 1, 1, 1); } }
     else { R(INK, sx - 1, sy - 2, 3, 5); R(INK, sx - 2, sy - 1, 5, 3); R(col, sx - 1, sy - 1, 3, 3); R(s.k === 'lemon' ? '#FFFFC0' : '#FFD9E6', sx - 1, sy - 1, 1, 1); }
   }
-  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R(s.gum ? '#FF8FD0' : '#B14FE0', sx - 2, sy - 2, 5, 5); R(s.gum ? '#FFFFFF' : '#F0C8FF', sx - 1, sy - 1, 2, 2); }
+  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; ctx.drawImage(dDisc(pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6), sx - (pu ? 7 : 6), sy - (pu ? 7 : 6)); R(INK, sx - 1, sy - 4, 3, 9); R(INK, sx - 4, sy - 1, 9, 3); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#FF2E4D', sx - 2, sy - 2, 5, 5); R('#FF2E4D', sx, sy - 3, 1, 7); R('#FF2E4D', sx - 3, sy, 7, 1); R('#FFE0E6', sx - 1, sy - 1, 2, 2); }
   /* 던진 초코 폭탄, 떨어지는 지팡이 사탕 */
   for (const L of B.lobs) {
     const k = Math.max(0, Math.min(1, L.t / L.dur)), tx0 = X(L.x), ty0 = Y(L.y);
@@ -1068,7 +1088,7 @@ function draw() {
     else if (f.k === 'star') pstar(fx, fy, k > 0.5 ? 2 : 1, f.col);
     else if (f.k === 'bolt') {   /* 솜사탕 번개: 지그재그 줄기 */
       for (let i = 1; i < f.pts.length; i++) { const [ax, ay] = f.pts[i - 1], [bx, by] = f.pts[i], mx = (ax + bx) / 2 + rand(-10, 10), my = (ay + by) / 2 + rand(-10, 10);
-        for (const [c, t] of [[k > 0.5 ? '#FF8FD0' : '#C77DFF', 3], [k > 0.4 ? '#FFFFFF' : '#FFE7F0', 1]]) { pline(X(ax), Y(ay), X(mx), Y(my), c, t); pline(X(mx), Y(my), X(bx), Y(by), c, t); }
+        for (const [c, t] of f.foe ? [['#FF2E4D', 5], ['#FFB020', 2]] : [[k > 0.5 ? '#FF8FD0' : '#C77DFF', 3], [k > 0.4 ? '#FFFFFF' : '#FFE7F0', 1]]) { pline(X(ax), Y(ay), X(mx), Y(my), c, t); pline(X(mx), Y(my), X(bx), Y(by), c, t); }
         pstar(X(bx), Y(by), 2, '#FFFFFF'); }
     }
     else if (f.k === 'slash') {   /* 치명타: 맞은 자리를 가르는 X자 섬광 */
