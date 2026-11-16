@@ -213,7 +213,23 @@ function squashFrame(im) {
   const w = im.width, h = im.height, cut = Math.floor(h * 0.45), c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
   x.drawImage(im, 0, 0, w, cut, 0, 1, w, cut); x.drawImage(im, 0, cut + 1, w, h - cut - 1, 0, cut + 1, w, h - cut - 1); return c;
 }
+const FOE_ART = {
+  pop: { pal: { k: '#1A0E22', w: '#FFF7DA', y: '#FFD86B', r: '#E8323C', c: '#FFFFFF', o: '#FF9A1F' }, rows: [
+    '.....o.......', '....kyk......', '..kkwwkkwk...', '.kwwwwwwwwk..', 'kwwywwwwywwk.', 'kwwwwywwwwwk.', '.kkkkkkkkkk..', '.krcrcrcrck..', '.krkkrckkrk..', '.krkcrckcrk..', '.krcrcrcrck..', '.krckkkkcrk..', '.krcrcrcrck..', '..kkkkkkkk...'] },
+  gum: { pal: { k: '#1A0E22', p: '#FF8FD0', l: '#FFD0EC', d: '#C2508E', w: '#FFFFFF', m: '#7A1E52' }, rows: [
+    '....kkkkkk....', '..kkppppppkk..', '.kpllppppppdk.', '.kplpppppppdk.', 'kpppppppppppdk', 'kppkwppkwpppdk', 'kppkkppkkpppdk', 'kpppppppppppdk', 'kppppmmmppppdk', '.kpppmwmpppdk.', '.kpppppppppdk.', '..kkdpppddkk..', '...kdk..kdk...', '...kk....kk...'] },
+  churro: { pal: { k: '#1A0E22', b: '#C98A4E', t: '#E9B878', d: '#8B5A2C', w: '#FFFFFF', s: '#FFF3E6', m: '#5A2E14' }, rows: [
+    '.kkkkkkkkkkkkkk.', 'kbtbtbtbsbtbtbdk', 'kbbbbbbbbbbbbbdk', 'kbkwbbbbbbkwbbdk', 'kbkkbbbbbbkkbbdk', 'kbbbbbmmmmbbbbdk', 'kbtbsbtbtbtbsbdk', 'kddddddddddddddk', '.kkkkkkkkkkkkkk.', '..kdk......kdk..', '..kk........kk..'] }
+};
+function pixelFoes() {
+  for (const [id, a] of Object.entries(FOE_ART)) {
+    const w = Math.max(...a.rows.map(r => r.length)), h = a.rows.length, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d');
+    a.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (a.pal[ch]) { q.fillStyle = a.pal[ch]; q.fillRect(x, y, 1, 1); } }));
+    IMG[id] = { im: c, white: whiteOf(c), ratio: w / h }; IMG[id].frames = [c, squashFrame(c)]; IMG[id].whites = IMG[id].frames.map(whiteOf);
+  }
+}
 function loadImages() {
+  pixelFoes();
   return Promise.all(SPRITES.map(n => new Promise(res => {
     const im = new Image();
     im.onload = () => {      // 맞았을 때 번쩍이는 흰 실루엣도 같이 만들어 둬요
@@ -382,7 +398,7 @@ const WMAX = 10;
 const WEAPONS = {
   pin: { name: '롤링핀', desc: '가까운 적 쪽으로 롤링핀을 크게 휘둘러요.', more: '휘두르는 방향이 1개 늘어요.', s5: '휘두르는 범위가 넓어지고 적을 더 멀리 밀쳐요.', s10: '한 바퀴 빙 돌며 휘두르고 충격파가 퍼져요.' },
   cream: { name: '휘핑크림', desc: '가장 가까운 적에게 크림을 쏴요.', more: '크림이 1발 늘어요.', s5: '맞은 자리에 크림 웅덩이가 생겨 적이 느려져요.', s10: '크림이 커지고 적을 전부 꿰뚫어요.' },
-  star: { name: '별사탕', desc: '움직이는 방향으로 별사탕을 흩뿌려요.', more: '별사탕이 1알 늘어요.', s5: '별사탕이 옆 적으로 1번 튕겨요.', s10: '사방으로 흩뿌리고 3번까지 튕겨요.' },
+  star: { name: '별사탕', desc: '가까운 적 쪽으로 별사탕을 흩뿌려요.', more: '별사탕이 1알 늘어요.', s5: '별사탕이 옆 적으로 1번 튕겨요.', s10: '사방으로 흩뿌리고 3번까지 튕겨요.' },
   macaron: { name: '마카롱', desc: '마카롱이 몸 주위를 돌며 부딪혀요.', more: '마카롱이 1개 늘어요.', s5: '더 넓게, 더 빠르게 돌아요.', s10: '2초마다 마카롱이 한꺼번에 터져요.' },
   honey: { name: '꿀 장판', desc: '꿀을 깔아 적을 느리게 하고 다치게 해요.', more: '장판이 1개 늘어요.', s5: '장판이 넓어지고 오래가요.', s10: '커다란 꿀 웅덩이가 나를 따라다녀요.' },
   lemon: { name: '레몬즙', desc: '가까운 적에게 쏴서 산성을 쌓아요. 산성은 계속 피해를 줘요.', more: '물총이 1발 늘어요.', s5: '산성이 2배로 쌓여요.', s10: '산성 쌓인 적이 죽으면 터지며 주변에 옮아요.' },
@@ -431,6 +447,9 @@ const FOES = {
   ice: { img: 'ice', hp: 9, spd: 118, dmg: 5, r: 12, h: 56, xp: 1 },
   cookie: { img: 'cookie', hp: 36, spd: 50, dmg: 11, r: 17, h: 56, xp: 2 },
   donut: { img: 'donut', hp: 520, spd: 78, dmg: 16, r: 28, h: 88, xp: 12, name: '딱딱 도넛 기사' },
+  pop: { img: 'pop', hp: 10, spd: 104, dmg: 1, r: 11, h: 30, xp: 1, ai: 'bomb' },          // 팝콘 폭탄: 달려와서 터져요
+  gum: { img: 'gum', hp: 18, spd: 62, dmg: 1, r: 13, h: 30, xp: 2, ai: 'shoot' },          // 풍선껌: 멀리서 풍선을 쏴요
+  churro: { img: 'churro', hp: 34, spd: 58, dmg: 1, r: 14, h: 22, xp: 3, ai: 'dash' },     // 츄러스: 멈췄다가 돌진해요
   boss: { img: 'boss', hp: 1700, spd: 34, dmg: 20, r: 56, h: 152, xp: 0, name: '곰팡이 케이크' }
 };
 
@@ -481,9 +500,9 @@ function toast(t) { if (headless) return; const e = $('#toast'); e.textContent =
 /* 판이 지날수록(층이 오를수록) 적이 확실히 많아져요: 첫 판 1배 → 보스 판 약 5배 */
 const stageMul = () => 0.8 + 0.5 * B.floor;
 function spawnFoe(type, x, y) {
-  const d = FOES[type], grow = 1 + 0.85 * Math.pow(B.floor, 0.8) + (B.t / 120) * 0.6;     /* 초반 판에서 빨리 단단해지고 뒤로 갈수록 완만하게 */
+  const d = FOES[type], grow = 1 + 0.92 * Math.pow(B.floor, 0.8) + (B.t / 120) * 0.6;     /* 초반 판에서 빨리 단단해지고 뒤로 갈수록 완만하게 */
   const big = type === 'donut' || type === 'boss';
-  const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow) * DF().hp, spd: d.spd * DF().spd * (0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : 0, vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
+  const f = { type, x, y, r: d.r, hp: d.hp * (big ? 1 + 0.12 * B.floor : grow) * DF().hp, spd: d.spd * DF().spd * (0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : rand(0.8, 2.5), vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   f.max = f.hp; B.foes.push(f); return f;
 }
 function spawnRing(type) {
@@ -496,7 +515,7 @@ function textAdd(x, y, t, col, big) { if (!headless && B.texts.length < 40) B.te
 function burst(x, y, col, n = 6, sp = 150) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = rand(sp * 0.3, sp); fxAdd({ k: 'dot', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, g: 420, life: rand(0.3, 0.55), max: 0.55, col, r: rand(2, 5) }); } }
 /* 맞은 자리에 별 모양 섬광 */
 function spark(x, y, a, col = '#FFFFFF', big) { fxAdd({ k: 'flash', x, y, r: big ? 26 : 16, life: 0.09, max: 0.09, col }); for (let i = 0; i < (big ? 6 : 4); i++) { const aa = a + rand(-1.1, 1.1), s = rand(220, 420); fxAdd({ k: 'line', x, y, vx: Math.cos(aa) * s, vy: Math.sin(aa) * s, life: rand(0.1, 0.18), max: 0.18, col, w: big ? 3.5 : 2.5 }); } }
-const FOE_COL = { jelly: '#3FCF7A', cookie: '#B9783F', ice: '#9FDBFF', donut: '#FF8FB8', boss: '#C77DFF' };
+const FOE_COL = { jelly: '#3FCF7A', cookie: '#B9783F', ice: '#9FDBFF', donut: '#FF8FB8', boss: '#C77DFF', pop: '#FFF3C0', gum: '#FF8FD0', churro: '#C98A4E' };
 function hitStop(t) { if (!headless && B.hsCool <= 0) { B.hitstop = Math.max(B.hitstop, t); B.hsCool = 0.12; } }
 
 function hurtFoe(f, d, w, ax, ay, kbm = 1) {
@@ -561,23 +580,23 @@ function fireWeapons(dt) {
   for (const w of B.weapons) {
     const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10; w.cd -= dt;
     if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
-      w.ang += dt * (s5 ? 4.2 : 3.2); const n = 1 + lv, R = (s5 ? 74 : 58) * ar();
+      w.ang += dt * (s5 ? 4.2 : 3.2); const n = 1 + lv, R = (s5 ? 84 : 66) * ar();
       if (s10) w.burstT = (w.burstT ?? 2) - dt;
       w.orbs = [];
       for (let i = 0; i < n; i++) {
         const a = w.ang + i * 6.283 / n, ox = p.x + Math.cos(a) * R, oy = p.y + Math.sin(a) * R; w.orbs.push([ox, oy]);
-        for (const f of B.foes) { if (f.dead) continue; if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.4; hurtFoe(f, 9, w, f.x - ox, f.y - oy); } }
-        if (s10 && w.burstT <= 0) blast(ox, oy, 46 * ar(), 14, w, '#FF8FB8');
+        for (const f of B.foes) { if (f.dead) continue; if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.28; hurtFoe(f, 23, w, f.x - ox, f.y - oy); } }
+        if (s10 && w.burstT <= 0) blast(ox, oy, 52 * ar(), 22, w, '#FF8FB8');
       }
       if (s10 && w.burstT <= 0) { w.burstT = 2; sfx.swing(); B.shake = Math.max(B.shake, 0.08); }
       continue;
     }
     if (w.cd > 0) continue;
     if (w.id === 'pin') {
-      const R = 82 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
+      const R = 92 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
       if (!t) { w.cd = 0.15; continue; }
-      const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = Array.from({ length: lv }, (_, i) => a + i * 6.283 / lv); w.cd = 0.8;
-      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); if (m > R + f.r && !(s10 && m < R * 1.7 + f.r)) continue; const fa = Math.atan2(dy, dx); const inArc = s10 || dirs.some(d => { let da = Math.abs(fa - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da < 1.1; }); if (m <= R + f.r && inArc) hurtFoe(f, 16, w, dx, dy, s5 ? 1.6 : 1); else if (s10) hurtFoe(f, 8, w, dx, dy); }
+      const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = Array.from({ length: lv }, (_, i) => a + i * 6.283 / lv); w.cd = 0.7;
+      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); if (m > R + f.r && !(s10 && m < R * 1.7 + f.r)) continue; const fa = Math.atan2(dy, dx); const nIn = dirs.filter(d => { let da = Math.abs(fa - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da < 1.1; }).length, hitsN = Math.min(4, s10 ? Math.max(nIn, 3) : nIn); if (m <= R + f.r && hitsN) { for (let h = 0; h < hitsN && !f.dead; h++) hurtFoe(f, 26, w, dx, dy, s5 ? 1.6 : 1); } else if (s10) hurtFoe(f, 14, w, dx, dy); }
       if (s10) { fxAdd({ k: 'spin', x: p.x, y: p.y, a, r: R, life: 0.3, max: 0.3 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: R * 0.8, to: R * 1.7, life: 0.3, max: 0.3, col: '#FFE1A8', w: 6 }); }
       else dirs.forEach(d => fxAdd({ k: 'arc', x: p.x, y: p.y, a: d, r: R, life: 0.22, max: 0.22 }));
       B.shake = Math.max(B.shake, 0.04); sfx.swing();
@@ -585,11 +604,11 @@ function fireWeapons(dt) {
       const t = nearestFoe(320); if (!t) { w.cd = 0.2; continue; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv, cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
       fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: cream ? '#FFFFFF' : '#F4E04D' });
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 7, acid: cream ? 0 : (s5 ? 6 : 3), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5 }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 9, acid: cream ? 0 : (s5 ? 7 : 3.5), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5 }); }
       sfx.shot();
     } else if (w.id === 'star') {
-      const a = Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 1.2;
-      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: 7, dmg: 8, pierce: 0, life: 0.9, w, hit: new Set(), aw: s10, bounce: s10 ? 3 : s5 ? 1 : 0 }); }
+      const tg = nearestFoe(340), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 1.0;
+      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: 7, dmg: 15, pierce: 1, life: 0.9, w, hit: new Set(), aw: s10, bounce: s10 ? 3 : s5 ? 1 : 0 }); }
       sfx.shot();
     } else if (w.id === 'skewer') {
       const tg = nearestFoe(360), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = lv, sp = s5 ? 560 : 430; w.cd = 1.4;
@@ -684,6 +703,28 @@ function specialFx(w) {
   for (let i = 0; i < 20; i++) { const a = i / 20 * 6.283, sp = rand(140, 260); fxAdd({ k: 'star', x: p.x, y: p.y - 26, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.7, max: 0.7, col: i % 2 ? '#FFD23F' : '#FFFFFF', r: 6 }); }
   fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.5, max: 0.5, col: '#FFD23F', w: 8 });
 }
+/* 새 적들의 행동. true를 돌려주면 그 순간에는 걸어오지 않아요 */
+function foeAI(f, dt, ai) {
+  const p = B.p, dx = p.x - f.x, dy = p.y - f.y, m = Math.hypot(dx, dy) || 1;
+  if (f.stun > 0) return true;
+  if (ai === 'bomb') {
+    if (f.st === 0 && m < 52) { f.st = 1; f.stT = 0.8 * DF().warn; B.telegraphs.push({ k: 'circle', x: f.x, y: f.y, r: 52, life: f.stT, max: f.stT, f }); sfx.warn(); }
+    if (f.st === 1) { f.stT -= dt; f.flash = Math.floor(f.stT * 12) % 2 ? 0.05 : 0; if (f.stT <= 0) { if (m < 52 + HERO_R) hurtPlayer('pop'); fxAdd({ k: 'ring', x: f.x, y: f.y, r: 12, to: 60, life: 0.25, max: 0.25, col: '#FFD86B', w: 6 }); burst(f.x, f.y, '#FFF3C0', 12, 220); sfx.boom(); B.shake = Math.max(B.shake, 0.12); f.hp = 0; killFoe(f, null); } return true; }
+    return false;
+  }
+  if (ai === 'shoot') {
+    f.stT -= dt;
+    if (f.stT <= 0 && m < 280) { f.stT = 4.2; B.foeShots.push({ x: f.x, y: f.y - 8, vx: dx / m * 100, vy: dy / m * 100, r: 6, dmg: 1, life: 3, gum: true }); fxAdd({ k: 'flash', x: f.x, y: f.y - 8, r: 10, life: 0.08, max: 0.08, col: '#FF8FD0' }); }
+    if (m < 120) { f.x -= dx / m * f.spd * 0.6 * dt; f.y -= dy / m * f.spd * 0.6 * dt; return true; }    // 너무 가까우면 물러나요
+    return m < 190;
+  }
+  /* dash */
+  f.stT -= dt;
+  if (f.st === 0 && f.stT <= 0 && m < 240) { const wt = 0.8 * DF().warn; f.st = 1; f.stT = wt; f.da = Math.atan2(dy, dx); B.telegraphs.push({ k: 'line', f, a: f.da, len: 170, life: wt, max: wt }); }
+  else if (f.st === 1 && f.stT <= 0) { f.st = 2; f.stT = 0.42; }
+  else if (f.st === 2) { f.x += Math.cos(f.da) * 340 * dt; f.y += Math.sin(f.da) * 340 * dt; if (f.stT <= 0) { f.st = 0; f.stT = 4.2; } return true; }
+  return f.st === 1;
+}
 function bossThink(f, dt) {
   const p = B.p; f.stT -= dt;
   if (f.st === 0 && f.stT <= 0) {
@@ -723,7 +764,7 @@ function update(dt) {
   if (!B.rush && B.t >= 120) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
   if (B.rush && !headless && ZOOM > 0.78) { ZOOM = Math.max(0.78, ZOOM - dt * 0.15); resize(); }     // 화면을 천천히 넓혀서 더 많이 보여요
   B.spawnAcc += rate * (B.rush ? 1.3 : 1) * dt;
-  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); spawnRing(pick(pool)); }
+  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(120, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.6 && Math.random() < 0.45 && B.foes.reduce((n, f) => n + (f.type === 'gum'), 0) < 3 + Math.floor(B.floor / 2)) pool.push('gum'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing('donut'); bigIntro(); }
   if (B.bossAt > 0 && B.t >= B.bossAt && !B.big) { B.big = spawnRing('boss'); bigIntro(); }
@@ -734,7 +775,7 @@ function update(dt) {
     if (f.slow > 0) f.slow -= dt; if (f.stun > 0) f.stun -= dt;
     if (f.acid > 0) { f.acidT -= dt; if (f.acidT <= 0) { f.acidT = 0.5; const d = f.acid * 0.9; f.hp -= d * B.st.dmg; { const D = run.dmg || (run.dmg = {}); D.acid = (D.acid || 0) + d * B.st.dmg; } f.acid = Math.max(0, f.acid - 0.5); textAdd(f.x, f.y - f.r, Math.round(d), '#7FA81E'); if (f.hp <= 0) { killFoe(f, null); continue; } } }
     let busy = false;
-    if (f.type === 'boss') bossThink(f, dt); else if (f.type === 'donut') busy = eliteThink(f, dt);
+    if (f.type === 'boss') bossThink(f, dt); else if (f.type === 'donut') busy = eliteThink(f, dt); else if (FOES[f.type].ai) busy = foeAI(f, dt, FOES[f.type].ai);
     const dx = p.x - f.x, dy = p.y - f.y, m = Math.hypot(dx, dy) || 1;
     if (f.sq > 0) f.sq = Math.max(0, f.sq - dt * 3);
     if (f.kx || f.ky) { f.x += f.kx * dt; f.y += f.ky * dt; const dec = Math.exp(-dt * 11); f.kx *= dec; f.ky *= dec; if (Math.abs(f.kx) + Math.abs(f.ky) < 8) f.kx = f.ky = 0; }
@@ -767,7 +808,7 @@ function update(dt) {
   for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; hurtFoe(f, z.dmg, z.w, 0.001, 0.001); } } }
   B.zones = B.zones.filter(z => z.life > 0);
   /* 적의 탄 */
-  for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + HERO_R * 0.85) ** 2) { hurtPlayer('shot'); s.life = 0; } }
+  for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + HERO_R * 0.85) ** 2) { hurtPlayer(s.gum ? 'gum' : 'shot'); s.life = 0; } }
   B.foeShots = B.foeShots.filter(s => s.life > 0);
   for (const t of B.telegraphs) t.life -= dt; B.telegraphs = B.telegraphs.filter(t => t.life > 0 && !(t.f && t.f.dead));
   B.foes = B.foes.filter(f => !f.dead);
@@ -806,9 +847,9 @@ function bigIntro() { if (B.big.type === 'boss' && !headless) music('boss'); toa
 function autopilot() {
   const p = B.p; let x = 0, y = 0;
   for (const f of B.foes) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1, reach = 120 + f.r; if (d < reach) { const k = (reach - d) / reach; x += dx / d * k * 2; y += dy / d * k * 2; } }
-  for (const s of B.foeShots) { const dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1; if (d < 70) { x += dx / d; y += dy / d; } }
+  for (const s of B.foeShots) { const dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy) || 1; if (d < 110) { const sv = Math.hypot(s.vx, s.vy) || 1, side = (dx * -s.vy + dy * s.vx) / sv >= 0 ? 1 : -1; x += -s.vy / sv * side * 2.5 + dx / d; y += s.vx / sv * side * 2.5 + dy / d; } }
   for (const t of B.telegraphs) if (t.k === 'line') { const c = Math.cos(t.a), sn = Math.sin(t.a), rx = p.x - t.f.x, ry = p.y - t.f.y, along = rx * c + ry * sn, side = -rx * sn + ry * c; if (along > -30 && along < t.len + 60 && Math.abs(side) < t.f.r + 50) { const sg = side >= 0 ? 1 : -1; x += -sn * sg * 4; y += c * sg * 4; } }
-  for (const s of B.foes) if (s.type === 'donut' && s.st === 2) { const c = Math.cos(s.da), sn = Math.sin(s.da), rx = p.x - s.x, ry = p.y - s.y, side = -rx * sn + ry * c; if (rx * c + ry * sn > 0 && Math.abs(side) < s.r + 50) { const sg = side >= 0 ? 1 : -1; x += -sn * sg * 4; y += c * sg * 4; } }
+  for (const s of B.foes) if ((s.type === 'donut' || s.type === 'churro') && s.st === 2) { const c = Math.cos(s.da), sn = Math.sin(s.da), rx = p.x - s.x, ry = p.y - s.y, side = -rx * sn + ry * c; if (rx * c + ry * sn > 0 && Math.abs(side) < s.r + 50) { const sg = side >= 0 ? 1 : -1; x += -sn * sg * 4; y += c * sg * 4; } }
   for (const t of B.telegraphs) if (t.k === 'circle') { const dx = p.x - t.x, dy = p.y - t.y, d = Math.hypot(dx, dy) || 1; if (d < t.r + 30) { x += dx / d * 3; y += dy / d * 3; } }
   let g = null, gd = 300 * 300; for (const q of B.gems) { const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < gd) { gd = d; g = q; } }
   if (g) { const dx = g.x - p.x, dy = g.y - p.y, d = Math.hypot(dx, dy) || 1; x += dx / d * 1.1; y += dy / d * 1.1; }
@@ -950,7 +991,7 @@ function draw() {
     if (s.k === 'star') { const big = Math.floor(B.t * 12 + s.x) % 2; R(INK, sx - 2, sy - 2, 5, 5); if (big) { R(col, sx - 2, sy, 5, 1); R(col, sx, sy - 2, 1, 5); R('#FFFFFF', sx, sy, 1, 1); } else { R(col, sx - 1, sy - 1, 3, 3); R('#FFFFFF', sx - 1, sy - 1, 1, 1); } }
     else { R(INK, sx - 1, sy - 2, 3, 5); R(INK, sx - 2, sy - 1, 5, 3); R(col, sx - 1, sy - 1, 3, 3); R(s.k === 'lemon' ? '#FFFFC0' : '#FFD9E6', sx - 1, sy - 1, 1, 1); }
   }
-  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#B14FE0', sx - 2, sy - 2, 5, 5); R('#F0C8FF', sx - 1, sy - 1, 2, 2); }
+  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R(s.gum ? '#FF8FD0' : '#B14FE0', sx - 2, sy - 2, 5, 5); R(s.gum ? '#FFFFFF' : '#F0C8FF', sx - 1, sy - 1, 2, 2); }
   /* 던진 초코 폭탄, 떨어지는 지팡이 사탕 */
   for (const L of B.lobs) {
     const k = Math.max(0, Math.min(1, L.t / L.dur)), tx0 = X(L.x), ty0 = Y(L.y);
@@ -1051,7 +1092,16 @@ function pauseSheet() {
 $('#btnPause').addEventListener('click', pauseSheet);
 
 /* ═════ 화면과 카드 창 ═════ */
-function show(id) { ['title', 'map', 'battle'].forEach(s => { $('#' + s).hidden = s !== id; }); if (!headless) music(id === 'battle' ? 'battle' : 'map'); }
+function show(id) { ['title', 'map', 'battle'].forEach(s => { $('#' + s).hidden = s !== id; }); if (!headless) music(id === 'battle' ? 'battle' : 'map'); if (id !== 'title' && !headless) armBack(); }
+/* 안드로이드 뒤로 가기: 게임이 꺼지는 대신 창 닫기 → 일시정지 → 메뉴. 처음 화면에서는 그대로 나가요 */
+function armBack() { try { if (!(history.state && history.state.g)) history.pushState({ g: 1 }, ''); } catch (e) {} }
+addEventListener('popstate', () => {
+  const scr = ['title', 'map', 'battle'].find(s => !$('#' + s).hidden);
+  if (scr === 'title' && overlay.hidden) return;
+  armBack();
+  if (!overlay.hidden) { const c = cardEl.querySelector('[data-act="close"],[data-act="leave"]'); if (c) c.click(); return; }
+  if (scr === 'battle') { if (B && !B.over) pauseSheet(); } else if (scr === 'map') menuSheet(true);
+});
 const overlay = $('#overlay'), cardEl = $('#card');
 let onCard = null;
 function sheet(html, handler) { cardEl.className = 'card'; cardEl.innerHTML = html; overlay.hidden = false; onCard = handler; cardEl.scrollTop = 0; }

@@ -71,9 +71,9 @@ img,canvas,.pxi{image-rendering:pixelated}
 .chip{display:flex; align-items:center; gap:4px; min-height:30px; padding:2px 8px; background:var(--bg); box-shadow:var(--box)}
 .chip:empty{display:none}
 .chip i{display:block; width:21px; height:21px}
-.mini-btn{min-height:40px; padding:0 8px; white-space:nowrap; font-size:15px; color:var(--ink); background:var(--panel)}
-.relics{display:flex; gap:12px; flex-wrap:wrap; min-height:36px; padding-left:3px}
-.relic{width:36px; height:36px; padding:4px; background:var(--panel-2); box-shadow:0 0 0 3px var(--gold)}
+.mini-btn{min-height:44px; padding:0 8px; white-space:nowrap; font-size:15px; color:var(--ink); background:var(--panel)}
+.relics{display:flex; gap:12px; flex-wrap:wrap; min-height:44px; padding-left:3px}
+.relic{width:44px; height:44px; padding:6px; background:var(--panel-2); box-shadow:0 0 0 3px var(--gold)}
 
 /* 지도 */
 .map{position:relative; flex:1; min-height:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; background:var(--panel) radial-gradient(var(--panel-2) 1.5px,transparent 2px) 0 0/12px 12px}
@@ -110,7 +110,7 @@ img,canvas,.pxi{image-rendering:pixelated}
 .lv{flex:none; font-family:var(--font-sign); font-size:18px; line-height:1; padding:4px 8px 2px; background:#3E8EDE; box-shadow:var(--box)}
 .lv.pop{animation:lvPop .5s steps(5)}
 @keyframes lvPop{0%,60%{transform:scale(1.6); background:var(--gold); color:var(--bg)}100%{transform:none}}
-.pause{pointer-events:auto; width:42px; height:42px; font-size:18px; color:var(--ink); background:var(--panel)}
+.pause{pointer-events:auto; width:46px; height:46px; font-size:18px; color:var(--ink); background:var(--panel)}
 .potion{width:30px; height:30px}
 .hearts{display:flex; gap:6px}
 .hearts i{display:block; width:27px; height:27px}
@@ -216,7 +216,7 @@ img,canvas,.pxi{image-rendering:pixelated}
 .tl line.on{stroke:var(--gold); stroke-dasharray:none}
 .tn{position:absolute; width:48px; height:48px; margin:-24px 0 0 -24px; padding:6px; background:var(--bg); box-shadow:0 0 0 3px var(--edge), 0 6px 0 3px var(--dark)}
 .tn .ti{display:block; width:100%; height:100%}
-.tn .tr{position:absolute; left:50%; bottom:-14px; transform:translateX(-50%); padding:0 4px; font-family:var(--font-sm); font-size:12px; line-height:15px; color:var(--ink); background:var(--dark); white-space:nowrap}
+.tn .tr{position:absolute; left:50%; bottom:-14px; transform:translateX(-50%); padding:0 4px; font-family:var(--font-sm); font-size:14px; line-height:17px; color:var(--ink); background:var(--dark); white-space:nowrap}
 .tn.lock{opacity:.45}
 .tn.can{box-shadow:0 0 0 3px var(--cyan), 0 6px 0 3px var(--dark)}
 .tn.got{background:var(--panel-2)}
