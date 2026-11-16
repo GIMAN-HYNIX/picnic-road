@@ -645,13 +645,13 @@ function fireWeapons(dt) {
     }
     if (w.cd > 0) continue;
     if (w.id === 'pin') {
-      const R = 92 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
+      const R = 108 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
       if (!t) { w.cd = 0.15; continue; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = [a]; w.cd = 0.7;
       for (const g of nearFoes(R + 40, 12)) { if (dirs.length >= lv) break; const ga = Math.atan2(g.y - p.y, g.x - p.x); if (dirs.every(d => { let da = Math.abs(ga - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da > 0.9; })) dirs.push(ga); }   // 다른 적 쪽으로 먼저
       for (let i = 1; dirs.length < lv; i++) dirs.push(a + i * 6.283 / lv);
       accFire('pin', dirs.length); const hitDirs = new Set();
-      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); const fr = FOES[f.type].big ? f.r * 1.6 : f.r; if (m > R + fr && !(s10 && m < R * 1.7 + fr)) continue; dirs.forEach((d, di) => { let da = Math.abs(Math.atan2(dy, dx) - d) % 6.283; if (da > Math.PI) da = 6.283 - da; if (da < 1.1 && m <= R + fr) hitDirs.add(di); }); const fa = Math.atan2(dy, dx); const nIn = dirs.filter(d => { let da = Math.abs(fa - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da < 1.1; }).length, hitsN = Math.min(4, s10 ? Math.max(nIn, 3) : nIn); if (m <= R + fr && hitsN) { for (let h = 0; h < hitsN && !f.dead; h++) hurtFoe(f, 26, w, dx, dy, s5 ? 1.6 : 1); } else if (s10) hurtFoe(f, 14, w, dx, dy); }
+      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy); const fr = FOES[f.type].big ? f.r * 1.6 : f.r; if (m > R + fr && !(s10 && m < R * 1.7 + fr)) continue; dirs.forEach((d, di) => { let da = Math.abs(Math.atan2(dy, dx) - d) % 6.283; if (da > Math.PI) da = 6.283 - da; if (da < 1.1 && m <= R + fr) hitDirs.add(di); }); const fa = Math.atan2(dy, dx); const nIn = dirs.filter(d => { let da = Math.abs(fa - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da < 1.1; }).length, hitsN = Math.min(4, s10 ? Math.max(nIn, 3) : nIn); if (m <= R + fr && hitsN) { for (let h = 0; h < hitsN && !f.dead; h++) hurtFoe(f, 21, w, dx, dy, s5 ? 1.6 : 1); } else if (s10) hurtFoe(f, 14, w, dx, dy); }
       accHit('pin', s10 ? dirs.length : hitDirs.size);
       if (s10) { fxAdd({ k: 'spin', x: p.x, y: p.y, a, r: R, life: 0.3, max: 0.3 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: R * 0.8, to: R * 1.7, life: 0.3, max: 0.3, col: '#FFE1A8', w: 6 }); }
       else dirs.forEach(d => fxAdd({ k: 'arc', x: p.x, y: p.y, a: d, r: R, life: 0.22, max: 0.22 }));
@@ -664,7 +664,7 @@ function fireWeapons(dt) {
       sfx.shot();
     } else if (w.id === 'star') {
       const tg = nearestFoe(340), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 0.9;
-      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: 7, dmg: 26, pierce: 1, life: 1.0, w, hit: new Set(), aw: s10, bounce: s10 ? 3 : s5 ? 1 : 0 }); }
+      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: 7, dmg: 34, pierce: 1, life: 1.0, w, hit: new Set(), aw: s10, bounce: s10 ? 3 : s5 ? 1 : 0 }); }
       sfx.shot();
     } else if (w.id === 'skewer') {
       const tg = nearestFoe(360), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = lv, sp = s5 ? 560 : 430; w.cd = 1.4;
@@ -1522,6 +1522,14 @@ function renderTitle() {
   $('#btnPet').textContent = S.pet ? `펫 · ${PETS[S.pet].name.split(' ').pop()} Lv${petLv(S.pet)}` : '펫';
   $('#btnInstall').hidden = !installEvt || isInstalled; clearTimeout(newArmed); newArmed = 0;
 }
+/* 지금 버전: 서비스 워커 파일에 적힌 이름(sweet-xxxx)을 처음 화면 아래에 작게 보여 줘요 */
+fetch('sw.js', { cache: 'no-store' }).catch(() => fetch('sw.js')).then(r => r && r.text()).then(t => { const m = t && /sweet-([0-9a-f]+)/.exec(t); if (m) { window.__ver = m[1]; const e = $('#verTag'); if (e) e.textContent = '버전 ' + m[1].slice(0, 6); } }).catch(() => {});
+$('#verTag') && $('#verTag').addEventListener('click', async () => {
+  const e = $('#verTag'); e.textContent = '새 버전 확인 중…';
+  try { const r = await navigator.serviceWorker.getRegistration(); if (r) await r.update(); const t = await (await fetch('sw.js', { cache: 'no-store' })).text(), m = /sweet-([0-9a-f]+)/.exec(t);
+    if (m && window.__ver && m[1] !== window.__ver) { e.textContent = '새 버전을 받았어요. 다시 여는 중…'; setTimeout(() => location.reload(), 600); } else e.textContent = '최신 버전이에요 · ' + (window.__ver || '').slice(0, 6);
+  } catch (err) { e.textContent = '인터넷이 연결되면 확인할 수 있어요'; }
+});
 $('#btnContinue').addEventListener('click', () => { run = S.run; sfx.tap(); showMap(); });
 $('#btnTree').addEventListener('click', () => { sfx.tap(); treeSheet(() => renderTitle()); });
 $('#btnPet').addEventListener('click', () => { sfx.tap(); petSheet(() => renderTitle()); });
