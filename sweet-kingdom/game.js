@@ -687,7 +687,7 @@ function startBattle(kind, floor, onEnd, stg) {
   B = {
     kind, floor, act: actOf(), onEnd, t: 0, dur, st, paused: false, over: false,
     p: { x: 0, y: 0, hp: run.hp, max: run.maxHp, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: M('shield') > 0 || guardSec() > 0 },
-    legQ: [], foes: [], shots: [], foeShots: [], gems: [], magnets: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
+    legQ: [], foes: [], shots: [], foeShots: [], gems: [], magnets: [], bombs: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
     weapons: run.wpn.map(x => ({ id: x.id, lv: x.lv + capeP(x.id), src: x, cd: 0.3 + Math.random() * 0.6, ang: 0 })),
     lvl: run.lvl, xp: run.xp, need: needOf(run.lvl), kills: 0, spawnAcc: 0, shake: 0, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
     eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? (stg ? 45 : 180) : -1, g: (stg && stg.g) || [], bigType: stg && stg.boss, stageN: stg ? floorNo() : 0, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
@@ -843,10 +843,11 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
 function killFoe(f, w) {
   f.dead = true; B.kills++;
   if (B.st.rush) { B.rushN = Math.min(B.st.rush, (B.rushN || 0) + 1); B.rushT = 3; } if (B.st.killHaste && B.kills % 30 === 0) B.khT = 3;
-  if (G('split') && !f.mini && f !== B.big && f.type !== 'pop' && !FOES[f.type].big) for (let k = 0; k < 2; k++) { const m = spawnFoe(f.type, f.x + (k ? 12 : -12), f.y); m.mini = true; m.hp = m.max = f.max * 0.35; m.r = f.r * 0.7; m.sc = 0.7; m.xpK = 0.5; }
+  if (G('split') && !B.noSplit && !f.mini && f !== B.big && f.type !== 'pop' && !FOES[f.type].big) for (let k = 0; k < 2; k++) { const m = spawnFoe(f.type, f.x + (k ? 12 : -12), f.y); m.mini = true; m.hp = m.max = f.max * 0.35; m.r = f.r * 0.7; m.sc = 0.7; m.xpK = 0.5; }
   if (f.gold) for (let k = 0; k < 12; k++) { const a = Math.random() * 6.283, sp = rand(40, 130); B.gems.push({ gold: true, x: f.x, y: f.y, v: 4, pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); }
   const d = FOES[f.type], col = FOE_COL[f.type], big = f === B.big;
   if (!big && B.magnets.length < 6 && Math.random() < (1 + 0.3 * M('gold')) / 90) B.magnets.push({ x: f.x, y: f.y, ph: 0 });      // 가끔 자석을 떨어뜨려요 (여러 개가 같이 있을 수 있어요)
+  if (!big && B.bombs.length < 2 && !f.mini && Math.random() < 1 / 140) B.bombs.push({ x: f.x - 14, y: f.y, ph: 0 });      // 폭탄: 먹으면 일반 몬스터가 전부 터져요
   if (big) B.magnets.push({ x: f.x + 20, y: f.y, ph: 0 });
   const elite = ['donut', 'golem', 'knight'].includes(f.type);
   if (d.xp) { const n = big ? 6 : 1; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = big ? rand(60, 160) : rand(20, 60); B.gems.push({ gold: elite, x: f.x, y: f.y, v: big ? Math.ceil(d.xp / n) + 1 : elite ? 6 : d.xp * (f.xpK || 1), pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); } }
@@ -1232,6 +1233,9 @@ function update(dt) {
   /* 자석: 먹으면 화면 밖까지 모든 보석이 빨려 와요 */
   for (const m of B.magnets) { m.ph += dt * 5; if ((p.x - m.x) ** 2 + (p.y - m.y) ** 2 < 26 * 26) { m.got = true; for (const g of B.gems) { g.vz = null; g.z = 0; if (!g.pull) { g.pull = true; g.sp = 200; } } sfx.magnet(); if (!headless) { toast('자석! 보석이 전부 모여요'); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.5, max: 0.5, col: '#FF4F6B', w: 6 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: 200, life: 0.4, max: 0.4, col: '#FFFFFF', w: 4 }); } } }
   if (B.magnets.some(m => m.got)) B.magnets = B.magnets.filter(m => !m.got);
+  /* 폭탄: 먹으면 보스·엘리트를 뺀 모든 몬스터가 터져 사라져요 (경험치 보석은 그대로 나와요) */
+  for (const m of B.bombs) { m.ph += dt * 5; if ((p.x - m.x) ** 2 + (p.y - m.y) ** 2 < 26 * 26) { m.got = true; bombBlast(); } }
+  if (B.bombs.some(m => m.got)) B.bombs = B.bombs.filter(m => !m.got);
   /* 걸을 때 발밑 먼지 */
   if (p.moving && !headless) { B.dustT = (B.dustT || 0) - dt; if (B.dustT <= 0) { B.dustT = 0.16; fxAdd({ k: 'dot', x: p.x + rand(-6, 6), y: p.y + 2, vx: -p.dirX * 30 + rand(-15, 15), vy: rand(-30, -10), life: 0.4, max: 0.4, col: 'rgba(200,150,90,.55)', r: rand(3, 5) }); } }
   while (B.xp >= B.need && !B.over && !B.paused && !B.lvlPending) levelUp();
@@ -1241,6 +1245,12 @@ function update(dt) {
   if (B.shake > 0) B.shake -= dt; if (B.hsCool > 0) B.hsCool -= dt; if (B.heartPop > 0) B.heartPop -= dt;
   for (const s of B.shots) if (s.k !== 'skewer') { s.trail = s.trail || []; s.trail.push(s.x, s.y); if (s.trail.length > 10) s.trail.splice(0, 2); }
   if (!B.over && B.t >= B.dur) endBattle(true);
+}
+function bombBlast() {
+  const p = B.p; B.noSplit = true; let n = 0;
+  for (const f of B.foes.slice()) { if (f.dead || f === B.big || FOES[f.type].big) continue; f.hp = 0; killFoe(f, null); n++; }
+  B.noSplit = false; B.telegraphs = B.telegraphs.filter(t => !(t.f && t.f.dead));
+  if (!headless) { sfx.boom(); sfx.bigKill(); B.shake = Math.max(B.shake, 0.6); B.flashScr = { col: '255,240,200', t: 0.45, max: 0.45 }; B.hitstop = Math.max(B.hitstop, 0.1); toast(n ? `폭탄! 몬스터 ${n}마리가 사라졌어요` : '폭탄!'); for (const [r, w, c] of [[40, 8, '#FFFFFF'], [150, 7, '#FFD23F'], [330, 6, '#FF8A3D'], [560, 5, '#FF4F6B']]) fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: r, life: 0.5, max: 0.5, col: c, w }); burst(p.x, p.y - 20, '#FFD23F', 30, 420); }
 }
 function bigIntro() { if (!['donut', 'golem', 'knight'].includes(B.big.type) && !headless) music('boss'); toast(`${FOES[B.big.type].name} 등장!`); sfx.boss(); if (!headless) { $('#bossBar').hidden = false; $('#bossName').textContent = FOES[B.big.type].name; } }
 
@@ -1362,6 +1372,10 @@ function draw() {
     ctx.drawImage(dDisc(big ? 11 : 9, big ? 8 : 6, '#FF4F6B', 6), mx - (big ? 11 : 9), my - (big ? 8 : 6)); R('rgba(14,6,20,.5)', mx - 4, Y(m.y) + 2, 8, 1);
     R(INK, mx - 6, my - 6, 13, 12); R('#E8323C', mx - 5, my - 5, 11, 9); R(INK, mx - 2, my - 5, 5, 6); R('#DDE3EA', mx - 5, my + 2, 3, 2); R('#DDE3EA', mx + 3, my + 2, 3, 2); R('#FF9AA6', mx - 4, my - 4, 2, 1);
     if (big) pstar(mx + 6, my - 7, 2, '#FFFFFF'); }
+  /* 폭탄 아이템 */
+  for (const m of B.bombs) { const bx = X(m.x), by = Y(m.y) - 4 - Math.round(Math.abs(Math.sin(m.ph)) * 3), blink = Math.floor(B.t * 6) % 2;
+    ctx.drawImage(dDisc(blink ? 11 : 9, blink ? 9 : 7, '#FFB02E', 6), bx - (blink ? 11 : 9), by - (blink ? 9 : 7)); R('rgba(14,6,20,.5)', bx - 4, Y(m.y) + 2, 8, 1);
+    pdisc(bx, by + 1, 6, INK); pdisc(bx, by + 1, 5, '#3A3550'); R('#6A6890', bx - 3, by - 2, 2, 2); R(INK, bx + 2, by - 7, 2, 3); R('#C98A3C', bx + 1, by - 8, 2, 2); R(blink ? '#FFFFFF' : '#FFD23F', bx + 3, by - 10, 2, 2); if (blink) pstar(bx + 4, by - 10, 2, '#FFE066'); }
   /* 적과 나를 아래쪽에 있는 것부터 겹쳐 그려요 */
   const list = B.foes.slice(); list.push(p); list.sort((a, b) => a.y - b.y);
   for (const o of list) {
