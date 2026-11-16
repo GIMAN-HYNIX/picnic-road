@@ -1845,13 +1845,12 @@ function synthItem(mats) {
   run.inv = run.inv.filter(it => !mats.includes(it));
   const it = rollItem(n, g + 1, slot); it.g = g + 1; if (it.g < 3) it.sp = null; addItems([it]); return it;
 }
-/* 자동 합성: 고른 등급까지, 가방에서 지금 낀 것보다 좋지 않은 장비를 3개씩 묶어 저절로 합성해요 (같은 칸 3개를 먼저) */
+/* 자동 합성: 고른 등급 이하 장비를 가방에서 전부, 일반 → 희귀 → 유물 → 영웅 순서로 차근차근 3개씩 합성해요.
+   값 k(1~4) = 재료로 쓰는 가장 높은 등급이 k-1 (예: 2 = 희귀 이하). 합성 전에 낀 것보다 좋은 장비는 먼저 껴서 재료로 안 써요 */
 function autoSynth() {
-  const maxG = S.autoSynth || 0; if (!maxG || !run) return 0; let made = 0;
-  for (let g = 0; g < maxG; g++) for (let guard = 0; guard < 300; guard++) {
-    /* 칸마다 지금 낀 것보다 좋은 장비 가운데 제일 좋은 하나는 남겨 둬요 */
-    const keep = new Set(SLOTS.map(sl => (run.inv || []).filter(it => it.s === sl && betterThanWorn(it)).sort((a, b) => itemScore(b) - itemScore(a))[0]).filter(Boolean));
-    const pool = (run.inv || []).filter(it => it.g === g && !keep.has(it)); if (pool.length < 3) break;
+  const k = S.autoSynth || 0; if (!k || !run) return 0; let made = 0; autoEquip();
+  for (let g = 0; g < Math.min(k, 4); g++) for (let guard = 0; guard < 400; guard++) {
+    const pool = (run.inv || []).filter(it => it.g === g); if (pool.length < 3) break;
     const by = {}; for (const it of pool) (by[it.s] = by[it.s] || []).push(it);
     const grp = Object.values(by).find(l => l.length >= 3); synthItem((grp || pool).sort((a, b) => itemScore(a) - itemScore(b)).slice(0, 3)); made++;
   }
@@ -1864,7 +1863,7 @@ function synthSheet(back) {
     const same = sel.length === 3 && sel.every(m => m.s === sel[0].s);
     sheet(`<h2 id="cardTitle">장비 합성</h2><p>가방에서 <b>같은 등급 3개</b>를 고르면 한 등급 위 장비 1개가 돼요. 셋이 같은 칸이면 그 칸 장비가 나오고, 섞으면 아무 칸이나 나와요. 낀 장비는 재료로 못 써요.</p>
       <p class="eqsum">${[0, 1, 2, 3].map(k => `<i class="gn g${k}">${GRADES[k].name}</i> ${cnt[k]}개`).join(' · ')}</p>
-      <h3 class="sub3">자동 합성</h3><div class="tabs ctr">${[0, 1, 2, 3, 4].map(k => `<button class="tb${(S.autoSynth || 0) === k ? ' on' : ''}" type="button" data-act="autog" data-g="${k}">${k ? GRADES[k].name + '까지' : '끔'}</button>`).join('')}</div><p class="eqsum">${S.autoSynth ? `보상을 받을 때마다 ${GRADES[S.autoSynth].name} 등급이 될 때까지 저절로 합성해요. 칸마다 지금 낀 것보다 좋은 장비 하나는 남겨 둬요.` : '켜 두면 보상을 받을 때마다 저절로 합성해요.'}</p>
+      <h3 class="sub3">자동 합성</h3><div class="tabs ctr">${[0, 1, 2, 3, 4].map(k => `<button class="tb${(S.autoSynth || 0) === k ? ' on' : ''}" type="button" data-act="autog" data-g="${k}">${k ? GRADES[k - 1].name + ' 이하' : '끔'}</button>`).join('')}</div><p class="eqsum">${S.autoSynth ? `보상을 받을 때마다 가방의 <b>${GRADES[S.autoSynth - 1].name} 이하 장비를 전부</b> 3개씩 차근차근 합성해요 (${GRADES[S.autoSynth].name}까지 올라가요). 합성 전에 낀 것보다 좋은 장비는 먼저 껴요.` : '켜 두면 보상을 받을 때마다 고른 등급 이하 장비를 전부 저절로 합성해요.'}</p>
       <div class="synth">${[0, 1, 2].map(i => `<span class="sslot${sel[i] ? ' g' + sel[i].g : ''}">${sel[i] ? eqImg(sel[i]) : '?'}</span>`).join('<b>+</b>')}<b>→</b><span class="sslot res${g >= 0 ? ' g' + (g + 1) : ''}">${sel.length === 3 ? (same ? eqImg({ s: sel[0].s, g: g + 1, v: 0, fx: sel[0].fx, nm: '' }) : '?') : '?'}</span></div>
       <button class="cta" type="button" data-act="go"${sel.length === 3 ? '' : ' aria-disabled="true"'}>${sel.length === 3 ? `합성하기 → ${GRADES[g + 1].name} ${same ? SLOT[sel[0].s].name : '장비'}` : `재료 ${sel.length}/3`}</button>
       <button class="btn" type="button" data-act="quick">약한 것부터 자동으로 고르기</button>
