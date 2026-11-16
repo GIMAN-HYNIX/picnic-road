@@ -1514,9 +1514,17 @@ function gameOver(r) {
 let installEvt = null, newArmed = 0;
 const isInstalled = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 /* 카톡·네이버·인스타 같은 앱 안 브라우저에서는 설치가 안 돼요. 안드로이드면 크롬으로 바로 넘겨 줘요 */
-const UA = navigator.userAgent, inApp = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(UA), isAndroid = /Android/i.test(UA), isSamsung = /SamsungBrowser/i.test(UA);
+const UA = navigator.userAgent, inApp = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(UA), isAndroid = /Android/i.test(UA), isSamsung = /SamsungBrowser/i.test(UA), isIOS = /iPhone|iPad|iPod/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const chromeUrl = () => `intent://${location.host}${location.pathname}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
 function installHelp() {
+  if (isIOS) {      /* 아이폰: 사파리 공유 버튼 → 홈 화면에 추가 */
+    sheet(`<h2 id="cardTitle">홈 화면에 추가하기</h2><p>${inApp ? '지금은 <b>카카오톡 같은 앱 안의 브라우저</b>예요. 오른쪽 아래 점 세 개나 공유 버튼에서 <b>Safari로 열기</b>를 먼저 눌러 주세요.' : '아이폰은 <b>사파리</b>에서 하는 게 가장 확실해요.'}</p><div class="opts">
+      <div class="opt"><span class="tx"><b>1. 공유 버튼</b><span>화면 아래 가운데의 <b>공유 버튼</b>(네모에서 화살표가 위로 나온 모양)을 눌러요.</span></span></div>
+      <div class="opt"><span class="tx"><b>2. 홈 화면에 추가</b><span>목록을 아래로 내려서 <b>홈 화면에 추가</b>를 눌러요.</span></span></div>
+      <div class="opt"><span class="tx"><b>3. 추가</b><span>오른쪽 위 <b>추가</b>를 누르면 바탕화면에 아이콘이 생겨요. 그다음부터는 아이콘으로 열어 주세요. 사파리와 아이콘은 기록이 따로 저장돼요.</span></span></div>
+    </div><button class="btn" type="button" data-act="close">닫기</button>`, () => closeSheet());
+    return;
+  }
   const where = inApp ? '지금은 <b>카카오톡 같은 앱 안의 브라우저</b>로 열려 있어서 설치가 안 돼요. 아래 버튼으로 크롬에서 다시 열어 주세요.' : isSamsung ? '지금은 <b>삼성 인터넷</b>이에요.' : '지금은 <b>크롬</b>이에요.';
   const steps = isSamsung
     ? '<b>삼성 인터넷</b>: 아래쪽 줄 세 개 메뉴 → <b>현재 페이지 추가</b> → <b>홈 화면</b>. 안 되면 크롬으로 열어 주세요.'
