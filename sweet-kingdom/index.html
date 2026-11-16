@@ -269,6 +269,11 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
 .cos.on{box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink)}
 .cosrow.big .cos{width:84px; height:auto; gap:4px; padding:6px}
 .cosrow.big .cos img{height:64px; width:auto}
+.who{flex:1; display:flex; flex-direction:column; gap:4px} .who b{font-family:var(--font-sign); font-weight:400; font-size:24px; color:var(--gold)} .who span{font-size:14px; color:var(--ink-2)}
+.stats{display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin:10px 3px 0; padding:10px 12px; background:var(--bg); box-shadow:0 0 0 3px var(--edge)}
+.stats .st{display:flex; justify-content:space-between; gap:6px; font-size:14px} .stats .st span{color:var(--ink-2)} .stats .st b{font-family:var(--font-sign); font-weight:400; color:var(--ink); font-variant-numeric:tabular-nums} .stats .st b.hi{color:var(--green)}
+.opt.eqi.empty{box-shadow:0 0 0 3px var(--edge); opacity:.6}
+.opt.leg .tx{padding-top:14px} .opt.leg{background:repeating-linear-gradient(135deg,#6A1E5A 0 9px,#8A2A70 9px 18px)} .gn.lg{color:var(--gold)}
 .vertag{align-self:center; min-height:44px; padding:0 12px; font-family:var(--font-sm); font-size:13px; color:var(--ink-2); background:none; border:0; box-shadow:none; text-decoration:underline}
 .opt .tx span b,.card p b{display:inline; font-family:var(--font-sign); font-weight:400; font-size:inherit; color:var(--gold)}
 </style>
@@ -294,7 +299,7 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
 
 <section class="screen" id="map" hidden>
   <div class="col">
-    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">무기</button><button class="mini-btn" id="btnEq" type="button">장비</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
+    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">캐릭터</button><button class="mini-btn" id="btnEq" type="button">장비</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
     <div class="relics" id="relics"></div>
     <div class="map" id="mapBox"></div>
     <div class="info" id="info"></div>
