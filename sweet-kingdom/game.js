@@ -1040,8 +1040,8 @@ function gimGround() {
 }
 /* 화면 위에 덮는 기믹: 안개 */
 function gimOver() {
-  if (!G('fog') && !B.dark) return; const p = B.p, px = X(p.x), py = Y(p.y) - 10, r = 62 + (Math.floor(B.t * 3) % 2);
-  for (const [rr, a] of [[r + 12, 0.5], [r, 0.82]]) { ctx.fillStyle = `rgba(20,10,30,${a})`; ctx.beginPath(); ctx.rect(0, 0, lw, lh); ctx.moveTo(px + rr, py); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.closePath(); ctx.fill('evenodd'); }
+  if (!G('fog') && !B.dark) return; const p = B.p, px = X(p.x), py = Y(p.y) - 10, r = 93 + (Math.floor(B.t * 3) % 2);      /* 보이는 범위: 예전 62에서 1.5배 */
+  for (const [rr, a] of [[r + 18, 0.5], [r, 0.82]]) { ctx.fillStyle = `rgba(20,10,30,${a})`; ctx.beginPath(); ctx.rect(0, 0, lw, lh); ctx.moveTo(px + rr, py); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.closePath(); ctx.fill('evenodd'); }
 }
 let toastTimer = 0;
 function toast(t) { if (headless) return; const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { e.hidden = true; }, 2200); }
@@ -2130,7 +2130,10 @@ function upgradeItems() {
   o.iv = 2; run = was; persist();
 }
 function resetSheet() {
-  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">지우고 처음부터</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); renderTitle(); } });
+  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">캐릭터만 지우고 처음부터</button><button class="btn" type="button" data-act="all">전부 지우기 (트리·펫·꾸미기까지)</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); renderTitle(); } if (act === 'all') allResetSheet(); });
+}
+function allResetSheet() {      /* 완전 초기화: 이 기기의 저장을 통째로 지워요 */
+  sheet(`<h2 id="cardTitle">정말 전부 지울까요?</h2><p>레벨, 스테이지, 장비, 성장 트리, 하트, 펫, 꾸미기까지 이 기기의 기록이 모두 사라져요. 되돌릴 수 없어요.</p><button class="cta" type="button" data-act="yes">전부 지우기</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { try { localStorage.removeItem(KEY); } catch (_) {} location.reload(); } });
 }
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
@@ -2185,7 +2188,7 @@ function menuSheet(home) {
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
-    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : S.run ? row('reset', '처음부터 다시 시작', '캐릭터와 스테이지 기록을 지워요. 성장 트리, 펫, 꾸미기는 남아요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : row('reset', '처음부터 다시 시작 / 초기화', '캐릭터만 지우거나, 트리·펫·꾸미기까지 전부 지울 수 있어요.')) + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
     act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
