@@ -258,11 +258,11 @@ function foeStyle(src) {
   for (const i of edge) { d.data[i] = 150; d.data[i + 1] = 18; d.data[i + 2] = 52; d.data[i + 3] = 255; }
   q.putImageData(d, 0, 0); return c;
 }
-function heroStyle(src) {
+function heroStyle(src, ring0) {
   const w = src.width + 2, h = src.height + 2, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d');
   q.drawImage(src, 1, 1); const d = q.getImageData(0, 0, w, h), a = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? 0 : d.data[(y * w + x) * 4 + 3], ring = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!a(x, y) && (a(x - 1, y) || a(x + 1, y) || a(x, y - 1) || a(x, y + 1))) ring.push((y * w + x) * 4);
-  for (const i of ring) { d.data[i] = 255; d.data[i + 1] = 243; d.data[i + 2] = 214; d.data[i + 3] = 255; }
+  const rc = ring0 || [255, 243, 214]; for (const i of ring) { d.data[i] = rc[0]; d.data[i + 1] = rc[1]; d.data[i + 2] = rc[2]; d.data[i + 3] = 255; }
   q.putImageData(d, 0, 0); return c;
 }
 function pixelFoes() {
@@ -331,12 +331,19 @@ function composeHero(raw, eq, dye) {
       R(INK, 15, 0, 2, 1); for (const [y, a, b] of tiers) { R(INK, a - 1, y, b - a + 2, 2); R(r[0], a, y, b - a, 2); R(r[1], a, y + 1, b - a, 1); } R(INK, 6, 13, 20, 1); R('#FFFFFF', 13, 4); R('#FFFFFF', 11, 8); }
     if (v === 2) { R(INK, 4, 6, 24, 7); R(INK, 3, 8, 26, 3); R('#E3B36A', 5, 7, 22, 5); R('#E3B36A', 4, 9, 24, 1); R(r[1], 5, 7, 22, 2); R(r[1], 4, 9, 3, 1); R(r[1], 25, 9, 3, 1); for (const [x, y, col] of [[7, 7, '#FFFFFF'], [11, 8, '#59B8FF'], [15, 7, '#FFFFFF'], [19, 8, '#5CD66A'], [23, 7, '#FFFFFF']]) R(col, x, y); R(INK, 6, 12, 20, 1); }
     if (eq.helm.g >= 3) { R(INK, 15, v === 1 ? 0 : 1, 3, 4); R(r[0], 16, v === 1 ? 1 : 2, 1, 2); } }
+  /* 등급이 오를수록 화려해져요: 유물 투구 장식·장갑 보석, 영웅 어깨 보호대·신발 날개 */
+  if (eq.helm && eq.helm.g >= 2) { const r = ramp(eq.helm.g), v = V(eq.helm); if (v === 0) { for (const hx of [5, 24]) { R(INK, hx - 1, 2, 4, 5); R(r[0], hx, 3, 2, 3); } } else if (v === 1) { R(r[0], 6, 9); R(r[0], 25, 9); R('#FFFFFF', 6, 8); R('#FFFFFF', 25, 8); } else { R(INK, 24, 1, 4, 8); R(r[0], 25, 2, 2, 6); R('#FFFFFF', 25, 2); } }
+  if (eq.gloves && eq.gloves.g >= 2) { R('#FFFFFF', 4, 29); R('#FFFFFF', W - 5, 29); R(ramp(eq.gloves.g)[0], 4, 30); R(ramp(eq.gloves.g)[0], W - 5, 30); }
+  if (eq.armor && eq.armor.g >= 3) { const r = ramp(eq.armor.g); for (const sx of [3, W - 9]) { R(INK, sx, 21, 7, 4); R(r[0], sx + 1, 22, 5, 2); R(r[1], sx + 1, 24, 5, 1); } }
+  if (eq.shoes && eq.shoes.g >= 3) { const r = ramp(eq.shoes.g); for (const [wx, dx] of [[8, -1], [22, 1]]) { R(r[0], wx, 36, 2, 1); R('#FFFFFF', wx + dx, 35); R(r[0], wx + dx * 2, 34); } }
   for (const it of [eq.armor, eq.helm, eq.cape]) if (shine(it)) { R('#FFFFFF', 13, 27); R('#FFFFFF', 22, 5); R('#FFFFFF', 4, 33); break; }
   return c;
 }
+/* 세트 효과 모습: 장비를 4칸 이상 끼고 모두 유물 이상이면 몸 테두리가 등급 색으로 빛나요 (영웅 이상은 발밑에 오라) */
+function setGrade(eq) { const l = SLOTS.map(s => eq[s]).filter(Boolean); return l.length >= 4 ? Math.min(...l.map(i => i.g)) : -1; }
 function buildHero() {
-  if (!HERO_RAW) return; const im = heroStyle(composeHero(HERO_RAW, run ? eqOf() : {}, S.heroCos));
-  IMG.hero = { im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im); IMG.hero.whites = IMG.hero.frames.map(whiteOf); heroUrlC = null;
+  if (!HERO_RAW) return; const eq = run ? eqOf() : {}, sg = setGrade(eq), rc = sg >= 2 ? (h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)])(GRADES[sg].ramp[0]) : null, im = heroStyle(composeHero(HERO_RAW, eq, S.heroCos), rc);
+  IMG.hero = { aura: sg >= 3 ? GRADES[sg].ramp[1] : null, auraG: sg, im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im); IMG.hero.whites = IMG.hero.frames.map(whiteOf); heroUrlC = null;
 }
 function heroDirty() { buildHero(); }
 function heroUrl(k = 4) { if (heroUrlC && heroUrlC.k === k) return heroUrlC.u; const s = IMG.hero && IMG.hero.im; if (!s) return 'img/hero.png'; const c = mk(s.width * k, s.height * k), q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); heroUrlC = { k, u: c.toDataURL() }; return heroUrlC.u; }
@@ -1406,6 +1413,7 @@ function draw() {
   for (const o of list) {
     if (o === p) {
       const px = X(p.x), py = Y(p.y);
+      if (IMG.hero && IMG.hero.aura) { const pu = 1 + 0.12 * Math.sin(B.t * 5); putDisc(px, py + 1, Math.round(26 * pu), Math.round(10 * pu), IMG.hero.aura, 9); if (IMG.hero.auraG >= 4 && Math.floor(B.t * 8) % 2) pstar(px + Math.round(Math.sin(B.t * 3) * 14), py - 14 - Math.round((B.t * 18) % 22), 1, '#FFFFFF'); }
       putDisc(px, py + 1, 16, 6, '#8A5A7A', 6); R('rgba(14,6,20,.55)', px - 7, py, 14, 2); R('rgba(14,6,20,.55)', px - 5, py + 2, 10, 1);
       if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 4, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
       if (p.shield) pcircle(px, py - 12, 17, Math.floor(B.t * 6) % 2 ? '#7FE3FF' : '#FFFFFF');
