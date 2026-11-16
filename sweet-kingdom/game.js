@@ -541,39 +541,208 @@ const RELICS = {
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
 /* 전설 스킬: Lv10 무기의 조각을 10개 모으면 무기가 전설로 바뀌어 커다란 기술이 주기적으로 터져요 */
 const LEG = {
-  pin: { name: '천지 가르기', desc: '거대한 롤링핀을 두 바퀴 휘둘러 화면의 적을 쓸어버려요.', cd: 5 },
-  cream: { name: '휘핑 해일', desc: '크림 파도가 세 겹으로 퍼져 나가며 적을 덮치고 느리게 해요.', cd: 6 },
-  star: { name: '별똥별 소나기', desc: '하늘에서 별똥별 14개가 적에게 쏟아져 터져요.', cd: 5.5 },
-  macaron: { name: '마카롱 은하', desc: '커다란 마카롱 8개가 몸 주위에 차례로 떨어지며 폭발해요.', cd: 4.5 },
-  honey: { name: '꿀 폭포', desc: '머리 위에서 꿀이 쏟아져 넓은 꿀 바다가 나를 따라다녀요.', cd: 7 },
-  lemon: { name: '레몬 폭풍', desc: '화면 안의 모든 적에게 산성을 잔뜩 쌓고 곳곳에서 터뜨려요.', cd: 6 },
-  skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 꿰뚫고 지나가요.', cd: 4.5 },
-  choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 초코 운석이 떨어져요.', cd: 6 },
-  cotton: { name: '심판의 빛', desc: '하늘에서 빛기둥 10개가 내리꽂혀 적을 태워요.', cd: 5 },
-  cane: { name: '지팡이 대폭격', desc: '지팡이 사탕 12개가 나를 둥글게 감싸며 내리꽂혀요.', cd: 5 }
+  pin: { name: '천지 가르기', desc: '화면을 가로지르는 거대한 베기가 세 번 이어지고, 마지막에 큰 충격파가 터져요.', cd: 5 },
+  cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 6 },
+  star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 5.5 },
+  macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 4.5 },
+  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 넓은 꿀 바다가 나를 따라다녀요.', cd: 7 },
+  lemon: { name: '레몬 폭풍', desc: '모든 적에게 산성을 쌓고, 초록 회오리 세 개가 적을 찾아 휩쓸어요.', cd: 6 },
+  skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 두 번 꿰뚫고 지나가요.', cd: 4.5 },
+  choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 운석이 떨어져 큰 폭발과 용암을 남겨요.', cd: 6 },
+  cotton: { name: '심판의 빛', desc: '하늘이 갈라지며 화면 전체에 빛이 내려 모든 적을 태워요.', cd: 5 },
+  cane: { name: '지팡이 대폭격', desc: '거대한 지팡이 사탕이 두 겹으로 내리꽂히고, 마지막에 초대형 한 방이 떨어져요.', cd: 5 }
 };
 const LEG_N = 10;
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 const isLeg = id => !!(run && run.leg && run.leg[id]);
 const legLater = (t, f) => B.legQ.push({ t, f });
+/* ═════ 전설 연출: 기 모으기 → 화면이 어두워지고 → 스킬마다 전용 대형 기술이 터져요 ═════ */
+const legK = () => Math.max(1, ((1 + 0.92 * Math.pow(B.floor, 0.8)) * lateMul()) / 5.9);      /* 전설 데미지는 그 스테이지 몬스터 체력에 맞춰 같이 커져요 (적을 확확 밀어버리는 맛) */
+const lfxAdd = o => { if (!headless) B.lfx.push(o); return o; };
+const legTick = (t0, dur, step, fn) => { for (let t = 0; t <= dur + 1e-6; t += step) legLater(t0 + t, () => fn(t / dur)); };
+const LEGW = 0.32;      /* 기 모으는 시간 */
 function castLeg(w) {
-  const p = B.p, id = w.id, big = (x, y, r, d, col) => blast(x, y, r, d, { id, noAcc: true }, col), onScreen = () => B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw * 0.55 && Math.abs(f.y - p.y) < vh * 0.55);
-  if (!headless) { sfx.boss(); B.shake = Math.max(B.shake, 0.3); textAdd(p.x, p.y - 70, LEG[id].name + '!', '#FFD23F', true); }
-  if (id === 'pin') { for (const k of [0, 0.22]) legLater(k, () => { big(p.x, p.y, 300, 230, '#FFD86B'); fxAdd({ k: 'spin', x: p.x, y: p.y + 12, r: 300, a: Math.random() * 6.28, life: 0.3, max: 0.3 }); fxAdd({ k: 'spin', x: p.x, y: p.y + 12, r: 220, a: Math.random() * 6.28, life: 0.3, max: 0.3 }); B.flashScr = { col: '255,240,200', t: 0.2, max: 0.2 }; }); }
-  if (id === 'cream') [140, 230, 320].forEach((r, i) => legLater(i * 0.18, () => { big(p.x, p.y, r, 130, '#FFFFFF'); for (const f of B.foes) if (!f.dead && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < r * r) f.slow = 2; fxAdd({ k: 'ring', x: p.x, y: p.y, r: r * 0.6, to: r, life: 0.35, max: 0.35, col: '#FFF3E6', w: 10 }); }));
-  if (id === 'star') { const t = shuffle(onScreen()).slice(0, 14); for (let i = 0; i < 14; i++) legLater(i * 0.07, () => { const f = t[i % Math.max(1, t.length)], a = Math.random() * 6.283, x = f ? f.x : p.x + Math.cos(a) * 160, y = f ? f.y : p.y + Math.sin(a) * 160; fxAdd({ k: 'beam', x, y, life: 0.35, max: 0.35 }); big(x, y, 64, 190, '#FFD23F'); }); }
-  if (id === 'macaron') for (let i = 0; i < 8; i++) legLater(i * 0.06, () => { const a = i * 0.785 + B.t, x = p.x + Math.cos(a) * 160, y = p.y + Math.sin(a) * 160; big(x, y, 76, 170, '#FF8FB8'); fxAdd({ k: 'pop', x, y, r: 40, life: 0.3, max: 0.3, col: '#FF8FB8' }); });
-  if (id === 'honey') { big(p.x, p.y, 240, 110, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 210, life: 3.5, tick: 0, dmg: 28, w, follow: true, leg: true }); fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.6, max: 0.6 }); }
-  if (id === 'lemon') { const t = onScreen(); for (const f of t) { f.acid = Math.min((f.acid || 0) + 30, 90); f.flash = 0.1; } shuffle(t).slice(0, 10).forEach((f, i) => legLater(i * 0.05, () => big(f.x, f.y, 52, 80, '#B9DD52'))); B.flashScr = { col: '200,240,90', t: 0.25, max: 0.25 }; }
-  if (id === 'skewer') { for (let i = 0; i < 16; i++) { const a = i * 0.3927, c = Math.cos(a), sn = Math.sin(a); for (const f of B.foes) { if (f.dead) continue; const rx = f.x - p.x, ry = f.y - p.y, al = rx * c + ry * sn; if (al > 0 && al < 460 && Math.abs(-rx * sn + ry * c) < 22 + f.r) hurtFoe(f, 170, { id }, c, sn); } fxAdd({ k: 'ray', x: p.x, y: p.y - 10, a, len: 460, life: 0.3, max: 0.3, col: '#FF9A1F' }); } }
-  if (id === 'choco') { let best = null, bn = -1; for (const f of onScreen()) { let n = 0; for (const g of B.foes) if (!g.dead && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 150 * 150) n++; if (n > bn) { bn = n; best = f; } } const x = best ? best.x : p.x, y = best ? best.y : p.y - 120; fxAdd({ k: 'ring', x, y, r: 190, to: 30, life: 0.55, max: 0.55, col: '#FFD23F', w: 6 }); fxAdd({ k: 'beam', x, y, life: 0.55, max: 0.55 }); legLater(0.55, () => { big(x, y, 190, 420, '#6B3A1E'); for (let k = 0; k < 6; k++) { const a = k * 1.047; big(x + Math.cos(a) * 150, y + Math.sin(a) * 150, 70, 140, '#A0663C'); } B.flashScr = { col: '255,200,140', t: 0.3, max: 0.3 }; B.shake = Math.max(B.shake, 0.6); }); }
-  if (id === 'cotton') { const t = shuffle(onScreen()).slice(0, 10); for (let i = 0; i < 10; i++) legLater(i * 0.09, () => { const f = t[i % Math.max(1, t.length)], a = Math.random() * 6.283, x = f ? f.x : p.x + Math.cos(a) * 180, y = f ? f.y : p.y + Math.sin(a) * 180; fxAdd({ k: 'beam', x, y, life: 0.5, max: 0.5 }); fxAdd({ k: 'beam', x: x + 3, y, life: 0.5, max: 0.5 }); big(x, y, 72, 230, '#FFF6C0'); }); legLater(0, () => { B.flashScr = { col: '255,246,192', t: 0.5, max: 0.5 }; }); }
-  if (id === 'cane') for (let i = 0; i < 12; i++) legLater(i * 0.05, () => { const a = i * 0.5236, x = p.x + Math.cos(a) * 180, y = p.y + Math.sin(a) * 180; B.lobs.push({ k: 'cane', x, y, r: 76, t: 0, dur: 0.35, dmg: 170, w: { id, noAcc: true } }); });
+  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * legK();
+  const big = (x, y, r, d, col) => blast(x, y, r, D(d), { id, noAcc: true }, col);
+  const alive = () => B.foes.filter(f => !f.dead), onScreen = () => B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw * 0.58 && Math.abs(f.y - p.y) < vh * 0.58);
+  const rnd = (t, a) => t.length ? t[(Math.random() * t.length) | 0] : null;
+  if (!headless) { sfx.boss(); B.cin = { t: 0, max: W + 1.5, name: LEG[id].name }; lfxAdd({ k: 'charge', life: W, max: W }); }
+  const at = (t, f) => legLater(W + t, f), shake = s => { B.shake = Math.max(B.shake, s); }, flash = (c, t) => { B.flashScr = { col: c, t, max: t }; };
+  if (id === 'pin') {      /* 히어로 브랜디쉬: 화면을 가로지르는 세 번의 거대한 베기 */
+    [[0.62, 0, 540, 96], [-0.62, 0.17, 540, 96], [0.03, 0.34, 620, 130]].forEach(([a, t, len, T]) => at(t, () => {
+      const px = p.x, py = p.y, c = Math.cos(a), s = Math.sin(a); lfxAdd({ k: 'slash', x: px, y: py, a, len, bow: a === 0.03 ? 90 : 60, T, life: 0.42, max: 0.42 }); shake(0.35);
+      for (const f of alive()) { const rx = f.x - px, ry = f.y - py; if (Math.abs(rx * c + ry * s) < len && Math.abs(-rx * s + ry * c) < T * 0.5 + f.r) hurtFoe(f, D(a === 0.03 ? 330 : 260), { id, noAcc: true }, c, s); }
+      flash('255,240,200', 0.12);
+    }));
+    at(0.5, () => { big(p.x, p.y, 380, 320, '#FFD86B'); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
+  }
+  if (id === 'cream') {      /* 휘핑 해일: 화면 끝에서 끝까지 쓸고 가는 크림 파도 두 번 */
+    [[-1, 0], [1, 0.62]].forEach(([dir, t]) => at(t, () => {
+      const x0 = p.x - dir * vw * 0.62, sp = vw * 1.3 / 0.95, hit = new Set(); lfxAdd({ k: 'wave', x0, dir, sp, y: p.y, life: 1.0, max: 1.0, vw }); shake(0.3);
+      legTick(0, 0.95, 0.05, u => { const xw = x0 + dir * sp * 0.95 * u; for (const f of alive()) if (!hit.has(f) && Math.abs(f.x - xw) < 80 && Math.abs(f.y - p.y) < vh * 0.62) { hit.add(f); hurtFoe(f, D(250), { id, noAcc: true }, dir, 0); f.slow = 3; } });
+    }));
+  }
+  if (id === 'star') {      /* 별똥별 소나기 → 마지막에 거대한 별 */
+    for (let i = 0; i < 22; i++) at(i * 0.055, () => {
+      const f = rnd(onScreen()), a = Math.random() * 6.283, x = f ? f.x + (Math.random() - 0.5) * 30 : p.x + Math.cos(a) * 200, y = f ? f.y : p.y + Math.sin(a) * 200;
+      lfxAdd({ k: 'meteor', x, y, dx: 150, dy: -320, life: 0.3, max: 0.3, cols: ['#FFB020', '#FFE27A', '#FFFFFF'], r: 3 }); legLater(0.3, () => { big(x, y, 82, 240, '#FFD23F'); lfxAdd({ k: 'pop', x, y, r: 50, life: 0.3, max: 0.3, col: '#FFD23F' }); });
+    });
+    at(1.35, () => { let best = p, bn = -1; for (const f of onScreen()) { let n = 0; for (const g of B.foes) if (!g.dead && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 170 * 170) n++; if (n > bn) { bn = n; best = f; } } const x = best.x, y = best.y;
+      lfxAdd({ k: 'meteor', x, y, dx: 200, dy: -440, life: 0.4, max: 0.4, cols: ['#FF9A1F', '#FFE27A', '#FFFFFF'], r: 14 }); legLater(0.4, () => { big(x, y, 250, 520, '#FFD23F'); lfxAdd({ k: 'ring', x, y, r: 20, to: 250, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'pop', x, y, r: 120, life: 0.45, max: 0.45, col: '#FFD23F' }); shake(0.8); flash('255,240,180', 0.25); }); });
+  }
+  if (id === 'macaron') {      /* 마카롱 은하: 몸 주위로 소용돌이가 번지며 적을 끌어당겨 터뜨려요 */
+    const T = 1.5; at(0, () => lfxAdd({ k: 'galaxy', life: T, max: T }));
+    legTick(W, T, 0.1, u => { const rr = 60 + u * 330; for (const f of alive()) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1; if (d < 460) { f.x += dx / d * 24; f.y += dy / d * 24; } if (Math.abs(d - rr) < 80) hurtFoe(f, D(95), { id, noAcc: true }, -dx, -dy); } });
+    at(T, () => { big(p.x, p.y, 360, 400, '#FF8FB8'); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 360, life: 0.4, max: 0.4, col: '#FF8FB8', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 280, life: 0.45, max: 0.45, col: '#C77DFF', w: 10 }); shake(0.7); flash('255,200,230', 0.25); });
+  }
+  if (id === 'honey') {      /* 꿀 폭포: 하늘에서 쏟아지는 꿀 기둥, 그 뒤로 꿀 바다 */
+    at(0, () => { lfxAdd({ k: 'fall', x: p.x, y: p.y, life: 0.9, max: 0.9 }); });
+    at(0.28, () => { big(p.x, p.y, 270, 220, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 230, life: 4, tick: 0, dmg: D(45), w, follow: true, leg: true }); shake(0.5); flash('255,210,100', 0.2); });
+  }
+  if (id === 'lemon') {      /* 레몬 폭풍: 초록 회오리 세 개가 적을 찾아 휩쓸어요 */
+    at(0, () => { for (const f of onScreen()) { f.acid = Math.min((f.acid || 0) + 40, 90); f.flash = 0.1; } flash('200,240,90', 0.25);
+      const T = 1.7, ts = shuffle(onScreen()).slice(0, 3); while (ts.length < 3) ts.push({ x: p.x + (Math.random() - 0.5) * 300, y: p.y + (Math.random() - 0.5) * 300 });
+      ts.forEach((f, i) => { const tw = { k: 'twister', x: f.x, y: f.y, seed: i * 2.1, life: T, max: T }; lfxAdd(tw);
+        legTick(0, T, 0.12, u => { let b = null, bd = 1e9; for (const g of alive()) { const d = (g.x - tw.x) ** 2 + (g.y - tw.y) ** 2; if (d < bd) { bd = d; b = g; } } if (b) { const d = Math.sqrt(bd) || 1; tw.x += (b.x - tw.x) / d * 24; tw.y += (b.y - tw.y) / d * 24; }
+          for (const g of alive()) if ((g.x - tw.x) ** 2 + (g.y - tw.y) ** 2 < (130 + g.r) ** 2) { hurtFoe(g, D(55), { id, noAcc: true }, g.x - tw.x, g.y - tw.y); g.acid = Math.min((g.acid || 0) + 10, 90); } });
+        legLater(T, () => big(tw.x, tw.y, 150, 220, '#B9DD52')); }); });
+  }
+  if (id === 'skewer') {      /* 꼬치 소나기: 거대한 꼬치가 사방으로 두 번 꿰뚫고 지나가요 */
+    [0, 0.3].forEach((t, v) => at(t, () => { const px = p.x, py = p.y; shake(0.35);
+      for (let i = 0; i < 16; i++) { const a = i * 0.3927 + v * 0.196, c = Math.cos(a), s = Math.sin(a); lfxAdd({ k: 'spear', x: px, y: py - 10, a, len: 560, life: 0.38, max: 0.38, col: v ? '#FF5A3D' : '#FF9A1F' });
+        for (const f of alive()) { const rx = f.x - px, ry = f.y - py, al = rx * c + ry * s; if (al > 0 && al < 560 && Math.abs(-rx * s + ry * c) < 30 + f.r) hurtFoe(f, D(230), { id, noAcc: true }, c, s); } }
+      lfxAdd({ k: 'ring', x: px, y: py, r: 10, to: 120, life: 0.3, max: 0.3, col: '#FFFFFF', w: 8 }); }));
+  }
+  if (id === 'choco') {      /* 초코 메테오: 경고 표시 → 거대한 운석 → 큰 폭발과 용암 */
+    let best = null, bn = -1; at(0, () => { for (const f of onScreen()) { let n = 0; for (const g of B.foes) if (!g.dead && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 170 * 170) n++; if (n > bn) { bn = n; best = f; } }
+      const x = best ? best.x : p.x, y = best ? best.y : p.y - 120; lfxAdd({ k: 'warn', x, y, r: 230, life: 0.85, max: 0.85 }); lfxAdd({ k: 'meteor', x, y, dx: 260, dy: -560, life: 0.85, max: 0.85, cols: ['#7A2E10', '#FF7A1F', '#FFE27A'], r: 26, slow: true });
+      legLater(0.85, () => { big(x, y, 240, 760, '#6B3A1E'); for (let k = 0; k < 8; k++) { const a = k * 0.785; big(x + Math.cos(a) * 170, y + Math.sin(a) * 170, 90, 220, '#A0663C'); }
+        lfxAdd({ k: 'quake', x, y, life: 0.9, max: 0.9 }); lfxAdd({ k: 'ring', x, y, r: 20, to: 330, life: 0.5, max: 0.5, col: '#FFFFFF', w: 12 }); lfxAdd({ k: 'ring', x, y, r: 10, to: 250, life: 0.55, max: 0.55, col: '#FF7A1F', w: 12 });
+        B.zones.push({ x, y, r: 200, life: 3.5, tick: 0, dmg: D(30), w, fire: true, leg: true }); shake(1); flash('255,210,150', 0.4); }); });
+  }
+  if (id === 'cotton') {      /* 제네시스: 하늘이 갈라지고 화면 전체에 빛이 내려요 */
+    at(0, () => { const px = p.x, py = p.y; lfxAdd({ k: 'pillar', x: px, y: py, life: 1.05, max: 1.05, w: 120 }); flash('255,250,220', 0.6); shake(0.9);
+      for (const f of onScreen().slice(0, 30)) hurtFoe(f, D(430), { id, noAcc: true }, f.x - px, f.y - py);
+      big(px, py, 420, 260, '#FFF6C0'); lfxAdd({ k: 'ring', x: px, y: py, r: 20, to: 420, life: 0.5, max: 0.5, col: '#FFFFFF', w: 12 });
+      shuffle(onScreen()).slice(0, 14).forEach((f, i) => legLater(0.05 + i * 0.05, () => { lfxAdd({ k: 'beam', x: f.x, y: f.y, life: 0.4, max: 0.4 }); big(f.x, f.y, 70, 180, '#FFF6C0'); })); });
+  }
+  if (id === 'cane') {      /* 지팡이 대폭격: 거대한 지팡이 사탕이 두 겹으로 내리꽂혀요 */
+    [[180, 0, 12], [320, 0.5, 16]].forEach(([R0, t0, n], ring) => { for (let i = 0; i < n; i++) at(t0 + i * 0.035, () => { const a = i * 6.283 / n + ring * 0.26, x = p.x + Math.cos(a) * R0, y = p.y + Math.sin(a) * R0;
+      lfxAdd({ k: 'cane', x, y, life: 0.55, max: 0.55, fall: 0.22 }); legLater(0.22, () => { big(x, y, 86, 200, '#FF5A7A'); lfxAdd({ k: 'pop', x, y, r: 44, life: 0.3, max: 0.3, col: '#FF5A7A' }); }); }); });
+    at(1.2, () => { lfxAdd({ k: 'cane', x: p.x, y: p.y, life: 0.7, max: 0.7, fall: 0.3, huge: true }); legLater(0.3, () => { big(p.x, p.y, 280, 380, '#FF5A7A'); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 280, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); shake(0.8); flash('255,200,210', 0.25); }); });
+  }
 }
 function legUpdate(dt) {
+  if (B.cin) { B.cin.t += dt; if (B.cin.t > B.cin.max) B.cin = null; }
+  for (const f of B.lfx) f.life -= dt; B.lfx = B.lfx.filter(f => f.life > 0);
   if (!run.leg) return;
-  for (const w of B.weapons) if (isLeg(w.id)) { w.ut = (w.ut ?? 2.5) - dt * atkNow(); if (w.ut <= 0 && B.foes.length) { w.ut = LEG[w.id].cd; castLeg(w); } }
+  for (const w of B.weapons) if (isLeg(w.id)) { w.ut = (w.ut ?? 2.5) - dt * atkNow(); if (w.ut <= 0 && B.foes.length) { w.ut = LEG[w.id].cd + 1.4; castLeg(w); } }
   for (const q of B.legQ) { q.t -= dt; if (q.t <= 0) q.f(); } B.legQ = B.legQ.filter(q => q.t > 0);
+}
+/* 연출 그리기: 어두워지는 화면과 위아래 검은 띠 */
+function legDim() {
+  if (!B.cin) return; const c = B.cin, env = Math.min(1, c.t / 0.2, (c.max - c.t) / 0.45);
+  ctx.fillStyle = `rgba(10,0,34,${(0.5 * env).toFixed(3)})`; ctx.fillRect(0, 0, lw, lh);
+  const bh = Math.round(13 * env); R('#0A0014', 0, 0, lw, bh); R('#0A0014', 0, lh - bh, lw, bh);
+}
+const LEGCOL = { cotton: '#FFF6C0', pin: '#FFD23F', cream: '#FFFFFF', star: '#FFD23F', macaron: '#FF8FB8', honey: '#FFC23D', lemon: '#B9DD52', skewer: '#FF9A1F', choco: '#FF7A1F', cane: '#FF5A7A' };
+function legDraw() {
+  const p = B.p;
+  for (const f of B.lfx) {
+    const k = Math.max(0, f.life / f.max), e = 1 - k, fx = X(f.x), fy = Y(f.y), pxw = v => Math.round(v / WP);
+    if (f.k === 'charge') {      /* 기 모으기: 몸으로 빛이 빨려 들어와요 */
+      const cx = X(p.x), cy = Y(p.y) - 6; putDisc(cx, cy + 6, 8 + Math.round(e * 14), 5 + Math.round(e * 8), '#FFF3C0', 7);
+      for (let i = 0; i < 14; i++) { const a = i * 0.449 + e * 5, d = (1 - e) * 46 + 3; pstar(Math.round(cx + Math.cos(a) * d), Math.round(cy + Math.sin(a) * d * 0.8), e > 0.7 ? 2 : 1, i % 2 ? '#FFFFFF' : '#FFD23F'); }
+      pcircle(cx, cy + 6, Math.round(34 * (1 - e)) + 3, '#FFFFFF');
+    }
+    else if (f.k === 'slash') {      /* 화면을 가르는 초승달 베기 */
+      const h = Math.min(1, e * 2.6), fade = k > 0.5 ? 1 : k / 0.5, c = Math.cos(f.a), s = Math.sin(f.a), L = pxw(f.len), nx = -s, ny = c, bow = pxw(f.bow), T = pxw(f.T) * fade, pts = [];
+      for (let i = 0, n = Math.ceil(L * 2); i <= n; i++) { const u = i / n; if (u > h) break; const t = (u * 2 - 1) * L, b = Math.sin(Math.PI * u) * bow; pts.push([fx + c * t + nx * b, fy + s * t + ny * b, Math.max(1, T * Math.pow(Math.sin(Math.PI * u), 0.55))]); }
+      for (const [col, m, add] of [[INK, 1, 4], ['#FFB020', 1, 1], ['#FFF3C0', 0.7, 0], ['#FFFFFF', 0.38, 0]]) { ctx.fillStyle = col; for (const [x, y, th] of pts) { const r = Math.max(1, Math.round(th * m) + add); ctx.fillRect(Math.round(x - r / 2), Math.round(y - r / 2), r, r); } }
+      if (pts.length) { const [hx, hy] = pts[pts.length - 1]; pstar(Math.round(hx), Math.round(hy), 7, '#FFFFFF'); pstar(Math.round(hx), Math.round(hy), 3, '#FFD23F'); }
+    }
+    else if (f.k === 'wave') {      /* 크림 파도 */
+      const xw = f.x0 + f.dir * f.sp * e * f.max, fe0 = X(xw), d = f.dir, a = Math.min(1, k * 3);
+      ctx.globalAlpha = 0.5 * a; for (let y = 0; y < lh; y++) { const fe = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + Math.sin(y * 0.11) * 4); R('#FFD9EA', d > 0 ? fe - 92 : fe, y, 92, 1); } ctx.globalAlpha = 0.85 * a;
+      for (let y = 0; y < lh; y++) { const fe = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + Math.sin(y * 0.11) * 4); R('#FFF3E6', d > 0 ? fe - 40 : fe, y, 40, 1); } ctx.globalAlpha = a;
+      for (let y = -6; y < lh + 10; y += 11) { const bx = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + 6); pdisc(bx, y, 9, INK); pdisc(bx, y, 8, '#FFFFFF'); pdisc(bx - d * 2, y + 2, 4, '#FFD9EA'); pdisc(bx + d, y - 3, 2, '#FFFFFF'); }
+      for (let i = 0; i < 26; i++) { const yy = (i * 47 + Math.floor(B.t * 40) * 13) % lh, xx = fe0 + d * (10 + (i * 29 + B.t * 220) % 50); pstar(xx, yy, 1 + i % 2, '#FFFFFF'); } ctx.globalAlpha = 1;
+    }
+    else if (f.k === 'meteor') {      /* 떨어지는 별똥별 / 운석 */
+      const h = f.slow ? e * e : e, hx = fx + pxw(f.dx) * (1 - h), hy = fy + pxw(f.dy) * (1 - h), tl = f.r > 8 ? 70 : 34, ux = f.dx / Math.hypot(f.dx, f.dy), uy = f.dy / Math.hypot(f.dx, f.dy), r = f.r;
+      f.cols.forEach((col, i) => { const t = Math.max(1, Math.round((r + 3 - i * (r * 0.3 + 1)) * 0.9)); pline(Math.round(hx), Math.round(hy), Math.round(hx + ux * tl * (1 - i * 0.18)), Math.round(hy + uy * tl * (1 - i * 0.18)), col, t); });
+      pdisc(Math.round(hx), Math.round(hy), r + 1, INK); pdisc(Math.round(hx), Math.round(hy), r, f.cols[0]); pdisc(Math.round(hx - r * 0.2), Math.round(hy - r * 0.2), Math.max(1, Math.round(r * 0.6)), f.cols[1]); pdisc(Math.round(hx - r * 0.3), Math.round(hy - r * 0.3), Math.max(1, Math.round(r * 0.28)), '#FFFFFF');
+      if (r > 8) for (let i = 0; i < 10; i++) pstar(Math.round(hx + ux * (8 + i * 6) + Math.sin(B.t * 30 + i) * 4), Math.round(hy + uy * (8 + i * 6)), 1 + i % 2, i % 2 ? '#FFB020' : '#FFFFFF');
+    }
+    else if (f.k === 'warn') {      /* 낙하 지점 경고 */
+      const R0 = pxw(f.r), pul = Math.floor(B.t * 12) % 2, rr = Math.round(R0 * (0.35 + 0.65 * e));
+      ctx.globalAlpha = 0.28; pdisc(fx, fy, R0, '#FF3B1F'); ctx.globalAlpha = 1; pcircle(fx, fy, R0, pul ? '#FFE27A' : '#FF3B1F', 2); pcircle(fx, fy, rr, '#FFFFFF');
+      for (let i = 0; i < 8; i++) { const a = i * 0.785 + B.t * 2; pline(Math.round(fx + Math.cos(a) * R0 * 0.2), Math.round(fy + Math.sin(a) * R0 * 0.2), Math.round(fx + Math.cos(a) * R0), Math.round(fy + Math.sin(a) * R0), '#FF7A3D'); }
+    }
+    else if (f.k === 'quake') {      /* 큰 폭발: 불덩이와 갈라지는 땅 */
+      const R0 = pxw(250) * Math.min(1, e * 2.4), a = Math.min(1, k * 2.2);
+      ctx.globalAlpha = a; putDisc(fx, fy, Math.max(2, R0), Math.max(2, Math.round(R0 * 0.8)), '#FFB020', 9); putDisc(fx, fy, Math.round(R0 * 0.6), Math.round(R0 * 0.48), '#FFE27A', 10); putDisc(fx, fy, Math.round(R0 * 0.3), Math.round(R0 * 0.24), '#FFFFFF', 12);
+      for (let i = 0; i < 14; i++) { const ang = i * 0.449 + 0.2, len = R0 * (0.7 + (i % 3) * 0.25); pline(fx, fy, Math.round(fx + Math.cos(ang) * len), Math.round(fy + Math.sin(ang) * len * 0.8), INK, 3); pline(fx, fy, Math.round(fx + Math.cos(ang) * len), Math.round(fy + Math.sin(ang) * len * 0.8), '#FF7A1F', 1); }
+      for (let i = 0; i < 20; i++) { const ang = i * 0.314, d = R0 * (0.4 + (i % 5) * 0.2) , yy = fy + Math.sin(ang) * d * 0.8 - e * (20 + (i % 4) * 14); pdisc(Math.round(fx + Math.cos(ang) * d), Math.round(yy), 2 + i % 3, i % 2 ? '#6B3A1E' : '#A0663C'); } ctx.globalAlpha = 1;
+    }
+    else if (f.k === 'galaxy') {      /* 마카롱 은하: 소용돌이 팔과 도는 마카롱 */
+      const cx = X(p.x), cy = Y(p.y), rr = pxw(60 + e * 330), a = Math.min(1, k * 4), cols = ['#FF8FB8', '#C77DFF', '#FFFFFF', '#8FD3FF'];
+      ctx.globalAlpha = a; putDisc(cx, cy, Math.round(rr * 0.5) + 8, Math.round(rr * 0.4) + 6, '#3A1A6A', 8); putDisc(cx, cy, Math.round(rr * 0.22) + 4, Math.round(rr * 0.18) + 3, '#C77DFF', 8);
+      for (let arm = 0; arm < 4; arm++) for (let s = 1; s <= 46; s++) { const ang = arm * 1.571 + s * 0.13 + e * 7, d = rr * s / 46, sz = s > 36 ? 3 : s > 18 ? 2 : 1; R(cols[arm], Math.round(cx + Math.cos(ang) * d), Math.round(cy + Math.sin(ang) * d * 0.85), sz, sz); }
+      for (let i = 0; i < 8; i++) { const ang = i * 0.785 + e * 4.5, d = rr * (0.55 + 0.45 * ((i % 2) ? 1 : 0.7)), mx = Math.round(cx + Math.cos(ang) * d), my = Math.round(cy + Math.sin(ang) * d * 0.85), r = 6 + (i % 3);
+        pdisc(mx, my + 1, r + 1, INK); pdisc(mx, my - 2, r, i % 2 ? '#FF8FB8' : '#C9A4FF'); pdisc(mx, my + 2, r, i % 2 ? '#FF8FB8' : '#C9A4FF'); R('#FFF3E6', mx - r + 1, my - 1, r * 2 - 1, 3); pstar(mx - 2, my - 4, 1, '#FFFFFF'); } ctx.globalAlpha = 1;
+    }
+    else if (f.k === 'fall') {      /* 꿀 폭포 */
+      const env = Math.min(1, e * 6, k * 2.5), w = Math.round(pxw(130) * env), bx = fx, by = fy + 4;
+      ctx.globalAlpha = 0.5 * env; R('#FFE9A8', bx - w - 5, 0, w * 2 + 10, by); ctx.globalAlpha = 1; R(INK, bx - w - 1, 0, 2, by); R(INK, bx + w - 1, 0, 2, by); R('#F7A81B', bx - w + 1, 0, w * 2 - 2, by); R('#FFC23D', bx - w + 4, 0, w * 2 - 8, by);
+      for (let i = 0; i < 20; i++) { const sx = bx - w + 4 + ((i * 17) % Math.max(1, w * 2 - 10)), sy = ((i * 41 + B.t * 520) % (by + 30)) - 20; R('#FFF3C0', sx, sy, 2, 12 + i % 3 * 6); }
+      putDisc(bx, by, w + 18, Math.round(w * 0.45) + 6, '#FFC23D', 10); pcircle(bx, by, w + 12 + Math.round(e * 10), '#FFE9A8', 2); pcircle(bx, by, Math.round((w + 6) * 0.75) + Math.round(e * 10), '#FFD23F', 1);
+      for (let i = 0; i < 16; i++) { const ang = i * 0.393 + 0.1, d = (w + 6) * (0.6 + e * 1.1), yy = by - Math.abs(Math.sin(ang)) * (14 + (i % 4) * 8) * (1 - e * 0.6); pdisc(Math.round(bx + Math.cos(ang) * d), Math.round(yy), 2 + i % 2, i % 2 ? '#FFE9A8' : '#F7A81B'); }
+    }
+    else if (f.k === 'twister') {      /* 레몬 회오리 */
+      const a = Math.min(1, e * 6, k * 3); ctx.globalAlpha = a;
+      for (let i = 0; i < 26; i++) { const yy = fy - i * 4 - 2, w = 5 + Math.round(i * 1.7), wob = Math.round(Math.sin(B.t * 9 + i * 0.5 + f.seed) * (2 + i * 0.22)), col = ['#7FAF1E', '#B9DD52', '#E6F58A'][(i + Math.floor(B.t * 14)) % 3];
+        R(INK, fx + wob - w - 1, yy, w * 2 + 3, 5); R(col, fx + wob - w, yy, w * 2 + 1, 4); R('#FFFFFF', fx + wob - w + ((i * 7 + Math.floor(B.t * 20)) % (w * 2)), yy + 1, 3, 1); }
+      for (let i = 0; i < 9; i++) { const ang = B.t * 6 + i * 0.7 + f.seed, hh = (i * 11 + B.t * 30) % 100, w = 12 + hh * 0.5, sx = Math.round(fx + Math.cos(ang) * w), sy = Math.round(fy - hh - 4 + Math.sin(ang) * 5);
+        pdisc(sx, sy, 5, INK); pdisc(sx, sy, 4, '#FFE84A'); pdisc(sx, sy, 2, '#FFFBD0'); R('#E0C81E', sx - 4, sy, 9, 1); R('#E0C81E', sx, sy - 4, 1, 9); }
+      putDisc(fx, fy + 2, 40, 12, '#B9DD52', 6); ctx.globalAlpha = 1;
+    }
+    else if (f.k === 'spear') {      /* 거대한 꼬치 */
+      const h = Math.min(1, e * 2.8), L = pxw(f.len), c = Math.cos(f.a), s = Math.sin(f.a), hd = L * h, tl = Math.min(hd, pxw(260)), x1 = Math.round(fx + c * hd), y1 = Math.round(fy + s * hd), x0 = Math.round(fx + c * (hd - tl)), y0 = Math.round(fy + s * (hd - tl)), fade = k > 0.45 ? 1 : k / 0.45, t = Math.max(1, Math.round(5 * fade)), nx = -s, ny = c;
+      pline(x0, y0, x1, y1, INK, t + 2); pline(x0, y0, x1, y1, f.col, t); pline(x0, y0, x1, y1, '#FFF3C0', Math.max(1, t - 3));
+      const ax = Math.round(x1 + c * 12 * fade), ay = Math.round(y1 + s * 12 * fade), bx1 = Math.round(x1 + nx * 7 * fade), by1 = Math.round(y1 + ny * 7 * fade), bx2 = Math.round(x1 - nx * 7 * fade), by2 = Math.round(y1 - ny * 7 * fade);
+      pline(bx1, by1, ax, ay, INK, 3); pline(bx2, by2, ax, ay, INK, 3); pline(bx1, by1, ax, ay, '#FFFFFF', 1); pline(bx2, by2, ax, ay, '#FFFFFF', 1); pline(bx1, by1, bx2, by2, f.col, 2);
+    }
+    else if (f.k === 'pillar') {      /* 제네시스: 하늘에서 내리는 거대한 빛기둥 */
+      const env = Math.pow(Math.sin(Math.PI * Math.min(1, e * 1.05)), 0.45), w = Math.round(pxw(f.w) * env), bx = fx, by = fy + 6;
+      ctx.globalAlpha = 0.28 * env; R('#FFD86B', bx - Math.round(w * 2.2), 0, Math.round(w * 4.4), by + 20); ctx.globalAlpha = 0.5 * env; R('#FFF3C0', bx - Math.round(w * 1.5), 0, Math.round(w * 3), by + 8); ctx.globalAlpha = 1;
+      R('#FFE27A', bx - w, 0, w * 2, by + 4); R('#FFFFFF', bx - Math.round(w * 0.62), 0, Math.round(w * 1.24), by + 4);
+      for (let i = 0; i < 14; i++) { const sx = bx - w + ((i * 23) % Math.max(1, w * 2)), sy = ((i * 53 + B.t * 700) % (by + 40)) - 30; R('#FFFFFF', sx, sy, 1 + i % 2, 22 + (i % 3) * 14); }
+      putDisc(bx, by, Math.round(w * 3.2), Math.round(w * 1.1), '#FFFFFF', 9); putDisc(bx, by, Math.round(w * 2), Math.round(w * 0.7), '#FFFFFF', 13);
+      const ln = Math.round(110 * env); R('#FFFFFF', bx - ln, by - 1, ln * 2, 3); R('#FFE27A', bx - ln, by - 2, ln * 2, 1); R('#FFE27A', bx - ln, by + 2, ln * 2, 1);
+      for (let i = 0; i < 16; i++) { const ang = i * 0.3927 + e * 0.6, len = Math.round(150 * env * (0.7 + (i % 3) * 0.2)); pline(bx, by, Math.round(bx + Math.cos(ang) * len), Math.round(by + Math.sin(ang) * len * 0.62), i % 2 ? '#FFF3C0' : '#FFFFFF', 1); }
+      for (let i = 0; i < 28; i++) { const sx = bx + (((i * 37) % 120) - 60) * (0.4 + env), sy = ((i * 29 + e * 260 + B.t * 60) % (lh + 20)) - 10; pstar(Math.round(sx), Math.round(sy), 1 + i % 2, i % 2 ? '#FFFFFF' : '#FFE27A'); }
+    }
+    else if (f.k === 'cane') {      /* 거대한 지팡이 사탕 */
+      const sc = f.huge ? 2.2 : 1, fl = f.fall / f.max, h = Math.min(1, e / fl), top = fy - Math.round(pxw(520) * (1 - h * h)) - Math.round(34 * sc), a = k > 0.35 ? 1 : k / 0.35, len = Math.round(50 * sc), w = Math.round(4 * sc), seg = Math.max(3, Math.round(4 * sc));
+      ctx.globalAlpha = a; for (let y = 0; y < len; y++) { const yy = top + y; R(Math.floor((y + 3) / seg) % 2 ? '#FFFFFF' : '#E8323C', fx - w, yy, w * 2 + 1, 1); } R(INK, fx - w - 1, top, 1, len); R(INK, fx + w + 1, top, 1, len); R(INK, fx - w - 1, top + len, w * 2 + 3, 1);
+      for (let i = -3; i <= 10; i++) { const ang = Math.PI + i * 0.3, hx = Math.round(fx + w + Math.cos(ang) * (w + 3 * sc) + 2 * sc), hy = Math.round(top + Math.sin(ang) * (w + 3 * sc)); R(INK, hx - w - 1, hy - 1, w * 2 + 3, w * 2 + 3); } 
+      for (let i = -3; i <= 10; i++) { const ang = Math.PI + i * 0.3, hx = Math.round(fx + w + Math.cos(ang) * (w + 3 * sc) + 2 * sc), hy = Math.round(top + Math.sin(ang) * (w + 3 * sc)); R(i % 2 ? '#FFFFFF' : '#E8323C', hx - w, hy, w * 2 + 1, w * 2 + 1); }
+      if (h >= 1) { pcircle(fx, fy, Math.round(14 * sc * (e - fl) / (1 - fl) * 2) + 4, '#FFFFFF', 2); } ctx.globalAlpha = 1;
+    }
+    else if (f.k === 'ring') { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, 3); pcircle(fx, fy, Math.max(1, r - 3), f.col, 2); if (k > 0.5) pcircle(fx, fy, Math.max(1, r - 6), '#FFFFFF', 1); } }
+    else if (f.k === 'beam') { const w = Math.max(2, Math.round(11 * Math.min(1, k * 1.6))); ctx.globalAlpha = 0.5; R('#FFD86B', fx - w, 0, w * 2, fy + 2); ctx.globalAlpha = 1; R('#FFF3C0', fx - Math.ceil(w / 2), 0, w, fy + 2); R('#FFFFFF', fx - 1, 0, 2, fy + 2); putDisc(fx, fy + 1, 18 + Math.round(e * 14), 7 + Math.round(e * 5), '#FFF3C0', 10); }
+    else if (f.k === 'pop') { const r0 = Math.round(f.r / WP * e * 1.2), r1 = r0 + Math.max(2, Math.round(7 * k)); for (let i = 0; i < 10; i++) { const b = i * 0.628, c = Math.cos(b), s2 = Math.sin(b); pline(Math.round(fx + c * r0), Math.round(fy + s2 * r0), Math.round(fx + c * r1), Math.round(fy + s2 * r1), i % 2 ? f.col : '#FFFFFF', k > 0.5 ? 3 : 1); } if (k > 0.6) pdisc(fx, fy, 4, '#FFFFFF'); }
+  }
+}
+function legBanner(U, d) {      /* 스킬 이름 배너 (겹친 판에 선명하게) */
+  const c = B.cin; if (!c) return; const env = Math.min(1, c.t / 0.18, (c.max - c.t) / 0.4), cx = cv2.width / 2, cy = Math.round(cv2.height * 0.2), sz = Math.round(18 * PXS * d * (0.85 + 0.15 * env));
+  tx.save(); tx.globalAlpha = env; tx.textAlign = 'center'; tx.textBaseline = 'middle';
+  const sw = cv2.width * 0.9 * Math.min(1, c.t / 0.3); tx.fillStyle = 'rgba(0,0,0,.55)'; tx.fillRect(cx - sw / 2, cy - sz * 0.95, sw, sz * 1.9);
+  const g = tx.createLinearGradient(0, cy - sz / 2, 0, cy + sz / 2); g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.5, '#FFE27A'); g.addColorStop(1, '#FF9A1F');
+  tx.font = `${Math.round(8 * PXS * d)}px Galmuri9, sans-serif`; tx.fillStyle = '#FFD23F'; tx.fillText('★ 전설 스킬 ★', cx, cy - sz * 0.72);
+  tx.font = `${sz}px Galmuri11B, sans-serif`; tx.fillStyle = INK; for (const [a, b] of [[-2, 0], [2, 0], [0, -2], [0, 2], [2, 2], [-2, -2]]) tx.fillText(c.name, cx + a * U * 0.5, cy + sz * 0.1 + b * U * 0.5);
+  tx.fillStyle = g; tx.fillText(c.name, cx, cy + sz * 0.1); tx.restore();
 }
 const wLv = id => { const w = run.wpn.find(x => x.id === id); return w ? w.lv : 0; };
 const wDescFull = id => { const W = WEAPONS[id]; return `${W.desc} Lv5: ${W.s5} Lv10: ${W.s10}`; };
@@ -734,7 +903,7 @@ function startBattle(kind, floor, onEnd, stg) {
   B = {
     kind, floor, act: actOf(), onEnd, t: 0, dur, st, paused: false, over: false,
     p: { x: 0, y: 0, hp: run.hp, max: run.maxHp, inv: 0, face: 1, dirX: 0, dirY: -1, moving: false, bob: 0, shield: M('shield') > 0 || guardSec() > 0 },
-    legQ: [], foes: [], shots: [], foeShots: [], gems: [], magnets: [], bombs: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
+    legQ: [], lfx: [], cin: null, foes: [], shots: [], foeShots: [], gems: [], magnets: [], bombs: [], zones: [], fx: [], texts: [], telegraphs: [], lobs: [],
     weapons: run.wpn.map(x => ({ id: x.id, lv: x.lv + capeP(x.id), src: x, cd: 0.3 + Math.random() * 0.6, ang: 0 })),
     lvl: run.lvl, xp: run.xp, need: needOf(run.lvl), kills: 0, spawnAcc: 0, shake: 0, hitstop: 0, hsCool: 0, slow: 0, flashScr: null, heartPop: 0,
     eliteAt: kind === 'elite' ? 90 : -1, bossAt: kind === 'boss' ? (stg ? 45 : 180) : -1, g: (stg && stg.g) || [], bigType: stg && stg.boss, stageN: stg ? floorNo() : 0, big: null, bigDead: false, joy: null, hudT: -1, hudHp: -1, hudXp: -1
@@ -1527,6 +1696,7 @@ function draw() {
       R(INK, sx - 1, cy0 - 21, 7, 4); R('#FFFFFF', sx, cy0 - 20, 4, 2); R('#E8323C', sx + 3, cy0 - 19, 2, 3);
     }
   }
+  legDim();
   /* 효과 */
   for (const f of B.fx) {
     const k = Math.max(0, f.life / f.max), fx = X(f.x), fy = Y(f.y);
@@ -1565,6 +1735,7 @@ function draw() {
     else if (f.k === 'ray') { const c = Math.cos(f.a), sn = Math.sin(f.a), L = f.len / WP, x0 = X(f.x), y0 = Y(f.y), t = k > 0.5 ? 5 : 3; pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), INK, t + 2); pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), k > 0.6 ? '#FFFFFF' : f.col, t); }
     else { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, (f.w || 5) > 5 && k > 0.4 ? 2 : 1); if (k > 0.6 && r > 3) pcircle(fx, fy, r - 2, f.col); } }
   }
+  legDraw();
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
   ctx.drawImage(vignette(), 0, 0);
   gimOver();
@@ -1572,7 +1743,7 @@ function draw() {
   /* 글자, 번쩍임, 조이스틱은 위에 겹친 선명한 판에 그려요 */
   const d = cv2.width / innerWidth, U = PZ * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
   if (B.flashScr) { const fk = B.flashScr.t / B.flashScr.max; if (fk <= 0) B.flashScr = null; else { tx.fillStyle = `rgba(${B.flashScr.col},${0.4 * fk})`; tx.fillRect(0, 0, cv2.width, cv2.height); } }
-  tx.textAlign = 'center';
+  tx.textAlign = 'center'; legBanner(U, d);
   for (const t of B.texts) {
     const e = 1 - t.life / t.max, pop = e < 0.12 ? 1 : 0, size = Math.round((t.big ? 12 : 10) * (PXS + pop) * d), sx = Math.round(X(t.x) * U), sy = Math.round(Y(t.y) * U);
     if (t.life < 0.15 && Math.floor(t.life * 40) % 2) continue;
