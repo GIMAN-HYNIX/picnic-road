@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>쪈이의 디저트 대작전</title>
-<meta name="theme-color" content="#2F6F73">
+<meta name="theme-color" content="#1A0E22">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="디저트 대작전">
@@ -13,25 +13,27 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-@font-face{font-family:'DH'; src:url(fonts/dohyeon.woff2) format('woff2'); font-display:swap}
-/* 색종이 오리기: 청록 바탕 종이 위에 크림색 종이 조각을 겹쳐 붙인 모습. 테두리 대신 종이 그림자, 움직임은 뚝뚝 끊어서. */
+@font-face{font-family:'Galmuri11'; src:url(fonts/galmuri11.woff2) format('woff2'); font-display:swap}
+@font-face{font-family:'Galmuri11B'; src:url(fonts/galmuri11-bold.woff2) format('woff2'); font-display:swap}
+@font-face{font-family:'Galmuri9'; src:url(fonts/galmuri9.woff2) format('woff2'); font-display:swap}
+/* 픽셀 게임 한 가지 모습: 해 질 녘 과자 도시. 짙은 자두색 바탕, 크림색 각진 테두리, 분홍·금색·하늘색 네온. 움직임은 뚝뚝 끊어서. */
 :root{
-  --bg:#2F6F73; --panel:#F3EBD8; --panel-2:#E9DFC9; --well:#FFFDF6; --edge:#C9BB9B; --ink:#2B2A26; --ink-2:#655D4E; --dark:rgba(27,23,18,.3);
-  --pink:#D9486E; --pink-d:#9E2E4C; --gold:#E2A72E; --gold-t:#9A650A; --cyan:#2F7F86; --green:#4E9A5A; --bad:#C8473F; --cream:#F7EFDC;
-  --font-sign:'DH','Apple SD Gothic Neo','Malgun Gothic',sans-serif; --font-ui:var(--font-sign); --font-sm:var(--font-sign);
-  --box:2px 3px 0 0 var(--dark);
-  --drop:0 0 0 0 transparent;
-  --grain:none;
-  color-scheme:light;
+  --bg:#1A0E22; --panel:#2A1838; --panel-2:#3A2350; --edge:#6B4E86; --ink:#FFF3E6; --ink-2:#C9B6D9; --dark:#0E0614;
+  --pink:#FF4F9A; --pink-d:#9C1E5C; --gold:#FFD86B; --cyan:#7FE3FF; --green:#7FFF8A; --bad:#FF4F6B;
+  --font-sign:'Galmuri11B','Galmuri11',monospace; --font-ui:'Galmuri11',monospace; --font-sm:'Galmuri9','Galmuri11',monospace;
+  --box:0 -3px 0 0 var(--ink), 0 3px 0 0 var(--ink), -3px 0 0 0 var(--ink), 3px 0 0 0 var(--ink);
+  --drop:0 9px 0 0 var(--dark), 3px 6px 0 0 var(--dark), -3px 6px 0 0 var(--dark);
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{height:100%; margin:0}
 html{touch-action:manipulation; -webkit-text-size-adjust:100%}
-body{background:var(--bg); color:var(--ink); font-family:var(--font-ui); font-size:15px; line-height:1.45; word-break:keep-all; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+body{background:var(--bg); color:var(--ink); font-family:var(--font-ui); font-size:15px; line-height:1.45; word-break:keep-all; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-font-smoothing:none; font-smooth:never}
 [hidden]{display:none!important}
 button{font:inherit; color:inherit; cursor:pointer; border:0; border-radius:0; -webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:3px solid var(--cyan); outline-offset:6px}
 svg{display:block; width:100%; height:100%}
+img,canvas,.pxi{image-rendering:pixelated}
 .pxi{display:block; width:100%; height:100%}
 #bgCv{position:fixed; inset:0; width:100%; height:100%; z-index:0}
 .screen{position:fixed; inset:0; z-index:1; display:flex; flex-direction:column; padding:calc(14px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-right,0px)); animation:fade .2s steps(4)}
@@ -47,7 +49,7 @@ svg{display:block; width:100%; height:100%}
 .cta[data-pref]::before,.cta.green::before{content:'▶'; font-size:16px; color:var(--gold); text-shadow:none; animation:blink .7s steps(1) infinite}
 .cta.green{background:var(--pink)}
 .btn{min-height:46px; padding:0 14px; font-size:18px; color:var(--ink-2); background:var(--panel)}
-.cta:active,.btn:active,.mini-btn:active,.pause:active{transform:translate(2px,3px); box-shadow:none}
+.cta:active,.btn:active,.mini-btn:active,.pause:active{transform:translateY(6px); box-shadow:var(--box), 0 3px 0 0 var(--dark)}
 .btn[aria-disabled="true"],.cta[aria-disabled="true"]{opacity:.45}
 
 /* 제목 화면 */
@@ -58,15 +60,15 @@ svg{display:block; width:100%; height:100%}
 .t-art .b{display:none}
 .t-art .e1{left:6%; height:72px; animation:hop .8s steps(2) .2s infinite} .t-art .e2{right:6%; height:84px; animation:hop .9s steps(2) .5s infinite}
 @keyframes hop{50%{transform:translateY(-6px)}}
-.wordmark{margin:0; font-family:var(--font-sign); font-weight:400; font-size:46px; line-height:1.05; color:var(--cream); text-shadow:3px 4px 0 rgba(20,14,10,.35); --old:3px 0 0 var(--pink),-3px 0 0 var(--pink),0 3px 0 var(--pink),0 -3px 0 var(--pink),3px 3px 0 var(--pink),-3px -3px 0 var(--pink),3px -3px 0 var(--pink),-3px 3px 0 var(--pink),0 9px 0 #3A1240,6px 9px 0 #3A1240}
-.wordmark .s{display:block; margin-bottom:8px; font-size:24px; color:var(--gold); text-shadow:2px 3px 0 rgba(20,14,10,.35)}
-.sub{margin:6px auto 0; max-width:26em; font-family:var(--font-sm); font-size:15px; color:var(--cream); text-wrap:balance}
+.wordmark{margin:0; font-family:var(--font-sign); font-weight:400; font-size:44px; line-height:1.05; color:var(--ink); text-shadow:3px 0 0 var(--pink),-3px 0 0 var(--pink),0 3px 0 var(--pink),0 -3px 0 var(--pink),3px 3px 0 var(--pink),-3px -3px 0 var(--pink),3px -3px 0 var(--pink),-3px 3px 0 var(--pink),0 9px 0 #3A1240,6px 9px 0 #3A1240}
+.wordmark .s{display:block; margin-bottom:8px; font-size:24px; color:var(--gold); text-shadow:3px 3px 0 #6B2A55}
+.sub{margin:6px auto 0; max-width:26em; font-family:var(--font-sm); font-size:15px; color:var(--cyan); text-wrap:balance}
 .stack{display:flex; flex-direction:column; gap:20px; padding:6px 20px 12px}
 
 /* 위쪽 자원 표시 */
 .bar{display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:var(--font-sign); font-size:18px; font-variant-numeric:tabular-nums}
 .bar .l,.bar .r{display:flex; align-items:center; gap:11px}
-.chip{display:flex; align-items:center; gap:4px; min-height:30px; padding:2px 8px; background:var(--well); box-shadow:var(--box)}
+.chip{display:flex; align-items:center; gap:4px; min-height:30px; padding:2px 8px; background:var(--bg); box-shadow:var(--box)}
 .chip:empty{display:none}
 .chip i{display:block; width:21px; height:21px}
 .mini-btn{min-height:44px; padding:0 8px; white-space:nowrap; font-size:15px; color:var(--ink); background:var(--panel)}
@@ -82,32 +84,32 @@ svg{display:block; width:100%; height:100%}
 .roads line.walked{stroke:var(--gold); stroke-dasharray:none}
 .node{position:absolute; width:54px; height:54px; padding:6px; transform:translate(-50%,-50%); background:var(--panel-2); box-shadow:0 0 0 3px var(--edge), 0 6px 0 3px var(--dark)}
 .node img{display:block; width:100%; height:100%; object-fit:contain}
-.node.boss{width:84px; height:84px; padding:6px; background:#F0C9C0; box-shadow:0 0 0 3px var(--bad), 0 0 0 6px var(--dark), 0 6px 0 6px var(--dark)}
+.node.boss{width:84px; height:84px; padding:6px; background:#4A1E3E; box-shadow:0 0 0 3px var(--bad), 0 0 0 6px var(--dark), 0 6px 0 6px var(--dark)}
 .node.open{box-shadow:0 0 0 3px var(--gold), 0 6px 0 3px var(--dark); animation:nodeBlink .8s steps(1) infinite}
 @keyframes nodeBlink{50%{box-shadow:0 0 0 3px var(--ink), 0 0 0 6px var(--pink), 0 6px 0 6px var(--dark)}}
 .node.done{opacity:.4}
 .node.here{opacity:1; box-shadow:0 0 0 3px var(--green), 0 6px 0 3px var(--dark)}
-.node.sel{background:#F3B9C6}
+.node.sel{background:var(--pink-d)}
 .info{min-height:104px; padding:12px 14px; display:flex; gap:14px; align-items:center}
 .info div{flex:1; min-width:0}
-.info h3{margin:0; font-family:var(--font-sign); font-weight:400; font-size:20px; line-height:1.25; color:var(--pink-d)}
+.info h3{margin:0; font-family:var(--font-sign); font-weight:400; font-size:20px; line-height:1.25; color:var(--gold)}
 .info p{margin:4px 0 0; font-size:14px; color:var(--ink-2)}
 .info .cta{min-height:48px; font-size:20px; flex:none}
 
 /* 전투 */
-#battle{padding:0; background:#7FA88A}
+#battle{padding:0; background:#3A2030}
 #cv{position:absolute; left:0; top:0; touch-action:none}
 #cv2{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
 .hud{position:absolute; left:0; right:0; top:0; padding:calc(12px + env(safe-area-inset-top,0px)) 14px 0; display:flex; flex-direction:column; gap:12px; pointer-events:none}
 .hud-row{display:flex; align-items:center; gap:14px}
-.timer{font-family:var(--font-sign); font-size:24px; line-height:1; font-variant-numeric:tabular-nums; min-width:3.2em; text-align:center; padding:5px 8px 3px; background:var(--well); box-shadow:var(--box), 0 6px 0 3px var(--dark)}
-.meter{flex:1; height:15px; background:var(--well); box-shadow:var(--box); padding:3px; overflow:hidden}
+.timer{font-family:var(--font-sign); font-size:24px; line-height:1; font-variant-numeric:tabular-nums; min-width:3.2em; text-align:center; padding:5px 8px 3px; background:var(--bg); box-shadow:var(--box), 0 6px 0 3px var(--dark)}
+.meter{flex:1; height:15px; background:var(--bg); box-shadow:var(--box); padding:3px; overflow:hidden}
 .meter i{display:block; height:100%; width:100%; transform-origin:left; background:var(--bad)}
 .meter.xp i{background:repeating-linear-gradient(90deg,var(--green) 0 9px,#4FCB5A 9px 12px); transition:transform .15s steps(3)}
 .meter.xp.gain i{filter:brightness(1.5)}
-.lv{flex:none; font-family:var(--font-sign); font-size:18px; line-height:1; padding:4px 8px 2px; background:#3B78C2; color:#fff; box-shadow:var(--box)}
+.lv{flex:none; font-family:var(--font-sign); font-size:18px; line-height:1; padding:4px 8px 2px; background:#3E8EDE; box-shadow:var(--box)}
 .lv.pop{animation:lvPop .5s steps(5)}
-@keyframes lvPop{0%,60%{transform:scale(1.6); background:var(--gold); color:var(--ink)}100%{transform:none}}
+@keyframes lvPop{0%,60%{transform:scale(1.6); background:var(--gold); color:var(--bg)}100%{transform:none}}
 .pause{pointer-events:auto; width:46px; height:46px; font-size:18px; color:var(--ink); background:var(--panel)}
 .potion{width:30px; height:30px}
 .hearts{display:flex; gap:6px}
@@ -118,15 +120,15 @@ svg{display:block; width:100%; height:100%}
 .chip i.hrt{width:21px; height:21px}
 @keyframes hudShake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 .bossbar{display:flex; flex-direction:column; gap:6px} .bossbar .meter{flex:none; height:18px} .bossbar .meter i{background:repeating-linear-gradient(90deg,#C77DFF 0 9px,#9B59D0 9px 12px)}
-.bossname{align-self:center; font-family:var(--font-sign); font-size:18px; color:var(--cream); text-shadow:2px 2px 0 rgba(20,14,10,.6)}
-.toast{position:absolute; left:0; right:0; top:26%; text-align:center; font-family:var(--font-sign); font-size:24px; color:var(--cream); text-shadow:3px 4px 0 rgba(20,14,10,.55); pointer-events:none; animation:toastIn .25s steps(3)}
+.bossname{align-self:center; font-family:var(--font-sign); font-size:18px; color:var(--ink); text-shadow:3px 3px 0 var(--dark)}
+.toast{position:absolute; left:0; right:0; top:26%; text-align:center; font-family:var(--font-sign); font-size:24px; color:var(--gold); text-shadow:3px 3px 0 #6B2A55, -3px 0 0 var(--dark), 0 -3px 0 var(--dark); pointer-events:none; animation:toastIn .25s steps(3)}
 @keyframes toastIn{from{transform:translateY(12px); opacity:0}}
 
 /* 창 */
 .overlay{position:fixed; inset:0; z-index:20; background:repeating-linear-gradient(0deg,rgba(14,6,20,.78) 0 3px,rgba(14,6,20,.66) 3px 6px); display:grid; place-items:center; padding:calc(18px + env(safe-area-inset-top,0px)) 18px calc(24px + env(safe-area-inset-bottom,0px))}
 .card{width:min(100%, 372px); max-height:100%; overflow:auto; padding:18px 15px; animation:pop .2s steps(4)}
 @keyframes pop{from{transform:translateY(18px); opacity:0}}
-.card h2{margin:0 0 6px; text-align:center; font-family:var(--font-sign); font-weight:400; font-size:26px; line-height:1.25; color:var(--pink-d); text-wrap:balance}
+.card h2{margin:0 0 6px; text-align:center; font-family:var(--font-sign); font-weight:400; font-size:24px; line-height:1.25; color:var(--gold); text-shadow:3px 3px 0 var(--pink-d); text-wrap:balance}
 .card p{margin:6px 0 0; color:var(--ink-2); font-size:14px; text-align:center}
 .card .pic{height:108px; margin:0 auto 8px; display:flex; justify-content:center}
 .card .pic img{height:100%}
@@ -135,11 +137,11 @@ svg{display:block; width:100%; height:100%}
 .opt{position:relative; display:flex; align-items:center; gap:12px; width:100%; min-height:66px; padding:9px 10px; text-align:left; color:var(--ink); background:var(--panel-2); box-shadow:0 0 0 3px var(--edge); animation:optIn .25s steps(3) both}
 .opt:nth-child(2){animation-delay:.06s} .opt:nth-child(3){animation-delay:.12s} .opt:nth-child(n+4){animation-delay:.18s}
 @keyframes optIn{from{opacity:0; transform:translateX(-12px)}}
-.opt:active{background:#F6DDB0; box-shadow:0 0 0 3px var(--gold)}
-.opt.on{background:#FBE7B4; box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink)}
-.opt.on::after{content:'▶'; position:absolute; left:-24px; top:50%; margin-top:-10px; font-family:var(--font-sign); font-size:15px; color:var(--cream); animation:blink .6s steps(1) infinite}
+.opt:active{background:var(--pink-d); box-shadow:0 0 0 3px var(--gold)}
+.opt.on{background:#4A2350; box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink)}
+.opt.on::after{content:'▶'; position:absolute; left:-24px; top:50%; margin-top:-10px; font-family:var(--font-sign); font-size:15px; color:var(--gold); animation:blink .6s steps(1) infinite}
 .opt[aria-disabled="true"]{opacity:.4}
-.opt .ic{flex:none; width:48px; height:48px; padding:3px; background:var(--well); box-shadow:0 0 0 3px var(--edge)}
+.opt .ic{flex:none; width:48px; height:48px; padding:3px; background:var(--bg); box-shadow:0 0 0 3px var(--edge)}
 .opt.r1 .ic{box-shadow:0 0 0 3px var(--cyan)}
 .opt.r2 .ic{box-shadow:0 0 0 3px var(--gold)}
 .opt.r2{box-shadow:0 0 0 3px var(--gold)}
@@ -148,14 +150,14 @@ svg{display:block; width:100%; height:100%}
 .opt .tx{flex:1; min-width:0}
 .opt b{display:block; font-family:var(--font-sign); font-weight:400; font-size:18px; line-height:1.3; color:var(--ink)}
 .opt span{display:block; font-size:13px; line-height:1.45; color:var(--ink-2)}
-.opt em{flex:none; font-style:normal; font-family:var(--font-sm); font-size:15px; color:var(--ink); padding:2px 6px; background:var(--gold)}
+.opt em{flex:none; font-style:normal; font-family:var(--font-sm); font-size:15px; color:var(--bg); padding:2px 6px; background:var(--gold)}
 .card .cta,.card .btn{width:calc(100% - 6px); margin-top:20px}
 .row2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
 
 /* 카드 뒤집기: 뒷면 → 번쩍 → 앞면 */
 .opts.lock{pointer-events:none}
 .opts.flip .opt{animation:cardFlip .4s steps(4) var(--d,0ms) both}
-.opts.flip .opt::before{content:'?'; position:absolute; inset:0; z-index:3; display:grid; place-items:center; font-family:var(--font-sign); font-size:24px; color:var(--gold); background:var(--well) radial-gradient(var(--edge) 1.5px,transparent 2px) 0 0/9px 9px; animation:hideBack .4s steps(1) var(--d,0ms) both}
+.opts.flip .opt::before{content:'?'; position:absolute; inset:0; z-index:3; display:grid; place-items:center; font-family:var(--font-sign); font-size:24px; color:var(--gold); background:var(--bg) radial-gradient(var(--edge) 1.5px,transparent 2px) 0 0/9px 9px; animation:hideBack .4s steps(1) var(--d,0ms) both}
 @keyframes cardFlip{0%{transform:scaleY(1)}50%{transform:scaleY(.1); filter:brightness(3)}100%{transform:none}}
 @keyframes hideBack{0%,49.9%{opacity:1}50%,100%{opacity:0; visibility:hidden}}
 
@@ -173,15 +175,15 @@ svg{display:block; width:100%; height:100%}
 .win-t{position:relative; margin-top:-8vh; padding:0 12px; font-family:var(--font-sign); font-size:48px; line-height:1.1; text-align:center; color:var(--gold); text-shadow:3px 0 0 var(--pink-d),-3px 0 0 var(--pink-d),0 3px 0 var(--pink-d),0 -3px 0 var(--pink-d),6px 6px 0 var(--dark); animation:stamp .3s steps(3) both}
 .win.big .win-t{font-size:36px}
 @keyframes stamp{0%{transform:scale(3); opacity:0}66%{transform:scale(.9); opacity:1}100%{transform:none}}
-.win-g{position:relative; display:flex; align-items:center; gap:8px; padding:4px 12px; font-family:var(--font-sign); font-size:24px; background:var(--well); box-shadow:var(--box); animation:optIn .25s steps(3) .2s both}
+.win-g{position:relative; display:flex; align-items:center; gap:8px; padding:4px 12px; font-family:var(--font-sign); font-size:24px; background:var(--bg); box-shadow:var(--box); animation:optIn .25s steps(3) .2s both}
 .win-g i{display:block; width:27px; height:27px}
 .prize{position:relative; height:126px; display:grid; place-items:center; margin-top:6px; overflow:hidden}
 .prize .rays{position:absolute; left:50%; top:50%; width:300px; height:300px; margin:-150px 0 0 -150px; background:repeating-conic-gradient(rgba(255,216,107,.4) 0 15deg,rgba(255,216,107,0) 15deg 30deg); -webkit-mask:radial-gradient(circle,#000 20%,transparent 65%); mask:radial-gradient(circle,#000 20%,transparent 65%); animation:spin 2.4s steps(12) infinite}
-.medal{position:relative; width:78px; height:78px; padding:9px; background:var(--well); box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--dark), 0 0 0 9px var(--gold); animation:stamp .3s steps(3) both}
+.medal{position:relative; width:78px; height:78px; padding:9px; background:var(--bg); box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--dark), 0 0 0 9px var(--gold); animation:stamp .3s steps(3) both}
 .card.reward,.card.lvl{overflow:hidden}
 .lvl-ban{position:absolute; left:0; right:0; top:30%; display:flex; flex-direction:column; align-items:center; gap:10px; pointer-events:none; animation:lvlBan .76s steps(8) forwards}
 .lvl-ban b{font-family:var(--font-sign); font-weight:400; font-size:48px; line-height:1; color:var(--gold); text-shadow:3px 0 0 var(--pink-d),-3px 0 0 var(--pink-d),0 3px 0 var(--pink-d),0 -3px 0 var(--pink-d),6px 6px 0 var(--dark); animation:stamp .3s steps(3) both}
-.lvl-ban span{padding:2px 10px; font-family:var(--font-sign); font-size:24px; color:#fff; background:#3B78C2; box-shadow:var(--box)}
+.lvl-ban span{padding:2px 10px; font-family:var(--font-sign); font-size:24px; background:#3E8EDE; box-shadow:var(--box)}
 @keyframes lvlBan{0%,70%{opacity:1; transform:none}100%{opacity:0; transform:translateY(-24px)}}
 .card.lvl h2{font-size:36px}
 @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01s!important; animation-iteration-count:1!important} }
@@ -192,12 +194,12 @@ svg{display:block; width:100%; height:100%}
 .opt.lvc span:not(.ic){font-size:15px; color:var(--ink-2)}
 .opt .shine{position:absolute; top:0; bottom:0; left:-40%; width:30%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); transform:skewX(-20deg); animation:shineMove 1.4s steps(10) infinite; pointer-events:none; z-index:1}
 @keyframes shineMove{to{left:130%}}
-.opt .tag{position:absolute; right:0; top:0; z-index:2; padding:2px 7px; font-style:normal; font-family:var(--font-sm); font-size:13px; line-height:1.3; color:var(--ink)}
-.opt.lv5{min-height:70px; background:repeating-linear-gradient(135deg,#1E4A6A 0 9px,#245A80 9px 18px); box-shadow:0 0 0 3px #9FE3EA, 0 0 0 6px #1E4A6A, 0 0 0 9px #9FE3EA}
-.opt.lv5 .tag{background:#9FE3EA}
+.opt .tag{position:absolute; right:0; top:0; z-index:2; padding:2px 7px; font-style:normal; font-family:var(--font-sm); font-size:13px; line-height:1.3; color:var(--bg)}
+.opt.lv5{min-height:70px; background:repeating-linear-gradient(135deg,#1E4A6A 0 9px,#245A80 9px 18px); box-shadow:0 0 0 3px var(--cyan), 0 0 0 6px var(--dark), 0 0 0 9px var(--cyan)}
+.opt.lv5 .tag{background:var(--cyan)}
 .opt.lv5 .ic{width:54px; height:54px; box-shadow:0 0 0 3px var(--cyan), 0 0 0 6px var(--dark)}
 .opt.lv5 b{color:#FFFFFF; text-shadow:3px 3px 0 #0E2A40}
-.opt.lv5 span:not(.ic){color:#CDEFF3}
+.opt.lv5 span:not(.ic){color:var(--cyan)}
 .opt.lv10{min-height:76px; background:repeating-linear-gradient(135deg,#7A5210 0 9px,#8E6418 9px 18px); box-shadow:0 0 0 3px var(--gold), 0 0 0 6px var(--pink-d), 0 0 0 9px var(--gold); animation:lv10Flash .5s steps(1) infinite}
 @keyframes lv10Flash{50%{box-shadow:0 0 0 3px #FFFFFF, 0 0 0 6px var(--pink), 0 0 0 9px #FFFFFF}}
 .opt.lv10 .tag{background:var(--gold); animation:blink .5s steps(1) infinite}
@@ -207,57 +209,43 @@ svg{display:block; width:100%; height:100%}
 .opts:has(.lv5,.lv10){gap:20px; padding:9px}
 /* 성장 트리 */
 .pts{font-family:var(--font-sign); color:var(--ink)!important; font-size:16px!important}
-.pts b{color:var(--gold-t); font-weight:400}
+.pts b{color:var(--gold); font-weight:400}
 .tree{position:relative; margin:14px auto 6px; max-width:100%}
 .tl{position:absolute; inset:0; width:100%; height:100%; overflow:visible}
 .tl line{stroke:var(--edge); stroke-width:3; stroke-dasharray:3 4; shape-rendering:crispEdges}
 .tl line.on{stroke:var(--gold); stroke-dasharray:none}
-.tn{position:absolute; width:48px; height:48px; margin:-24px 0 0 -24px; padding:6px; background:var(--well); box-shadow:0 0 0 3px var(--edge), 0 6px 0 3px var(--dark)}
+.tn{position:absolute; width:48px; height:48px; margin:-24px 0 0 -24px; padding:6px; background:var(--bg); box-shadow:0 0 0 3px var(--edge), 0 6px 0 3px var(--dark)}
 .tn .ti{display:block; width:100%; height:100%}
-.tn .tr{position:absolute; left:50%; bottom:-14px; transform:translateX(-50%); padding:0 4px; font-family:var(--font-sm); font-size:14px; line-height:17px; color:var(--cream); background:#3A362E; white-space:nowrap}
+.tn .tr{position:absolute; left:50%; bottom:-14px; transform:translateX(-50%); padding:0 4px; font-family:var(--font-sm); font-size:14px; line-height:17px; color:var(--ink); background:var(--dark); white-space:nowrap}
 .tn.lock{opacity:.45}
 .tn.can{box-shadow:0 0 0 3px var(--cyan), 0 6px 0 3px var(--dark)}
 .tn.got{background:var(--panel-2)}
 .tn.max{box-shadow:0 0 0 3px var(--gold), 0 6px 0 3px var(--dark)}
-.tn.max .tr{color:#F2C230}
-.tn.sel{background:#F3B9C6; box-shadow:0 0 0 3px var(--ink), 0 0 0 6px var(--pink), 0 6px 0 6px var(--dark)}
-.td{margin-top:18px; padding:10px 12px; background:var(--well); box-shadow:0 0 0 3px var(--edge); display:flex; flex-direction:column; gap:6px}
-.td b{font-family:var(--font-sign); font-weight:400; font-size:18px; color:var(--pink-d)}
+.tn.max .tr{color:var(--gold)}
+.tn.sel{background:var(--pink-d); box-shadow:0 0 0 3px var(--ink), 0 0 0 6px var(--pink), 0 6px 0 6px var(--dark)}
+.td{margin-top:18px; padding:10px 12px; background:var(--bg); box-shadow:0 0 0 3px var(--edge); display:flex; flex-direction:column; gap:6px}
+.td b{font-family:var(--font-sign); font-weight:400; font-size:18px; color:var(--gold)}
 .td span{font-size:14px; color:var(--ink-2)}
-.td em{font-style:normal; font-family:var(--font-sm); color:var(--gold-t)}
+.td em{font-style:normal; font-family:var(--font-sm); color:var(--gold)}
 .td .cta{margin:8px 3px 6px!important; width:calc(100% - 6px)}
 
 /* 기록 보내기 */
 .fld{display:flex; flex-direction:column; gap:6px; margin:14px 3px 0}
-.fld span{font-family:var(--font-sign); font-size:15px; color:var(--gold-t)}
-.fld input{font:inherit; font-size:16px; color:var(--ink); background:var(--well); border:0; padding:10px; box-shadow:0 0 0 3px var(--edge)}
+.fld span{font-family:var(--font-sign); font-size:15px; color:var(--gold)}
+.fld input{font:inherit; font-size:16px; color:var(--ink); background:var(--bg); border:0; padding:10px; box-shadow:0 0 0 3px var(--edge)}
 .fld input:focus{outline:none; box-shadow:0 0 0 3px var(--cyan)}
-textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:84px; resize:none; font:12px/1.3 monospace; color:var(--ink-2); background:var(--well); border:0; padding:8px; box-shadow:0 0 0 3px var(--edge); word-break:break-all}
+textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:84px; resize:none; font:12px/1.3 monospace; color:var(--ink-2); background:var(--bg); border:0; padding:8px; box-shadow:0 0 0 3px var(--edge); word-break:break-all}
 .row2 .btn{margin:3px; min-height:46px; font-size:16px}
 .petget .ic{padding:6px}
-.opt .ic img{display:block; width:100%; height:100%; object-fit:contain}
-.vertag{align-self:center; min-height:44px; padding:0 12px; font-family:var(--font-sm); font-size:13px; color:var(--cream); background:none; border:0; box-shadow:none; text-decoration:underline}
-.opt .tx span b,.card p b{display:inline; font-family:var(--font-sign); font-weight:400; font-size:inherit; color:var(--gold-t)}
-.opt.lv5 .tx span b,.opt.lv10 .tx span b{color:#FFE9A8}
-/* 종이 결 */
-.card,.info,.btn,.cta,.mini-btn,.opt,.node,.chip,.timer,.tn,.pause{background-image:var(--grain)}
-.cta{text-shadow:2px 2px 0 var(--pink-d)}
-/* 펫 꾸미기 */
-.petroom{height:132px; margin:12px 3px 4px; display:grid; place-items:center; background:#2F6F73 var(--grain); box-shadow:var(--box)}
-.petroom img{height:120px; animation:hop 1.2s steps(2) infinite}
-.dress{display:flex; align-items:center; gap:8px; margin:10px 3px 0}
-.dress span{width:34px; flex:none; font-size:14px; color:var(--ink-2)}
-.dchip{width:46px; height:46px; padding:3px; display:grid; place-items:center; font-size:13px; color:var(--ink-2); background:var(--well) var(--grain); box-shadow:var(--box)}
-.dchip img{max-width:100%; max-height:100%}
-.dchip.on{background-color:var(--gold); color:var(--ink)}
-.dchip:nth-of-type(odd){transform:rotate(-1.5deg)} .dchip:nth-of-type(even){transform:rotate(1.2deg)}
+.vertag{align-self:center; min-height:44px; padding:0 12px; font-family:var(--font-sm); font-size:13px; color:var(--ink-2); background:none; border:0; box-shadow:none; text-decoration:underline}
+.opt .tx span b,.card p b{display:inline; font-family:var(--font-sign); font-weight:400; font-size:inherit; color:var(--gold)}
 </style>
 </head>
 <body>
 <canvas id="bgCv" aria-hidden="true"></canvas>
 <section class="screen" id="title">
   <div class="col">
-    <div class="t-art" aria-hidden="true"><img class="e1" alt=""><img class="e2" alt=""><img class="h" alt=""></div>
+    <div class="t-art" aria-hidden="true"><img class="b" src="img/boss.png" alt=""><img class="e1" src="img/jelly.png" alt=""><img class="e2" src="img/cookie.png" alt=""><img class="h" src="img/hero.png" alt=""></div>
     <h1 class="wordmark"><span class="s">쪈이의</span>디저트 대작전</h1>
     <p class="sub" id="titleSub"></p>
     <div class="stack">
@@ -293,7 +281,6 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
 
 <div class="overlay" id="overlay" hidden><div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="cardTitle"></div></div>
 <div class="fx" id="fx" aria-hidden="true"></div>
-<script src="paper.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
