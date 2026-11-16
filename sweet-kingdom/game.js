@@ -1513,6 +1513,21 @@ function gameOver(r) {
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
 const isInstalled = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+/* 카톡·네이버·인스타 같은 앱 안 브라우저에서는 설치가 안 돼요. 안드로이드면 크롬으로 바로 넘겨 줘요 */
+const UA = navigator.userAgent, inApp = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(UA), isAndroid = /Android/i.test(UA), isSamsung = /SamsungBrowser/i.test(UA);
+const chromeUrl = () => `intent://${location.host}${location.pathname}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
+function installHelp() {
+  const where = inApp ? '지금은 <b>카카오톡 같은 앱 안의 브라우저</b>로 열려 있어서 설치가 안 돼요. 아래 버튼으로 크롬에서 다시 열어 주세요.' : isSamsung ? '지금은 <b>삼성 인터넷</b>이에요.' : '지금은 <b>크롬</b>이에요.';
+  const steps = isSamsung
+    ? '<b>삼성 인터넷</b>: 아래쪽 줄 세 개 메뉴 → <b>현재 페이지 추가</b> → <b>홈 화면</b>. 안 되면 크롬으로 열어 주세요.'
+    : '<b>크롬</b>: 오른쪽 위 점 세 개 메뉴 → <b>홈 화면에 추가</b> → <b>설치</b>. 메뉴에 <b>앱 설치</b>가 보이면 그걸 눌러도 돼요.';
+  sheet(`<h2 id="cardTitle">홈 화면에 설치하기</h2><p>${where}</p><div class="opts">
+    <div class="opt"><span class="tx"><b>1. 설치하기</b><span>${steps}</span></span></div>
+    <div class="opt"><span class="tx"><b>2. 그래도 안 되면</b><span>홈 화면 빈 곳을 길게 눌러 <b>설정</b>에 들어가서 <b>홈 화면 레이아웃 잠금</b>을 꺼 주세요. 이게 켜져 있으면 아이콘이 안 생겨요.</span></span></div>
+    <div class="opt"><span class="tx"><b>3. 그래도 안 되면</b><span>설정 → 애플리케이션 → Chrome에서 <b>홈 화면에 아이콘 추가</b> 같은 권한이 꺼져 있지 않은지 봐 주세요. 그 화면을 찍어 보내 주면 원인을 찾아볼게요.</span></span></div>
+  </div>${isAndroid && !isSamsung ? `<a class="cta" href="${chromeUrl()}" data-act="none" style="display:flex;text-decoration:none">크롬으로 열기</a>` : ''}${installEvt ? '<button class="cta" type="button" data-act="install">지금 설치하기</button>' : ''}<button class="btn" type="button" data-act="close">닫기</button>`,
+    act => { if (act === 'install') { installEvt.prompt(); installEvt = null; renderTitle(); } if (act !== 'none') closeSheet(); });
+}
 function renderTitle() {
   const going = !!(S.run && S.run.map);
   $('#btnContinue').hidden = !going;
@@ -1520,7 +1535,7 @@ function renderTitle() {
   $('#titleSub').textContent = going ? `${S.run.act || 1}막 ${(S.run.floor || 0) + 1}층까지 왔어요. 하트 ${S.run.hp}/${S.run.maxHp}칸, Lv ${S.run.lvl}.` : S.wins ? `간식 왕국을 ${S.wins}번 지켜 냈어요.` : '자동으로 공격하는 전투와, 길을 골라 올라가는 모험.';
   $('#btnTree').textContent = `성장 트리 · 설탕 별 ${S.meta.pts}개`;
   $('#btnPet').textContent = S.pet ? `펫 · ${PETS[S.pet].name.split(' ').pop()} Lv${petLv(S.pet)}` : '펫';
-  $('#btnInstall').hidden = !installEvt || isInstalled; clearTimeout(newArmed); newArmed = 0;
+  $('#btnInstall').hidden = isInstalled; $('#btnInstall').textContent = inApp ? '크롬에서 열어야 설치돼요' : installEvt ? '홈 화면에 앱으로 설치하기' : '홈 화면에 설치하는 방법'; clearTimeout(newArmed); newArmed = 0;
 }
 /* 지금 버전: 서비스 워커 파일에 적힌 이름(sweet-xxxx)을 처음 화면 아래에 작게 보여 줘요 */
 fetch('sw.js', { cache: 'no-store' }).catch(() => fetch('sw.js')).then(r => r && r.text()).then(t => { const m = t && /sweet-([0-9a-f]+)/.exec(t); if (m) { window.__ver = m[1]; const e = $('#verTag'); if (e) e.textContent = '버전 ' + m[1].slice(0, 6); } }).catch(() => {});
@@ -1551,7 +1566,8 @@ function menuSheet(home) {
 $('#btnMenu').addEventListener('click', () => menuSheet(true));
 $('#btnSet').addEventListener('click', () => menuSheet(false));
 addEventListener('pointerdown', () => { if (!headless && !S.muted) audio(); }, { once: true });
-$('#btnInstall').addEventListener('click', () => { if (!installEvt) return; installEvt.prompt(); installEvt = null; $('#btnInstall').hidden = true; });
+$('#btnInstall').addEventListener('click', () => { sfx.tap(); if (installEvt && !inApp) { installEvt.prompt(); installEvt.userChoice.then(c => { if (c && c.outcome !== 'accepted') installHelp(); }).catch(() => {}); installEvt = null; renderTitle(); } else installHelp(); });
+addEventListener('appinstalled', () => { installEvt = null; renderTitle(); });
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; renderTitle(); });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   /* 새 버전이 깔리면 전투 중이 아닐 때 저절로 새로 고쳐요 (예전엔 앱을 두 번 껐다 켜야 했어요) */
