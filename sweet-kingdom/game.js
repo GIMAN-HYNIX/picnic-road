@@ -297,8 +297,15 @@ function tintFoes() {
 const HERO_COS = {
   pink: { name: '분홍 머리', ramp: ['#FF9AC0', '#E0507A', '#9C1E5C'] }, blond: { name: '금발', ramp: ['#FFE08A', '#E0A030', '#9A6010'] },
   mint: { name: '민트 머리', ramp: ['#A8F0D8', '#3FBF9A', '#1E7A60'] }, lilac: { name: '보라 머리', ramp: ['#D9B8FF', '#9A6AE0', '#5A3A9A'] },
-  sky: { name: '하늘 머리', ramp: ['#BFE6FF', '#4A9AE0', '#2A5A9A'] }, silver: { name: '은발', ramp: ['#F4F4F8', '#BFC3CF', '#7A7F8E'] }
+  sky: { name: '하늘 머리', ramp: ['#BFE6FF', '#4A9AE0', '#2A5A9A'] }, silver: { name: '은발', ramp: ['#F4F4F8', '#BFC3CF', '#7A7F8E'] },
+  bigbow: { name: '왕리본' }, catears: { name: '고양이 귀 머리띠' }, bunny: { name: '토끼 귀' }, halo: { name: '천사 링' }, flower: { name: '꽃 화관' },
+  shades: { name: '선글라스' }, specs: { name: '금테 안경' }, hearts: { name: '하트 볼터치' }, angel: { name: '천사 날개' }, devil: { name: '악마 날개' }
 };
+/* 꾸미기 종류: 머리색(dye), 머리 장식(head, 투구 대신 보여요), 얼굴(face), 등(back, 망토 대신 보여요) */
+const cosType = k => (DOLL.COS[k] && DOLL.COS[k].t) || 'dye';
+const COS_T = [['dye', '머리색'], ['head', '머리 장식'], ['face', '얼굴'], ['back', '등']];
+if (!S.heroLook || typeof S.heroLook !== 'object') S.heroLook = {};
+const lookNow = () => ({ dye: S.heroCos, ...S.heroLook });
 /* 주인공 그림 위에 장비를 그려요. 옷·장갑·신발은 색을 바꾸고, 투구는 머리 위에, 망토는 몸 뒤에 */
 let HERO_RAW = null, heroUrlC = null;
 const RAGS = ['#D8CBB0', '#A8957A', '#76664F'];
@@ -306,7 +313,7 @@ function composeHero(raw, eq, dye) { return DOLL.compose(eq, dye); }
 /* 세트 효과 모습: 장비를 4칸 이상 끼고 모두 유물 이상이면 몸 테두리가 등급 색으로 빛나요 (영웅 이상은 발밑에 오라) */
 function setGrade(eq) { const l = SLOTS.map(s => eq[s]).filter(Boolean); return l.length >= 4 ? Math.min(...l.map(i => i.g)) : -1; }
 function buildHero() {
-  const eq = run ? eqOf() : {}, sg = setGrade(eq), rc = sg >= 2 ? (h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)])(GRADES[sg].ramp[0]) : null, doll = composeHero(HERO_RAW, eq, S.heroCos), big = heroStyle(doll, rc), im = heroStyle(doll.mini, rc);      /* 전투에서는 절반 크기, 창에서는 큰 그림 */
+  const eq = run ? eqOf() : {}, sg = setGrade(eq), rc = sg >= 2 ? (h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)])(GRADES[sg].ramp[0]) : null, doll = composeHero(HERO_RAW, eq, lookNow()), big = heroStyle(doll, rc), im = heroStyle(doll.mini, rc);      /* 전투에서는 절반 크기, 창에서는 큰 그림 */
   IMG.heroBig = { im: big };
   IMG.hero = { aura: sg >= 3 ? GRADES[sg].ramp[1] : null, auraG: sg, im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im, 3, 0.5); IMG.hero.whites = IMG.hero.frames.map(whiteOf); heroUrlC = null;
 }
@@ -1362,8 +1369,9 @@ function endBattle(won) {
   const info = { won, kind: B.kind, floor: B.floor, bigDead: B.bigDead, kills: B.kills, time: B.t };
   run.hp = Math.max(won ? 1 : 0, Math.min(run.maxHp, B.p.hp));
   if (won) {      /* 끌려오던 보석(자석 포함)은 전투가 끝나도 전부 받아요. 넘친 경험치로 오른 레벨은 전투 뒤에 골라요 */
-    for (const g of B.gems) if (g.pull) B.xp += g.v * B.st.xp * (1 + 0.12 * B.floor);
-    B.gems = B.gems.filter(g => !g.pull);
+    const all = B.kind === 'boss' && B.bigDead;      /* 보스를 잡으면 바닥에 남은 보석도 전부 받아요 */
+    for (const g of B.gems) if (g.pull || all) B.xp += g.v * B.st.xp * (1 + 0.12 * B.floor);
+    B.gems = B.gems.filter(g => !g.pull && !all);
     while (B.xp >= B.need) { B.xp -= B.need; B.lvl++; B.need = needOf(B.lvl); run.lvl = B.lvl; if (headless) applyLevel(rollLevelOpts()[0]); else run.picks = (run.picks || 0) + 1; }
   }
   run.kills = (run.kills || 0) + B.kills; run.lvl = B.lvl; run.xp = B.xp;
@@ -1717,7 +1725,7 @@ function renderBar() {
   $('#hpChip').innerHTML = heartsHtml(run.hp, run.maxHp);
   $('#goldChip').innerHTML = `Lv ${run.lvl}`;
   $('#potChip').innerHTML = '';
-  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${eqImg(it, s)}</button>`; }).join('');
+  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${eqImg(it, s)}</button>`; }).join('') + `<button class="relic synb" type="button" data-synth="1">합성</button>`;
 }
 function renderMap() {
   const N = STAGES.length, rowH = 84, H = N * rowH + 60, xs = [50, 74, 50, 26], pos = i => [xs[i % 4], (H - 46 - i * rowH) / H * 100]; let lines = '';
@@ -1747,7 +1755,7 @@ function pickNode(id, quiet) {
 }
 $('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
 $('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) enter(+b.dataset.id); });
-$('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; sfx.tap(); eqSheet(b.dataset.slot); });
+$('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; sfx.tap(); if (b.dataset.synth) { synthSheet(() => { persist(); renderBar(); }); return; } eqSheet(b.dataset.slot); });
 
 /* ───── 무기 보기 ───── */
 function weaponSheet() {
@@ -1792,16 +1800,16 @@ function bossBonus() {
 }
 function bonusLine(b) {
   if (b.t === 'pet') return petLine(b.g);
-  if (b.t === 'hero') return `<div class="opt r2 petget"><span class="ic"><img class="pxi" src="${dyePreview(b.k)}" alt=""></span><span class="tx"><b>캐릭터 꾸미기: ${HERO_COS[b.k].name}</b><span>장비 창의 꾸미기에서 바꿀 수 있어요.</span></span></div>`;
+  if (b.t === 'hero') return `<div class="opt r2 petget"><span class="ic"><img class="pxi" src="${cosPreview(b.k)}" alt=""></span><span class="tx"><b>캐릭터 꾸미기: ${HERO_COS[b.k].name}</b><span>장비 창의 꾸미기에서 바꿀 수 있어요.</span></span></div>`;
   return `<div class="opt r2 petget"><span class="ic">${cosPetIcon(S.pet && petLv(S.pet) ? S.pet : 'kong', b.k)}</span><span class="tx"><b>펫 꾸미기: ${PET_COS[b.k].name}</b><span>펫 창에서 씌워 줄 수 있어요.</span></span></div>`;
 }
-function dyePreview(k) { const was = S.heroCos; S.heroCos = k; const c = composeHero(HERO_RAW, eqOf(), k); S.heroCos = was; const o = mk(c.width * 2, c.height * 2), q = o.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); }
+function cosPreview(k, t) { const look = lookNow(); look[t || cosType(k)] = k || null; const c = composeHero(HERO_RAW, eqOf(), look), o = mk(c.width * 2, c.height * 2), q = o.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); }
 const itemRow = (it, i, o = {}) => `<button class="opt eqi g${it.g}${o.sel ? ' picked' : ''}${o.dim ? ' dim' : ''}" type="button" data-act="${o.act || 'item'}" data-i="${i}"${o.worn || o.sel ? ' aria-pressed="true"' : ''}>${o.sel ? '<em class="tag up">✔ 재료</em>' : o.worn ? '<em class="tag wt">착용 중</em>' : o.up ? '<em class="tag up">▲ 더 좋아요</em>' : ''}<span class="ic">${eqImg(it)}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${SLOT[it.s].name} · ${statLine(it)}</span></span></button>`;
 function rewardSheet(items, bonus, title, next) {
   addItems(items); sfx.rare();
   const best = Math.max(...items.map(it => it.g));
   sheet(`<h2 id="cardTitle">${title}</h2><p>장비 ${items.length}개를 얻었어요.${best >= 3 ? ` <b>${GRADES[best].name}</b> 등급이 나왔어요!` : ''}</p><div class="opts">${items.map((it, i) => itemRow(it, i, { act: 'noop', up: betterThanWorn(it) })).join('')}${bonus ? bonusLine(bonus) : ''}</div><button class="cta" type="button" data-act="wear" data-pref>더 좋은 장비 바로 끼기</button><button class="btn" type="button" data-act="bag">가방에 넣기</button>`,
-    (act, b) => { if (act === 'noop' || b.closest('.lock')) return; if (act === 'wear') { const n = autoEquip(); if (n) { sfx.good(); toastSheetMsg(`${n}개를 바꿔 꼈어요`); } } persist(); closeSheet(); next(); });
+    (act, b) => { if (act === 'noop' || b.closest('.lock')) return; let msg = ''; if (act === 'wear') { const n = autoEquip(); if (n) { sfx.good(); msg = `${n}개를 바꿔 꼈어요`; } } const m = autoSynth(); if (m) msg += (msg ? ' · ' : '') + `자동 합성 ${m}번`; if (msg) toastSheetMsg(msg); persist(); closeSheet(); next(); });
   flipReveal(); if (!headless && best >= 3) setTimeout(() => confetti(best === 4 ? 60 : 30), 500);
 }
 function toastSheetMsg(t) { const e = $('#toast'); if (!e || headless) return; e.textContent = t; e.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { e.hidden = true; }, 1800); }
@@ -1814,9 +1822,10 @@ function eqSheet(slot0, back) {
     const tr = [];
     sheet(`<h2 id="cardTitle">장비</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="eqslots">${SLOTS.map(s => { const it = e[s]; return `<button class="eqslot${it ? ' g' + it.g : ''}${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}"><span class="ic">${eqImg(it, s)}</span><span class="sl">${SLOT[s].name}</span></button>`; }).join('')}</div></div>
       <p class="eqsum">${sums} · 자세한 능력치는 캐릭터 창에서 봐요</p>
+      <div class="row2"><button class="btn" type="button" data-act="auto">좋은 걸로 끼기</button><button class="btn" type="button" data-act="synth">장비 합성</button></div>
       <div class="tabs"><button class="tb${tab === 'all' ? ' on' : ''}" type="button" data-act="tab" data-s="all">전체</button>${SLOTS.map(s => `<button class="tb${tab === s ? ' on' : ''}" type="button" data-act="tab" data-s="${s}">${SLOT[s].name}</button>`).join('')}</div>
       <div class="opts">${tab !== 'all' && e[tab] ? itemRow(e[tab], -1, { act: 'off', worn: true }) : ''}${inv.length ? inv.map((it, i) => itemRow(it, i, { up: betterThanWorn(it) })).join('') : '<p>가방이 비었어요. 스테이지를 깨면 장비를 받아요.</p>'}</div>
-      <div class="row2"><button class="btn" type="button" data-act="auto">좋은 걸로 끼기</button><button class="btn" type="button" data-act="synth">장비 합성</button></div><p class="eqsum">가방 ${(run.inv || []).length}개 · 안 쓰는 장비는 합성 재료로 쓸 수 있어요</p><button class="btn" type="button" data-act="cos">캐릭터 꾸미기</button><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+      <p class="eqsum">가방 ${(run.inv || []).length}개 · 안 쓰는 장비는 합성 재료로 쓸 수 있어요</p><button class="btn" type="button" data-act="cos">캐릭터 꾸미기</button><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
       (act, b) => {
         if (act === 'close') { closeSheet(); persist(); renderBar(); if (back) back(); return; }
         if (act === 'tab') { tab = b.dataset.s; sfx.tap(); draw(); return; }
@@ -1836,6 +1845,18 @@ function synthItem(mats) {
   run.inv = run.inv.filter(it => !mats.includes(it));
   const it = rollItem(n, g + 1, slot); it.g = g + 1; if (it.g < 3) it.sp = null; addItems([it]); return it;
 }
+/* 자동 합성: 고른 등급까지, 가방에서 지금 낀 것보다 좋지 않은 장비를 3개씩 묶어 저절로 합성해요 (같은 칸 3개를 먼저) */
+function autoSynth() {
+  const maxG = S.autoSynth || 0; if (!maxG || !run) return 0; let made = 0;
+  for (let g = 0; g < maxG; g++) for (let guard = 0; guard < 300; guard++) {
+    /* 칸마다 지금 낀 것보다 좋은 장비 가운데 제일 좋은 하나는 남겨 둬요 */
+    const keep = new Set(SLOTS.map(sl => (run.inv || []).filter(it => it.s === sl && betterThanWorn(it)).sort((a, b) => itemScore(b) - itemScore(a))[0]).filter(Boolean));
+    const pool = (run.inv || []).filter(it => it.g === g && !keep.has(it)); if (pool.length < 3) break;
+    const by = {}; for (const it of pool) (by[it.s] = by[it.s] || []).push(it);
+    const grp = Object.values(by).find(l => l.length >= 3); synthItem((grp || pool).sort((a, b) => itemScore(a) - itemScore(b)).slice(0, 3)); made++;
+  }
+  return made;
+}
 function synthSheet(back) {
   let sel = [];
   const draw = () => {
@@ -1843,12 +1864,14 @@ function synthSheet(back) {
     const same = sel.length === 3 && sel.every(m => m.s === sel[0].s);
     sheet(`<h2 id="cardTitle">장비 합성</h2><p>가방에서 <b>같은 등급 3개</b>를 고르면 한 등급 위 장비 1개가 돼요. 셋이 같은 칸이면 그 칸 장비가 나오고, 섞으면 아무 칸이나 나와요. 낀 장비는 재료로 못 써요.</p>
       <p class="eqsum">${[0, 1, 2, 3].map(k => `<i class="gn g${k}">${GRADES[k].name}</i> ${cnt[k]}개`).join(' · ')}</p>
+      <h3 class="sub3">자동 합성</h3><div class="tabs ctr">${[0, 1, 2, 3, 4].map(k => `<button class="tb${(S.autoSynth || 0) === k ? ' on' : ''}" type="button" data-act="autog" data-g="${k}">${k ? GRADES[k].name + '까지' : '끔'}</button>`).join('')}</div><p class="eqsum">${S.autoSynth ? `보상을 받을 때마다 ${GRADES[S.autoSynth].name} 등급이 될 때까지 저절로 합성해요. 칸마다 지금 낀 것보다 좋은 장비 하나는 남겨 둬요.` : '켜 두면 보상을 받을 때마다 저절로 합성해요.'}</p>
       <div class="synth">${[0, 1, 2].map(i => `<span class="sslot${sel[i] ? ' g' + sel[i].g : ''}">${sel[i] ? eqImg(sel[i]) : '?'}</span>`).join('<b>+</b>')}<b>→</b><span class="sslot res${g >= 0 ? ' g' + (g + 1) : ''}">${sel.length === 3 ? (same ? eqImg({ s: sel[0].s, g: g + 1, v: 0, fx: sel[0].fx, nm: '' }) : '?') : '?'}</span></div>
       <button class="cta" type="button" data-act="go"${sel.length === 3 ? '' : ' aria-disabled="true"'}>${sel.length === 3 ? `합성하기 → ${GRADES[g + 1].name} ${same ? SLOT[sel[0].s].name : '장비'}` : `재료 ${sel.length}/3`}</button>
       <button class="btn" type="button" data-act="quick">약한 것부터 자동으로 고르기</button>
       <div class="opts">${inv.length ? inv.map((it, i) => itemRow(it, i, { act: 'pick', sel: sel.includes(it), dim: g >= 0 && it.g !== g })).join('') : '<p>합성할 장비가 없어요.</p>'}</div><button class="btn" type="button" data-act="close">돌아가기</button>`,
       (act, b) => {
         if (act === 'close') { closeSheet(); back(); return; }
+        if (act === 'autog') { S.autoSynth = +b.dataset.g; sel = []; const m = autoSynth(); persist(); sfx.tap(); draw(); if (m) { sfx.rare(); toastSheetMsg(`자동 합성 ${m}번 했어요`); } return; }
         if (act === 'pick') { const it = inv[+b.dataset.i]; if (sel.includes(it)) sel = sel.filter(x => x !== it); else if (sel.length < 3 && (g < 0 || it.g === g)) sel.push(it); else { sfx.no(); return; } sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; return; }
         if (act === 'quick') { const k = [0, 1, 2, 3].find(x => cnt[x] >= 3); if (k == null) { sfx.no(); toastSheetMsg('같은 등급이 3개 모인 게 없어요'); return; } sel = inv.filter(it => it.g === k).slice(0, 3); sfx.tap(); draw(); return; }
         if (act === 'go') { if (sel.length !== 3) { sfx.no(); return; } const it = synthItem(sel); sel = []; persist(); sfx.rare();
@@ -1860,9 +1883,9 @@ function synthSheet(back) {
   draw();
 }
 function cosSheet(back) {
-  const draw = () => { const own = S.cos.hero || [];
-    sheet(`<h2 id="cardTitle">캐릭터 꾸미기</h2><p>보스를 잡으면 가끔 새 머리색을 받아요.</p><div class="cosrow big"><button class="cos${S.heroCos ? '' : ' on'}" type="button" data-act="dye" data-id=""><img class="pxi" src="${dyePreview('')}" alt=""><span>기본</span></button>${own.map(k => `<button class="cos${S.heroCos === k ? ' on' : ''}" type="button" data-act="dye" data-id="${k}"><img class="pxi" src="${dyePreview(k)}" alt=""><span>${HERO_COS[k].name}</span></button>`).join('')}</div>${own.length ? '' : '<p>아직 받은 꾸미기가 없어요.</p>'}<button class="cta" type="button" data-act="close" data-pref>돌아가기</button>`,
-      (act, b) => { if (act === 'close') { closeSheet(); back(); return; } S.heroCos = b.dataset.id || null; heroDirty(); persist(); sfx.tap(); draw(); }); };
+  const draw = () => { const own = S.cos.hero || [], cur = lookNow();
+    sheet(`<h2 id="cardTitle">캐릭터 꾸미기</h2><p>보스를 잡으면 가끔 꾸미기 아이템을 받아요. 머리 장식은 투구 대신, 날개는 망토 대신 보여요. 능력치는 그대로예요.</p><div class="eqhero cosme"><img src="${heroUrl(4)}" alt="내 캐릭터"></div>${COS_T.map(([t, lab]) => { const l = own.filter(k => cosType(k) === t); return `<h3 class="sub3">${lab}</h3><div class="cosrow big"><button class="cos${cur[t] ? '' : ' on'}" type="button" data-act="cos" data-t="${t}" data-id=""><img class="pxi" src="${cosPreview('', t)}" alt=""><span>${t === 'dye' ? '기본' : '없음'}</span></button>${l.map(k => `<button class="cos${cur[t] === k ? ' on' : ''}" type="button" data-act="cos" data-t="${t}" data-id="${k}"><img class="pxi" src="${cosPreview(k)}" alt=""><span>${HERO_COS[k].name}</span></button>`).join('')}</div>`; }).join('')}<button class="cta" type="button" data-act="close" data-pref>돌아가기</button>`,
+      (act, b) => { if (act === 'close') { closeSheet(); back(); return; } const t = b.dataset.t, id = b.dataset.id || null; if (t === 'dye') S.heroCos = id; else S.heroLook[t] = id; heroDirty(); persist(); sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; }); };
   draw();
 }
 function afterBattle(id, r) {
