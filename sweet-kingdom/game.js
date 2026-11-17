@@ -689,7 +689,7 @@ const RELICS = {
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
 /* 전설 스킬: Lv10 무기의 조각을 10개 모으면 무기가 전설로 바뀌어 커다란 기술이 주기적으로 터져요 */
 const LEG = {
-  pin: { name: '천지 가르기', desc: '화면을 가로지르는 거대한 베기가 세 번 이어지고, 마지막에 큰 충격파가 터져요.', cd: 3.4 },
+  pin: { name: '천지 가르기', desc: '화면을 가로지르는 거대한 베기가 세 번 이어지고, 마지막 충격파가 주변 적을 멀리 밀쳐내요.', cd: 3.4 },
   cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 4.6 },
   star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 4.0 },
   macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 3.8 },
@@ -734,7 +734,8 @@ function castLeg(w) {
       for (const f of alive()) { const rx = f.x - px, ry = f.y - py; if (Math.abs(rx * c + ry * s) < len && Math.abs(-rx * s + ry * c) < T * 0.5 + f.r) hurtFoe(f, D(a === 0.03 ? 330 : 260), { id, noAcc: true }, c, s); }
       flash('255,240,200', 0.12);
     }));
-    at(0.5, () => { big(p.x, p.y, 380, 320, '#FFD86B'); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
+    at(0.5, () => { const px = p.x, py = p.y; big(p.x, p.y, 380, 320, '#FFD86B');
+      for (const f of alive()) { const dx = f.x - px, dy = f.y - py, m = Math.hypot(dx, dy) || 1; if (m > 400 || FOES[f.type].noKb) continue; const k = f === B.big ? 0.2 : 1; f.kx = dx / m * 2400 * k; f.ky = dy / m * 2400 * k; }      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만) */      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만). 피해를 준 뒤에 밀어야 밀림이 덮어써지지 않아요 */ lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
   }
   if (id === 'cream') {      /* 휘핑 해일: 화면 끝에서 끝까지 쓸고 가는 크림 파도 두 번 */
     [[-1, 0], [1, 0.62]].forEach(([dir, t]) => at(t, () => {
