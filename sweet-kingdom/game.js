@@ -2361,10 +2361,17 @@ function upgradeItems() {
   o.iv = 2; run = was; persist();
 }
 function resetSheet() {
-  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">캐릭터만 지우고 처음부터</button><button class="btn" type="button" data-act="all">전부 지우기 (트리·펫·꾸미기까지)</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); show('title'); renderTitle(); } if (act === 'all') allResetSheet(); });
+  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요. 실수로 누르지 않게 버튼은 잠깐 뒤에 눌려요.</p><button class="cta" type="button" data-act="no" data-pref>그만두기</button><div class="dzone"><button class="btn danger" type="button" data-act="yes" aria-disabled="true" data-wait="3">캐릭터만 지우기</button><button class="btn danger" type="button" data-act="all" aria-disabled="true" data-wait="3">전부 지우기 (트리·펫·꾸미기까지)</button></div>`, (act, b) => { if (b && b.getAttribute('aria-disabled') === 'true') { sfx.no(); return; } closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); show('title'); renderTitle(); } if (act === 'all') allResetSheet(); });
+  armDanger();
+}
+/* 위험한 버튼: 몇 초 기다려야 눌려요 (남은 초를 보여 줘요) */
+function armDanger() {
+  for (const b of cardEl.querySelectorAll('[data-wait]')) { const lab = b.textContent; let n = +b.dataset.wait; b.textContent = `${lab} (${n})`;
+    const iv = setInterval(() => { if (!b.isConnected) { clearInterval(iv); return; } n--; if (n > 0) b.textContent = `${lab} (${n})`; else { clearInterval(iv); b.textContent = lab; b.removeAttribute('aria-disabled'); } }, 1000); }
 }
 function allResetSheet() {      /* 완전 초기화: 이 기기의 저장을 통째로 지워요 */
-  sheet(`<h2 id="cardTitle">정말 전부 지울까요?</h2><p>레벨, 스테이지, 장비, 성장 트리, 하트, 펫, 꾸미기까지 이 기기의 기록이 모두 사라져요. 되돌릴 수 없어요.</p><button class="cta" type="button" data-act="yes">전부 지우기</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { wiped = true; try { localStorage.setItem(WKEY, String(Date.now())); localStorage.removeItem(KEY); } catch (_) {} location.reload(); } });
+  sheet(`<h2 id="cardTitle">정말 전부 지울까요?</h2><p>레벨, 스테이지, 장비, 성장 트리, 하트, 펫, 꾸미기까지 이 기기의 기록이 모두 사라져요. 되돌릴 수 없어요.</p><button class="cta" type="button" data-act="no" data-pref>그만두기</button><div class="dzone"><button class="btn danger" type="button" data-act="yes" aria-disabled="true" data-wait="5">전부 지우기</button></div>`, (act, b) => { if (b && b.getAttribute('aria-disabled') === 'true') { sfx.no(); return; } closeSheet(); if (act === 'yes') { wiped = true; try { localStorage.setItem(WKEY, String(Date.now())); localStorage.removeItem(KEY); } catch (_) {} location.reload(); } });
+  armDanger();
 }
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
@@ -2419,7 +2426,7 @@ function menuSheet(home) {
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
-    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + row('reset', '처음부터 다시 시작 / 초기화', '캐릭터만 지우거나, 트리·펫·꾸미기까지 전부 지울 수 있어요.') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>${home ? '' : '<button class="dlink" type="button" data-act="reset">기록 초기화…</button>'}`,      /* 초기화는 처음 화면 설정의 맨 아래, 닫기와 멀리 떨어진 작은 글씨로만 */
     act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }

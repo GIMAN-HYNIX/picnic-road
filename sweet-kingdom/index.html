@@ -51,6 +51,9 @@ img,canvas,.pxi{image-rendering:pixelated}
 .btn{min-height:46px; padding:0 14px; font-size:20px; color:var(--ink-2); background:var(--panel)}
 .cta:active,.btn:active,.mini-btn:active,.pause:active{transform:translateY(6px); box-shadow:var(--box), 0 3px 0 0 var(--dark)}
 .btn[aria-disabled="true"],.cta[aria-disabled="true"]{opacity:.45}
+.dzone{display:flex; flex-direction:column; gap:10px; margin-top:34px; padding-top:16px; border-top:2px dashed var(--edge)}
+.btn.danger{color:var(--bad)}
+.dlink{display:block; margin:40px auto 4px; padding:8px 12px; background:none; border:0; box-shadow:none; font-family:var(--font-sm); font-size:14px; color:var(--ink-2); text-decoration:underline; text-underline-offset:3px; opacity:.75}
 
 /* 제목 화면 */
 #title .col{justify-content:flex-end; text-align:center; gap:14px}
@@ -304,7 +307,7 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
       <button class="btn" id="btnInstall" type="button" hidden>홈 화면에 앱으로 설치하기</button>
       <button class="btn" id="btnTree" type="button">성장 트리</button>
       <div class="row2"><button class="btn" id="btnPet" type="button">펫</button><button class="btn" id="btnRec" type="button">기록 보내기</button></div>
-      <button class="btn" id="btnSet" type="button">⚙ 설정 (소리 · 초기화)</button>
+      <button class="btn" id="btnSet" type="button">⚙ 설정</button>
       <button class="vertag" id="verTag" type="button">버전 확인</button>
     </div>
   </div>
