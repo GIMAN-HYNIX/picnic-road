@@ -116,22 +116,28 @@ function gainPet() {
 }
 function petLine(g) { return `<div class="opt r2 petget"><span class="ic">${petImg(g.id)}</span><span class="tx"><b>${g.isNew ? '새 펫' : '펫 레벨 업'}: ${PETS[g.id].name} Lv${g.lv}</b><span>${g.extra ? `이미 최고 레벨이라 설탕 별 ${g.extra}개로 바꿨어요.` : PETS[g.id].desc}</span></span></div>`; }
 function petSheet(back) {
-  const draw = () => { const cur = S.pet && petLv(S.pet) ? S.pet : null, own = S.cos.pet || [];
-    sheet(`<h2 id="cardTitle">펫</h2><p>보스를 잡으면 가끔 펫이나 펫 꾸미기를 받아요. 같은 펫이면 레벨이 올라요. 하나를 골라 데리고 가요.</p><div class="opts">${Object.keys(PETS).map(id => { const lv = petLv(id); return `<button class="opt${S.pet === id ? ' on' : ''}" type="button" data-act="pet" data-id="${id}"${lv ? '' : ' aria-disabled="true"'}><span class="ic">${lv ? petImg(id) : '?'}</span><span class="tx"><b>${lv ? `${PETS[id].name} Lv${lv}` : '아직 못 만났어요'}</b><span>${lv ? `${PETS[id].desc} (${PETS[id].lvDesc(lv)})` : '보스를 잡으면 만날 수 있어요.'}</span></span></button>`; }).join('')}</div>${cur ? `<h3 class="sub3">${PETS[cur].name.split(' ').pop()} 꾸미기</h3>${own.length ? [['머리', 0], ['안경', 1]].map(([lab, fc]) => { const T = fc ? S.petFace : S.petCos, l = own.filter(c => !!PET_COS[c].face === !!fc); return l.length ? `<div class="cosrow"><span class="coslab">${lab}</span><button class="cos${T[cur] ? '' : ' on'}" type="button" data-act="pcos" data-fc="${fc}" data-id="">없음</button>${l.map(c => `<button class="cos${T[cur] === c ? ' on' : ''}" type="button" data-act="pcos" data-fc="${fc}" data-id="${c}" aria-label="${PET_COS[c].name}">${cosPetIcon(cur, c)}</button>`).join('')}</div>` : ''; }).join('') : '<p>아직 펫 꾸미기가 없어요. 보스를 잡으면 받을 수 있어요.</p>'}` : ''}<button class="btn" type="button" data-act="close">닫기</button>`,
+  let slot = 0;
+  const draw = () => { const two = pet2On(), sid = slot ? S.pet2 : S.pet, cur = sid && petLv(sid) ? sid : null, own = S.cos.pet || [];
+    sheet(`<h2 id="cardTitle">펫</h2><p>보스를 잡으면 가끔 펫이나 펫 꾸미기를 받아요. 같은 펫이면 레벨이 올라요. ${two ? '두 마리를 데리고 갈 수 있어요. 칸을 고른 뒤 펫을 눌러요.' : '하나를 골라 데리고 가요. 100스테이지를 깨면 두 마리를 데리고 갈 수 있어요.'}</p>${two ? `<div class="tabs ctr">${[0, 1].map(k => { const id = k ? S.pet2 : S.pet; return `<button class="tb${slot === k ? ' on' : ''}" type="button" data-act="slot" data-k="${k}">${k ? '둘째' : '첫째'} 칸 · ${id && petLv(id) ? PETS[id].name.split(' ').pop() : '비어 있음'}</button>`; }).join('')}</div>` : ''}<div class="opts">${Object.keys(PETS).map(id => { const lv = petLv(id), tag = S.pet === id ? '첫째' : two && S.pet2 === id ? '둘째' : ''; return `<button class="opt${(slot ? S.pet2 : S.pet) === id ? ' on' : ''}" type="button" data-act="pet" data-id="${id}"${lv ? '' : ' aria-disabled="true"'}>${tag ? `<em class="tag wt">${tag}</em>` : ''}<span class="ic">${lv ? petImg(id) : '?'}</span><span class="tx"><b>${lv ? `${PETS[id].name} Lv${lv}` : '아직 못 만났어요'}</b><span>${lv ? `${PETS[id].desc} (${PETS[id].lvDesc(lv)})` : '보스를 잡으면 만날 수 있어요.'}</span></span></button>`; }).join('')}</div>${cur ? `<h3 class="sub3">${PETS[cur].name.split(' ').pop()} 꾸미기</h3>${own.length ? [['머리', 0], ['안경', 1]].map(([lab, fc]) => { const T = fc ? S.petFace : S.petCos, l = own.filter(c => !!PET_COS[c].face === !!fc); return l.length ? `<div class="cosrow"><span class="coslab">${lab}</span><button class="cos${T[cur] ? '' : ' on'}" type="button" data-act="pcos" data-fc="${fc}" data-id="">없음</button>${l.map(c => `<button class="cos${T[cur] === c ? ' on' : ''}" type="button" data-act="pcos" data-fc="${fc}" data-id="${c}" aria-label="${PET_COS[c].name}">${cosPetIcon(cur, c)}</button>`).join('')}</div>` : ''; }).join('') : '<p>아직 펫 꾸미기가 없어요. 보스를 잡으면 받을 수 있어요.</p>'}` : ''}<button class="btn" type="button" data-act="close">닫기</button>`,
     (act, b) => { if (act === 'close') { closeSheet(); if (back) back(); return; }
-      if (act === 'pcos') { const T = b.dataset.fc === '1' ? S.petFace : S.petCos; if (b.dataset.id) T[S.pet] = b.dataset.id; else delete T[S.pet]; persist(); sfx.tap(); draw(); return; }
-      S.pet = b.dataset.id; persist(); sfx.tap(); draw(); }); };
+      if (act === 'pcos') { const T = b.dataset.fc === '1' ? S.petFace : S.petCos; if (b.dataset.id) T[cur] = b.dataset.id; else delete T[cur]; persist(); sfx.tap(); draw(); return; }
+      if (act === 'slot') { slot = +b.dataset.k; sfx.tap(); draw(); return; }
+      const id = b.dataset.id; if (!slot) { if (two && S.pet2 === id) S.pet2 = S.pet; S.pet = id; } else { if (S.pet === id) S.pet = S.pet2 || id; S.pet2 = id; } persist(); sfx.tap(); draw(); }); };
   draw();
 }
 function cosPetIcon(id, c) { const T = PET_COS[c].face ? S.petFace : S.petCos, was = T[id]; T[id] = c; const h = petImg(id, 36); if (was) T[id] = was; else delete T[id]; return h; }
 /* 전투 속 펫 */
+/* 펫 두 마리: 100스테이지를 처음 깨면 둘째 칸이 열려요 */
+const pet2On = () => !!S.pet2On;
+const petTeam = () => [S.pet, pet2On() ? S.pet2 : null].filter((id, i, a) => id && petLv(id) && a.indexOf(id) === i);
 function petStart() {
-  const id = S.pet, lv = petLv(id); if (!lv) return null;
-  return { id, lv, x: B.p.x - 20, y: B.p.y, cd: 2, t: 0, go: null };
+  B.pets = petTeam().map((id, i) => ({ id, lv: petLv(id), slot: i, x: B.p.x - 20 + i * 40, y: B.p.y, cd: 2 + i * 0.7, t: i, go: null }));
+  return B.pets[0] || null;
 }
-function petUpdate(dt) {
-  const P = B.pet; if (!P) return; const p = B.p; P.t += dt; P.cd -= dt;
-  let tx = p.x - 22 * p.face, ty = p.y - 18;
+function petUpdate(dt) { for (const P of B.pets || []) petUpdate1(P, dt); }
+function petUpdate1(P, dt) {
+  const p = B.p; P.t += dt; P.cd -= dt;
+  let tx = p.x - 22 * p.face * (P.slot ? -1 : 1), ty = p.y - 18 - (P.slot ? 6 : 0);
   if (P.go) { tx = P.go.x; ty = P.go.y; P.go.t -= dt; if (P.go.t <= 0) P.go = null; }
   const k = Math.min(1, dt * (P.go ? 12 : 6)); P.x += (tx - P.x) * k; P.y += (ty - P.y) * k;
   if (P.id === 'kong' && P.cd <= 0) {
@@ -146,7 +152,7 @@ function petUpdate(dt) {
 }
 /* 천사 슈: 부활 + 적 전부 없애기 (보스는 일부만) */
 function petRevive() {
-  const P = B.pet; if (!P || P.id !== 'shu') return false;
+  const P = (B.pets || []).find(q => q.id === 'shu'); if (!P) return false;
   const uses = P.lv >= 5 ? 3 : P.lv >= 3 ? 2 : 1; if ((run.petUsed || 0) >= uses) return false;
   run.petUsed = (run.petUsed || 0) + 1; const p = B.p; p.hp = Math.min(p.max, 1 + (P.lv >= 2) + (P.lv >= 4)); p.inv = 2.5;
   for (const f of B.foes) { if (f.dead) continue; if (f === B.big) hurtFoe(f, f.max * (0.08 + 0.02 * P.lv) / B.st.dmg, { id: 'pet' }); else { f.hp = 0; killFoe(f, { id: 'pet' }); } }
@@ -1092,7 +1098,9 @@ const STAGES = [
   { n: '차원문 광장', g: ['portal'] }, { n: '사탕 포탑 요새', g: ['turret'] }, { n: '차원문과 지뢰', g: ['portal', 'mines'] }, { n: '포탑 빙판', g: ['turret', 'ice'] }, { n: '불꽃 창기사 대장', boss: 'knight', g: ['turret'] },
   { n: '현상금 차원문', g: ['bounty', 'portal'] }, { n: '그림자 포탑', g: ['stalker', 'turret'] }, { n: '정전 지뢰밭', g: ['blackout', 'mines'] }, { n: '거인 차원문', g: ['giant', 'portal'] }, { n: '탄 설탕 마왕의 분노', boss: 'boss3', g: ['portal'] },
   { n: '개미 떼 포탑', g: ['swarm', 'turret'] }, { n: '유령 차원문', g: ['ghost', 'portal'] }, { n: '분열 현상금', g: ['split', 'bounty'] }, { n: '소용돌이 지뢰밭', g: ['vortex', 'mines'] }, { n: '골렘 왕의 귀환', boss: 'golem', g: ['beams'] },
-  { n: '광란의 차원문', g: ['fast', 'portal'] }, { n: '그림자 정전', g: ['stalker', 'blackout'] }, { n: '사방 포화', g: ['turret', 'meteor'] }, { n: '마지막 계단', g: ['portal', 'stalker', 'bounty'] }, { n: '거대 곰팡이 케이크', boss: 'boss', g: ['turret'] }
+  { n: '광란의 차원문', g: ['fast', 'portal'] }, { n: '그림자 정전', g: ['stalker', 'blackout'] }, { n: '사방 포화', g: ['turret', 'meteor'] }, { n: '마지막 계단', g: ['portal', 'stalker', 'bounty'] }, { n: '거대 곰팡이 케이크', boss: 'boss', g: ['turret'] },
+  { n: '번개 지뢰밭', g: ['beams', 'mines'] }, { n: '황금 소용돌이', g: ['goldrush', 'vortex'] }, { n: '얼음땡 포탑', g: ['pulse', 'turret'] }, { n: '쪼개지는 그림자', g: ['split', 'stalker'] }, { n: '창기사 대장의 돌격', boss: 'knight', g: ['charge'] },
+  { n: '정전 속 개미 떼', g: ['blackout', 'swarm'] }, { n: '거인의 빙판', g: ['giant', 'ice'] }, { n: '유령 포화', g: ['ghost', 'meteor'] }, { n: '마지막 시험', g: ['fast', 'portal', 'mines'] }, { n: '백 번째 왕좌: 초코 분수 대왕', boss: 'boss2', g: ['turret'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1818,7 +1826,7 @@ function draw() {
   }
   /* 무기 */
   for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (w.lv >= 10) putDisc(X(ox), Y(oy), 7, 7, '#FFD86B', Math.round(4 + 8 * (1 - Math.max(0, w.burstT) / 2.5))); ctx.drawImage(MAC, X(ox) - 4, Y(oy) - 4); }
-  if (B.pet) { const P = B.pet, sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); const hs = scale2x(sp), pw = sp.width, ph = sp.height; if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(hs, -(pw >> 1), py - (ph >> 1), pw, ph); ctx.restore(); } else ctx.drawImage(hs, px - (pw >> 1), py - (ph >> 1), pw, ph); }
+  for (const P of B.pets || []) { const sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); const hs = scale2x(sp), pw = sp.width, ph = sp.height; if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(hs, -(pw >> 1), py - (ph >> 1), pw, ph); ctx.restore(); } else ctx.drawImage(hs, px - (pw >> 1), py - (ph >> 1), pw, ph); }
   for (const s of B.shots) {
     const sx = X(s.x), sy = Y(s.y);
     if (s.k === 'skewer') {
@@ -2075,7 +2083,7 @@ function pickNode(id, quiet) {
   picked = id; const s = STAGES[id - 1], dn = id <= run.stage, lock = id > run.stage + 1;
   document.querySelectorAll('.node').forEach(b => b.classList.toggle('sel', +b.dataset.id === id));
   if (!quiet) sfx.tap();
-  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이기고 장비 5개를 받아요.${dn ? '' : ' <b>처음 잡으면 꾸미기나 펫도 받아요.</b>'}` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 2분을 버티면 이기고 장비 3개를 받아요.' : '특별한 일 없이 2분만 버티면 이기고 장비 3개를 받아요.';
+  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이기고 장비 5개를 받아요.${dn ? '' : ' <b>처음 잡으면 꾸미기나 펫도 받아요.</b>'}${id === 100 && !S.pet2On ? ' <b>여기를 깨면 펫을 두 마리 데리고 다닐 수 있어요!</b>' : ''}` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 2분을 버티면 이기고 장비 3개를 받아요.' : '특별한 일 없이 2분만 버티면 이기고 장비 3개를 받아요.';
   info(`<h3>${id}. ${s.n}</h3><p>${lock ? '앞 스테이지를 먼저 깨야 열려요.' : (dn ? '이미 깬 곳이에요. 다시 하면 경험치를 더 모을 수 있어요. ' : '<b>처음 깨면 이 판에서 얻은 경험치를 한 번 더 받아요.</b> ') + what}</p>`, lock ? null : id);
 }
 $('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
@@ -2224,6 +2232,7 @@ function afterBattle(id, r) {
   persist(); showMap();
   const steps = [next => winFx(s.boss ? '보스 격파!' : '스테이지 클리어!', 0, 0, next, !!s.boss)];
   { const items = Array.from({ length: s.boss ? 5 : 3 }, (_, k) => rollItem(id, s.boss && k === 0 ? 1 : 0)), bonus = s.boss && first ? bossBonus() : null; steps.push(next => rewardSheet(items, bonus, s.boss ? '보스 보상' : '클리어 보상', next)); }
+  if (first && id === 100 && !S.pet2On) { S.pet2On = true; persist(); steps.push(next => noteSheet('펫 두 마리 해금!', '100스테이지를 처음 깼어요. 이제 펫을 두 마리 데리고 다닐 수 있어요. 펫 창에서 둘째 칸을 골라 줘요.', 'chest', next)); }
   if (xpBonus) steps.push(next => noteSheet(`첫 클리어 보너스! 경험치 +${xpBonus}`, `처음 깬 스테이지라서 이번 판에서 얻은 경험치를 한 번 더 받았어요.${lvUp ? ` 레벨이 ${lvUp} 올랐어요!` : ''}`, 'star', next));
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
   steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
@@ -2331,7 +2340,7 @@ function renderTitle() {
   const b = $('#btnNew'); b.className = 'cta green'; b.textContent = going ? '모험 계속하기' : '모험 떠나기';
   $('#titleSub').textContent = going ? `스테이지 ${Math.min(S.run.stage + 1, STAGES.length)} · Lv ${S.run.lvl} · 무기 ${S.run.wpn.length}개` : '저절로 공격하는 전투. 스테이지를 하나씩 깨며 계속 강해져요.';
   $('#btnTree').textContent = `성장 트리 · 설탕 별 ${S.meta.pts}개`;
-  $('#btnPet').textContent = S.pet ? `펫 · ${PETS[S.pet].name.split(' ').pop()} Lv${petLv(S.pet)}` : '펫';
+  $('#btnPet').textContent = S.pet ? `펫 · ${petTeam().map(id => `${PETS[id].name.split(' ').pop()} Lv${petLv(id)}`).join(' + ')}` : '펫';
   $('#btnInstall').hidden = isInstalled; $('#btnInstall').textContent = inApp ? '크롬에서 열어야 설치돼요' : installEvt ? '홈 화면에 앱으로 설치하기' : '홈 화면에 설치하는 방법'; clearTimeout(newArmed); newArmed = 0;
 }
 /* 지금 버전: 서비스 워커 파일에 적힌 이름(sweet-xxxx)을 처음 화면 아래에 작게 보여 줘요 */
