@@ -199,7 +199,7 @@ if (!S.dev) S.dev = Math.random().toString(36).slice(2, 8);
 function recordRun(won, stars, petGot) {
   const t = Math.round(run.time || 0), dmg = run.dmg || {};
   S.hist.push({ id: S.dev + '-' + Date.now().toString(36), dev: S.dev, nm: S.devName || '', at: Date.now(), won: won ? 1 : 0, act: actOf(), fl: floorNo(), rows: 0, lv: run.lvl, k: run.kills || 0, t, hits: run.hits || 0, by: run.hitBy || {}, el: run.elites || 0,
-    w: run.wpn.map(w => [w.id, w.lv, Math.round(dmg[w.id] || 0)]), pd: Math.round(dmg.pet || 0), ac: Math.round(dmg.acid || 0), b: run.bonus, hp: run.maxHp, pet: S.pet ? [S.pet, petLv(S.pet)] : null, pg: petGot ? petGot.id : null, st: stars, tree: S.meta.total - S.meta.pts, eq: SLOTS.map(s => eqOf()[s] ? eqOf()[s].g : -1) });
+    w: run.wpn.map(w => [w.id, w.lv, Math.round(dmg[w.id] || 0)]), pd: Math.round(dmg.pet || 0), ac: Math.round(dmg.acid || 0), lg: Object.keys(run.leg || {}), dx: Object.fromEntries(Object.entries(dmg).filter(([k]) => !WEAPONS[k] && k !== 'pet' && k !== 'acid' && k !== '?').map(([k, v]) => [k, Math.round(v)])), b: run.bonus, hp: run.maxHp, pet: S.pet ? [S.pet, petLv(S.pet)] : null, pg: petGot ? petGot.id : null, st: stars, tree: S.meta.total - S.meta.pts, eq: SLOTS.map(s => eqOf()[s] ? eqOf()[s].g : -1) });
   if (S.hist.length > 120) S.hist.splice(0, S.hist.length - 120);
 }
 async function exportCode() {
@@ -2190,6 +2190,14 @@ function weaponSheet() {
   sheet(`<h2 id="cardTitle">내 무기 ${run.wpn.length}개 · Lv ${run.lvl}</h2><p>공격력 ${Math.round(st.dmg * 100)}% · 치명타 ${Math.round(st.crit * 100)}% · 이동 속도 ${Math.round(st.spd * 100)}%</p><div class="opts">${list}</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`, () => closeSheet());
 }
 /* 내 캐릭터: 모습, 능력치, 장착한 장비, 무기 */
+/* 지난 판 스킬별 피해: 기록의 마지막 판으로 막대를 그려요 */
+function lastDmgHtml() {
+  const r = (S.hist || [])[S.hist.length - 1]; if (!r || !r.w) return '<p class="eqsum">아직 기록된 판이 없어요. 한 판을 끝내면 여기에 나와요.</p>';
+  const lg = r.lg || [], rows = r.w.map(([id, lv, d]) => ({ n: `${WEAPONS[id].name}${lg.includes(id) ? ` <i class="gn lg">${LEG[id].name}</i>` : ` Lv${lv}`}`, d: d + (id === 'lemon' ? r.ac || 0 : 0), c: lg.includes(id) ? '#FFD23F' : '#7FE3FF' }));
+  if (r.pd) rows.push({ n: '펫', d: r.pd, c: '#FF8FB8' }); const ex = Object.values(r.dx || {}).reduce((a, b) => a + b, 0); if (ex) rows.push({ n: '장비 효과', d: ex, c: '#B08CFF' });
+  const tot = rows.reduce((a, b) => a + b.d, 0) || 1, mx = Math.max(...rows.map(x => x.d), 1), t = Math.max(1, r.t || 1), fmt = v => v >= 1e8 ? (v / 1e8).toFixed(1) + '억' : v >= 1e4 ? (v / 1e4).toFixed(1) + '만' : Math.round(v).toLocaleString('ko-KR');
+  return `<p class="eqsum">${r.fl}번 스테이지 ${r.won ? '클리어' : '실패'} · ${Math.floor(t / 60)}분 ${t % 60}초 · 적 ${(r.k || 0).toLocaleString('ko-KR')}마리 · 전체 피해 ${fmt(tot)}</p><div class="dmgbars">${rows.sort((a, b) => b.d - a.d).map(x => `<div class="dmgrow"><span class="dn">${x.n}</span><span class="dt"><i style="width:${(x.d / mx * 100).toFixed(1)}%;background:${x.c}"></i></span><span class="dv">${fmt(x.d)} · ${Math.round(x.d / tot * 100)}%<br><small>초당 ${fmt(x.d / t)}</small></span></div>`).join('')}</div>`;
+}
 function charSheet() {
   const st = battleStats(), e = eqOf(), pc = v => `${Math.round(v * 100)}%`, row = (k, v, h) => `<div class="st"><span>${k}</span><b${h ? ' class="hi"' : ''}>${v}</b></div>`;
   const learned = TREE.filter(t => M(t.id)).map(t => `${t.name} ${M(t.id)}/${t.max}`).join(' · ') || '아직 배운 게 없어요';
@@ -2199,7 +2207,7 @@ function charSheet() {
   const slots = SLOTS.map(sl => { const it = e[sl]; return it ? `<button class="opt eqi g${it.g}" type="button" data-act="eq" data-s="${sl}"><span class="ic">${eqImg(it)}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${statLine(it)}</span></span></button>` : `<button class="opt eqi empty" type="button" data-act="eq" data-s="${sl}"><span class="ic">${eqImg(null, sl)}</span><span class="tx"><b>${SLOT[sl].name}</b><span>비어 있어요. 눌러서 끼울 수 있어요.</span></span></button>`; }).join('');
   const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설</i>` : legUnlocked() ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}</b>: ${LEG[w.id].desc} ` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
   sheet(`<h2 id="cardTitle">내 캐릭터</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="who"><b>Lv ${run.lvl}</b><span>스테이지 ${Math.min(run.stage + 1, STAGES.length)}에 도전 중</span><span>무기 ${run.wpn.length}개 · 장비 ${eqList().length}/5칸</span></div></div>
-    <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">배운 특성</h3><p class="eqsum">${learned}</p><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
+    <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">지난 판 스킬별 피해</h3>${lastDmgHtml()}<h3 class="sub3">배운 특성</h3><p class="eqsum">${learned}</p><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
     <div class="row2"><button class="btn" type="button" data-act="eq">장비 바꾸기</button><button class="btn" type="button" data-act="tree">성장 트리 (별 ${S.meta.pts})</button></div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
     (act, b) => { if (act === 'close') { closeSheet(); return; } if (act === 'tree') { treeSheet(() => charSheet()); return; } if (act === 'eq') eqSheet(b.dataset.s, () => charSheet()); });
 }

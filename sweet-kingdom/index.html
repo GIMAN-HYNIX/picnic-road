@@ -287,6 +287,10 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
 .sslot{width:40px; height:40px; padding:3px; display:grid; place-items:center; font-family:var(--font-sign); font-size:20px; color:var(--edge); background:var(--bg); box-shadow:0 0 0 3px var(--gc,var(--edge))}
 .sslot.res{width:52px; height:52px}
 .lwt{color:#C98A00}
+.dmgbars{display:flex; flex-direction:column; gap:8px; margin:6px 0 4px}
+.dmgrow{display:grid; grid-template-columns:minmax(0,1.3fr) 1fr auto; gap:8px; align-items:center; font-size:15px}
+.dmgrow .dn{min-width:0; overflow-wrap:anywhere} .dmgrow .dt{height:12px; background:var(--bg); box-shadow:0 0 0 2px var(--edge); position:relative}
+.dmgrow .dt i{position:absolute; inset:0 auto 0 0} .dmgrow .dv{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-2); line-height:1.2} .dmgrow .dv small{font-size:13px}
 .relic.synb{padding:0; font-family:var(--font-sm); font-size:16px; color:var(--bg); background:var(--gold); box-shadow:0 0 0 3px var(--gold)}
 .tabs.ctr{justify-content:center}
 .eqhero.cosme{margin:12px auto 0}
