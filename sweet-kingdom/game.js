@@ -717,7 +717,7 @@ function bossShards() {
 const isLeg = id => !!(run && run.leg && run.leg[id]);
 const legLater = (t, f) => B.legQ.push({ t, f });
 /* ═════ 전설 연출: 기 모으기 → 화면이 어두워지고 → 스킬마다 전용 대형 기술이 터져요 ═════ */
-const legK = () => Math.max(1, ((1 + 0.92 * Math.pow(B.floor, 0.8)) * lateMul()) / 5.9);      /* 전설 데미지는 그 스테이지 몬스터 체력에 맞춰 같이 커져요 (적을 확확 밀어버리는 맛) */
+const legK = () => Math.max(1, ((1 + 0.92 * Math.pow(hpFloor(), 0.8)) * lateMul()) / 5.9);      /* 전설 데미지는 그 스테이지 몬스터 체력에 맞춰 같이 커져요 (적을 확확 밀어버리는 맛) */
 const lfxAdd = o => { if (!headless) B.lfx.push(o); return o; };
 const legTick = (t0, dur, step, fn) => { for (let t = 0; t <= dur + 1e-6; t += step) legLater(t0 + t, () => fn(t / dur)); };
 const LEGW = 0.32;      /* 기 모으는 시간 */
@@ -1243,12 +1243,14 @@ function toast(t) { if (headless) return; const e = $('#toast'); e.textContent =
 /* 판이 지날수록(층이 오를수록) 적이 확실히 많아져요: 첫 판 1배 → 보스 판 약 5배 */
 const stageMul = () => Math.min(6.5, 0.8 + 0.5 * B.floor);
 /* 2막부터는 적이 훨씬 단단해져요. 캐릭터가 무기를 다 키우는 속도에 맞춘 값 */
-const lateMul = () => { const k = Math.max(0, B.floor - 5); return 1 + LATE * k + 0.006 * k * k; };
+/* 100번 스테이지(층 85)를 넘으면 몬스터 체력이 느는 속도를 30%로 줄여요. 그 전까지는 그대로예요 */
+const hpFloor = () => B.floor <= 85 ? B.floor : 85 + (B.floor - 85) * 0.3;
+const lateMul = (fl = hpFloor()) => { const k = Math.max(0, fl - 5); return 1 + LATE * k + 0.006 * k * k; };
 const LATE = 0.18;
 function spawnFoe(type, x, y, minion) {
-  const d = FOES[type], grow = (1 + 0.92 * Math.pow(B.floor, 0.8) + (B.t / 120) * 0.6) * lateMul();     /* 초반 판에서 빨리 단단해지고 뒤로 갈수록 완만하게 */
+  const HF = hpFloor(), d = FOES[type], grow = (1 + 0.92 * Math.pow(HF, 0.8) + (B.t / 120) * 0.6) * lateMul();     /* 초반 판에서 빨리 단단해지고 뒤로 갈수록 완만하게 */
   const big = !!d.big && !minion;
-  const f = { type, x, y, r: d.r, hp: d.hp * (big ? (1 + 0.2 * B.floor + 0.012 * B.floor * B.floor) * lateMul() / (1 + 0.06 * Math.max(0, B.floor - 20) + 0.004 * Math.max(0, B.floor - 20) ** 2) : grow) * DF().hp,      /* 뒤쪽 보스는 체력이 너무 불어나지 않게 */ spd: d.spd * DF().spd * Math.min(1.5, 0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : rand(0.8, 2.5), vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
+  const f = { type, x, y, r: d.r, hp: d.hp * (big ? (1 + 0.2 * HF + 0.012 * HF * HF) * lateMul() / (1 + 0.06 * Math.max(0, HF - 20) + 0.004 * Math.max(0, HF - 20) ** 2) : grow) * DF().hp,      /* 뒤쪽 보스는 체력이 너무 불어나지 않게 */ spd: d.spd * DF().spd * Math.min(1.5, 0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : rand(0.8, 2.5), vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   if (minion) { f.minion = true; f.hp = d.hp * 0.15 * grow * DF().hp; f.r = d.r * 0.85; }     // 지난 막의 엘리트가 일반 몬스터로: 체력은 엘리트의 15%
   if (type === 'zip') f.spd = d.spd * Math.min(1.25, 0.95 + 0.012 * B.floor);
   if (!big && B.hpK && B.hpK !== 1) f.hp *= B.hpK; if (!big && G('giant')) { f.r *= 1.5; f.sc = 2; f.xpK = 3; } f.max = f.hp; B.foes.push(f); return f;
@@ -1299,7 +1301,7 @@ function killFoe(f, w) {
   if (big) B.magnets.push({ x: f.x + 20, y: f.y, ph: 0 });
   const elite = ['donut', 'golem', 'knight'].includes(f.type);
   /* 엘리트는 체력에 비례한 경험치: 지금 스테이지의 젤리 몇 마리 몫인지로 계산해요 */
-  const eliteXp = elite ? Math.max(d.xp, Math.round(f.max / (14 * (1 + 0.92 * Math.pow(B.floor, 0.8) + (B.t / 120) * 0.6) * lateMul() * DF().hp))) : 0;
+  const eliteXp = elite ? Math.max(d.xp, Math.round(f.max / (14 * (1 + 0.92 * Math.pow(hpFloor(), 0.8) + (B.t / 120) * 0.6) * lateMul() * DF().hp))) : 0;
   if (B.st.sp.lucky && f.critHit && !elite && d.xp && Math.random() < 0.2 * B.st.sp.lucky) B.gems.push({ x: f.x + 6, y: f.y, v: d.xp, pull: false, vx: rand(-40, 40), vy: rand(-20, 20), z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y });
   if (B.st.sp.boom && !B.inBoom && !big && Math.random() < 0.08 * B.st.sp.boom) { B.inBoom = true; blast(f.x, f.y, 70, 60, { id: 'gear', noAcc: true }, '#FF9A3D'); B.inBoom = false; }
   if (d.xp) { const n = elite ? Math.min(8, Math.max(1, Math.ceil(eliteXp / 5))) : 1; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, sp = elite ? rand(60, 160) : rand(20, 60); B.gems.push({ gold: elite, x: f.x, y: f.y, v: elite ? Math.ceil(eliteXp / n) : d.xp * (f.xpK || 1), pull: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, z: 4, vz: rand(150, 230), ph: Math.random() * 6.28, px: f.x, py: f.y }); } }
