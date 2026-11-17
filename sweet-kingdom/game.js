@@ -746,7 +746,7 @@ function castLeg(w) {
       for (const f of alive()) { const dx = f.x - px, dy = f.y - py, m = Math.hypot(dx, dy) || 1; if (m > 400 || FOES[f.type].noKb) continue; const k = f === B.big ? 0.2 : 1; f.kx = dx / m * 1200 * k; f.ky = dy / m * 1200 * k; }      /* 마지막 베기와 함께 충격파가 주변 적을 밀쳐내요 (보스는 조금만) */ lfxAdd({ k: 'pop', x: p.x, y: p.y, r: 200, life: 0.35, max: 0.35, col: '#FFF1B0' }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 30, to: 420, life: 0.3, max: 0.3, col: '#FFFFFF', w: 14 });      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만). 피해를 준 뒤에 밀어야 밀림이 덮어써지지 않아요 */ lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
   }
   if (id === 'cream') {      /* 휘핑 해일: 화면 끝에서 끝까지 쓸고 가는 크림 파도 두 번 */
-    (up ? [[-1, 0], [1, 0.62], [-1, 1.24]] : [[-1, 0], [1, 0.62]]).forEach(([dir, t]) => at(t, () => {
+    Array.from({ length: 2 + Math.min(up, 4) }, (_, i) => [i % 2 ? 1 : -1, i * 0.62]).forEach(([dir, t]) => at(t, () => {
       const x0 = p.x - dir * vw * 0.62, sp = vw * 1.3 / 0.95, hit = new Set(); lfxAdd({ k: 'wave', x0, dir, sp, y: p.y, life: 1.0, max: 1.0, vw }); shake(0.3);
       legTick(0, 0.95, 0.05, u => { const xw = x0 + dir * sp * 0.95 * u; for (const f of alive()) if (!hit.has(f) && Math.abs(f.x - xw) < 80 && Math.abs(f.y - p.y) < vh * 0.62) { hit.add(f); hurtFoe(f, D(250), { id, noAcc: true }, dir, 0); f.slow = 3; } });
     }));
@@ -991,9 +991,9 @@ const LW = {
   cane: { name: '사탕 비', d: '지팡이 사탕 +1개, 내리치는 범위 +20%' }
 };
 /* 그 무기를 전설로 각성했을 때의 강화 효과 */
-const LWL = { pin: '천지 가르기 베기가 한 번 더 이어져요', cream: '휘핑 해일이 한 번 더 쓸고 가요 (3번)', star: '별똥별이 30개로 늘어요', macaron: '은하가 더 넓고 오래 펼쳐지고 마지막 폭발이 커져요', honey: '꿀 바다가 더 넓고 오래가며 피해가 늘어요', lemon: '회오리가 4개로 늘어요', skewer: '꼬치가 세 번 꿰뚫고 지나가요', choco: '운석 폭발이 넓어지고 파편이 12개로 늘어요', cotton: '심판의 빛 낙뢰가 20개로 늘어요', cane: '지팡이 사탕이 세 겹으로 내리꽂혀요' };
+const LWL = { pin: '천지 가르기 베기가 한 번 더 이어져요', cream: '휘핑 해일이 한 번 더 쓸고 가요 (같은 장비 겹치면 더)', star: '별똥별이 30개로 늘어요', macaron: '은하가 더 넓고 오래 펼쳐지고 마지막 폭발이 커져요', honey: '꿀 바다가 더 넓고 오래가며 피해가 늘어요', lemon: '회오리가 4개로 늘어요', skewer: '꼬치가 세 번 꿰뚫고 지나가요', choco: '운석 폭발이 넓어지고 파편이 12개로 늘어요', cotton: '심판의 빛 낙뢰가 20개로 늘어요', cane: '지팡이 사탕이 세 겹으로 내리꽂혀요' };
 function rollLw(it) { if (it.g !== 4 || it.lw) return; const own = run && run.wpn && run.wpn.length && Math.random() < 0.7 ? pick(run.wpn).id : pick(Object.keys(LW)); it.lw = own; }
-const lwOn = id => !!(B && B.st && B.st.lw && B.st.lw[id]);
+const lwOn = id => (B && B.st && B.st.lw && B.st.lw[id]) || 0;      /* 같은 무기 강화 장비를 여러 개 끼면 개수만큼 */
 const spK = it => it && it.g === 3 && it.sp && SP[it.sp] ? 1 : 0;      /* 고유 효과는 영웅 등급만. 전설은 그 대신 스킬 강화가 붙어요 */
 function rollSp(it) { if (it.g !== 3) return; const c = Object.keys(SP).filter(k => SP[k].s === it.s && !(k === 'twin' && ['macaron', 'honey'].includes(fxOf(it).w))); it.sp = pick(c); }
 const capeSp = (k, id) => { const c = eqOf().cape; return c && c.sp === k && fxOf(c).w === id ? spK(c) : 0; };
@@ -1086,7 +1086,7 @@ function battleStats() {
     dmg: (1 + 0.1 * b.dmg) * (1 + 0.04 * M('atk')) * (1 + 0.06 * M('veteran')) * (1 + 0.08 * M('master')),
     crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit') + eqSum('crit') / 100, critMul: 1.8 + 0.2 * M('critd') + eqSum('critd') / 100,
     spd: (1 + 0.05 * b.spd) * (1 + 0.03 * M('spd')) * (1 + eqSum('spd') / 100),
-    lw: Object.fromEntries(eqList().filter(it => it.g === 4 && it.lw).map(it => [it.lw, 1])),
+    lw: Object.fromEntries(eqList().filter(it => it.g === 4 && it.lw).reduce((o, it) => (o[it.lw] = (o[it.lw] || 0) + 1, o), {})),
     xp: 1 + 0.06 * M('xp'), pickup: 88 * (1 + 0.15 * M('mag')) * (1 + 0.4 * (sp.magnetic || 0)), sp, invK: (1 + 0.1 * M('guard')) * (1 + eqSum('inv') / 100), area: 1 + 0.06 * M('size'),
     atk: 1 + eqSum('atk') / 100 + 0.03 * M('aspd') + 0.04 * M('haste2'), guard: guardSec(), open: eqSum('open') / 100, rush: eqMax('rush'), hitHaste: eqMax('hitHaste') / 100, killHaste: eqMax('killHaste') / 100, lowHaste: eqMax('lowHaste') / 100
   };
