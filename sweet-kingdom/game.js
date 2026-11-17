@@ -293,6 +293,18 @@ function tintFoes() {
   for (const n of ['jelly', 'cookie', 'ice', 'donut', 'pop', 'ginger', 'churro', 'zip']) { const s = IMG[n]; if (!s) continue;
     for (const act of [2, 3]) { const fr = s.frames.map(im => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const q = c.getContext('2d'); q.filter = F[act]; q.drawImage(im, 0, 0); return foeStyle(c); }); IMG[n + '@' + act] = { im: fr[0], white: s.white, ratio: s.ratio, frames: fr, whites: s.whites }; } }
 }
+/* 픽셀아트 2배 확대 (Scale2x): 계단진 외곽선을 반 칸씩 다듬어서 촘촘하게 키워요 */
+const HI = new WeakMap();
+function scale2x(src) {
+  if (HI.has(src)) return HI.get(src); const w = src.width, h = src.height, c = mk(w * 2, h * 2); if (!w || !h) return src;
+  const si = src.getContext ? src.getContext('2d').getImageData(0, 0, w, h) : (() => { const t = mk(w, h), q = t.getContext('2d'); q.drawImage(src, 0, 0); return q.getImageData(0, 0, w, h); })();
+  const a = new Uint32Array(si.data.buffer), q = c.getContext('2d'), od = q.createImageData(w * 2, h * 2), o = new Uint32Array(od.data.buffer), P = (x, y) => a[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const E = a[y * w + x], A = P(x, y - 1), Bq = P(x + 1, y), C = P(x - 1, y), D = P(x, y + 1); let e0 = E, e1 = E, e2 = E, e3 = E;
+    if (A !== D && C !== Bq) { if (C === A) e0 = C; if (A === Bq) e1 = Bq; if (C === D) e2 = C; if (D === Bq) e3 = Bq; }
+    const r = y * 2 * w * 2 + x * 2; o[r] = e0; o[r + 1] = e1; o[r + w * 2] = e2; o[r + w * 2 + 1] = e3; }
+  q.putImageData(od, 0, 0); HI.set(src, c); return c;
+}
+function hiSprites() { for (const [n, s] of Object.entries(IMG)) { if (!s || !s.im || s.k || n === 'hero' || n === 'heroBig') continue; s.im = scale2x(s.im); s.white = scale2x(s.white); if (s.frames) s.frames = s.frames.map(scale2x); if (s.whites) s.whites = s.whites.map(scale2x); s.k = 2; } }
 /* 주인공 꾸미기: 머리 염색 */
 const HERO_COS = {
   pink: { name: '분홍 머리', ramp: ['#FF9AC0', '#E0507A', '#9C1E5C'] }, blond: { name: '금발', ramp: ['#FFE08A', '#E0A030', '#9A6010'] },
@@ -315,7 +327,7 @@ function setGrade(eq) { const l = SLOTS.map(s => eq[s]).filter(Boolean); return 
 function buildHero() {
   const eq = run ? eqOf() : {}, sg = setGrade(eq), rc = sg >= 2 ? (h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)])(GRADES[sg].ramp[0]) : null, doll = composeHero(HERO_RAW, eq, lookNow()), big = heroStyle(doll, rc), im = heroStyle(doll.mini, rc);      /* 전투에서는 절반 크기, 창에서는 큰 그림 */
   IMG.heroBig = { im: big };
-  IMG.hero = { aura: sg >= 3 ? GRADES[sg].ramp[1] : null, auraG: sg, im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im, 3, 0.5); IMG.hero.whites = IMG.hero.frames.map(whiteOf); IMG.hero.bigFrames = walkFrames(big, 6, 1); heroUrlC = null;
+  IMG.hero = { aura: sg >= 3 ? GRADES[sg].ramp[1] : null, auraG: sg, im: big, k: 2, white: whiteOf(big), ratio: big.width / big.height }; IMG.hero.frames = walkFrames(big, 6, 1); IMG.hero.whites = IMG.hero.frames.map(whiteOf); heroUrlC = null;      /* 전투에서도 큰 그림을 2배 촘촘하게 */
 }
 function heroDirty() { buildHero(); }
 function heroUrl(k = 4) { if (heroUrlC && heroUrlC.k === k) return heroUrlC.u; const s = IMG.heroBig && IMG.heroBig.im; if (!s) return 'img/hero.png'; const c = mk(s.width * k, s.height * k), q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); heroUrlC = { k, u: c.toDataURL() }; return heroUrlC.u; }
@@ -331,7 +343,7 @@ function loadImages() {
     };
     im.onerror = () => { IMG[n] = null; res(); };
     im.src = `img/${n}.png`;
-  }))).then(() => { for (const n of ['boss2', 'boss3']) if (!IMG[n]) IMG[n] = IMG.boss; tintFoes(); });
+  }))).then(() => { for (const n of ['boss2', 'boss3']) if (!IMG[n]) IMG[n] = IMG.boss; tintFoes(); hiSprites(); });
 }
 
 /* ───── 소리와 진동: 칩튠 음색에 넓은 울림(리버브), 따뜻한 패드, 묵직한 저음, 종소리(FM)를 섞었어요 ───── */
@@ -965,7 +977,7 @@ let vw = 390, vh = 780, PXS = 2, PZ = 2, ZOOM = 1, lw = 195, lh = 390;      // P
 function resize() {
   const w = window.innerWidth, h = window.innerHeight, d = Math.min(2, window.devicePixelRatio || 1);
   PXS = Math.max(2, Math.round(w / 195)); PZ = PXS * ZOOM; lw = Math.ceil(w / PZ); lh = Math.ceil(h / PZ);
-  if (cv.width !== lw || cv.height !== lh) { cv.width = lw; cv.height = lh; } cv.style.width = lw * PZ + 'px'; cv.style.height = lh * PZ + 'px'; ctx.imageSmoothingEnabled = false;
+  if (cv.width !== lw * Q || cv.height !== lh * Q) { cv.width = lw * Q; cv.height = lh * Q; } cv.style.width = lw * PZ + 'px'; cv.style.height = lh * PZ + 'px'; ctx.imageSmoothingEnabled = false;
   vw = lw * 2; vh = lh * 2; cv2.width = Math.round(w * d); cv2.height = Math.round(h * d);
 }
 addEventListener('resize', resize);
@@ -1638,36 +1650,37 @@ function endBattle(won) {
 }
 
 /* ───── 그리기: 낮은 해상도로 그린 뒤 크게 키우는 픽셀 화면. 화면 1칸 = 게임 속 길이 2 ───── */
+const Q = 2;      /* 화면 픽셀 밀도: 낮은 해상도 1칸을 2×2 픽셀로 더 촘촘하게 그려요 */
 const WP = 2, BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], INK = '#1A0E22';
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 let pcx = 0, pcy = 0;
-const X = v => Math.round(v / WP) - pcx, Y = v => Math.round(v / WP) - pcy;
+const X = v => Math.round(v / WP * Q) / Q - pcx, Y = v => Math.round(v / WP * Q) / Q - pcy;      /* 반 칸 단위로 움직여서 더 부드러워요 */
 const R = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
 const backOut = t => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
 /* 점을 섞어 찍은 타원 (빛, 장판, 기운). 한 번 만들면 다시 써요 */
 const discs = new Map();
 function dDisc(rx, ry, col, dens) {
   const key = rx + ',' + ry + col + dens; let c = discs.get(key); if (c) return c;
-  c = mk(rx * 2 + 1, ry * 2 + 1); const q = c.getContext('2d'); q.fillStyle = col;
+  const RX = rx * Q, RY = ry * Q; c = mk(RX * 2 + 1, RY * 2 + 1); const q = c.getContext('2d'); q.fillStyle = col; rx = RX; ry = RY;
   for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) { const d = (i * i) / (rx * rx) + (j * j) / (ry * ry); if (d <= 1 && BAYER[((j + 64) & 3) * 4 + ((i + 64) & 3)] < dens * (d > 0.6 ? 1 - (d - 0.6) * 1.6 : 1)) q.fillRect(i + rx, j + ry, 1, 1); }
   if (discs.size > 300) discs.clear(); discs.set(key, c); return c;
 }
-const putDisc = (x, y, rx, ry, col, dens) => ctx.drawImage(dDisc(Math.max(1, rx), Math.max(1, ry), col, dens), x - rx, y - ry);
-function pdisc(x, y, r, col) { ctx.fillStyle = col; for (let j = -r; j <= r; j++) { const w = Math.floor(Math.sqrt(r * r - j * j)); ctx.fillRect(x - w, y + j, w * 2 + 1, 1); } }
-function pcircle(x, y, r, col, t = 1) {
-  ctx.fillStyle = col; let i = r, j = 0, e = 1 - r;
-  while (i >= j) { for (const [a, b] of [[i, j], [j, i], [-i, j], [-j, i], [i, -j], [j, -i], [-i, -j], [-j, -i]]) ctx.fillRect(x + a, y + b, t, t); j++; if (e < 0) e += 2 * j + 1; else { i--; e += 2 * (j - i) + 1; } }
+const putDisc = (x, y, rx, ry, col, dens) => { rx = Math.max(1, Math.round(rx)); ry = Math.max(1, Math.round(ry)); const c = dDisc(rx, ry, col, dens); ctx.drawImage(c, x - rx - 0.5 / Q, y - ry - 0.5 / Q, c.width / Q, c.height / Q); };
+function pdisc(x, y, r, col) { ctx.fillStyle = col; const H = 1 / Q, rr = (r + 0.5) * (r + 0.5); for (let j = -r - 0.5 + H / 2; j <= r + 0.5; j += H) { const w = Math.floor(Math.sqrt(Math.max(0, rr - j * j)) * Q) / Q; if (w > 0) ctx.fillRect(x + 0.5 - w, y + 0.5 + j - H / 2, w * 2, H); } }      /* 반 칸 줄로 찍어서 동그라미가 매끈해요 */
+function pcircle(x, y, r, col, t = 1) {      /* 반 칸 간격으로 찍는 원 */
+  ctx.fillStyle = col; const H = 1 / Q, R2 = Math.max(1, Math.round(r * Q)); let i = R2, j = 0, e = 1 - R2; const o = (t - H) / 2;
+  while (i >= j) { for (const [a, b] of [[i, j], [j, i], [-i, j], [-j, i], [i, -j], [j, -i], [-i, -j], [-j, -i]]) ctx.fillRect(x + 0.5 + a * H - o - H / 2, y + 0.5 + b * H - o - H / 2, t, t); j++; if (e < 0) e += 2 * j + 1; else { i--; e += 2 * (j - i) + 1; } }
 }
-function pline(x0, y0, x1, y1, col, t = 1) { ctx.fillStyle = col; const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1); for (let i = 0; i <= n; i++) ctx.fillRect(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), t, t); }
+function pline(x0, y0, x1, y1, col, t = 1) { ctx.fillStyle = col; const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 0.5) * Q; for (let i = 0; i <= n; i++) ctx.fillRect(Math.round((x0 + (x1 - x0) * i / n) * Q) / Q, Math.round((y0 + (y1 - y0) * i / n) * Q) / Q, t, t); }
 function pstar(x, y, s, col) { ctx.fillStyle = col; ctx.fillRect(x - s, y, s * 2 + 1, 1); ctx.fillRect(x, y - s, 1, s * 2 + 1); }
 /* 바닥: 초콜릿 타일 무늬를 한 번 그려 두고 이어 붙여요 */
 /* 막마다 바닥 색이 달라요: 1막 초콜릿, 2막 얼음 민트, 3막 달궈진 오븐 */
 const FLOOR_PAL = [null, ['#3A2030', '#43263A', '#2A1424', '#5A3450'], ['#1F3A4A', '#24465A', '#12222E', '#3E6E86'], ['#3E1A14', '#4A2218', '#1E0A08', '#7A3A20']];
 const FLOORS = FLOOR_PAL.map(pal => {
   if (!pal) return null;
-  const c = mk(64, 64), q = c.getContext('2d'), r = (col, x, y, w, h) => { q.fillStyle = col; q.fillRect(x, y, w, h); };
-  for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) { const x = gx * 16, y = gy * 16; r((gx + gy) & 1 ? pal[0] : pal[1], x, y, 16, 16); r(pal[2], x, y + 15, 16, 1); r(pal[2], x + 15, y, 1, 16); r(pal[3], x + 1, y + 1, 4, 1); r(pal[3], x + 1, y + 2, 1, 2); }
-  [[20, 10], [56, 36], [4, 30], [36, 52]].forEach(([x, y]) => { r(pal[2], x, y, 3, 1); r(pal[2], x + 2, y + 1, 2, 1); });
+  const c = mk(64 * Q, 64 * Q), q = c.getContext('2d'), r = (col, x, y, w, h) => { q.fillStyle = col; q.fillRect(x * Q, y * Q, w * Q, h * Q); }, h = 1 / Q;      /* 2배 촘촘한 바닥: 반 칸 테두리와 빛 */
+  for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) { const x = gx * 16, y = gy * 16; r((gx + gy) & 1 ? pal[0] : pal[1], x, y, 16, 16); r(pal[2], x, y + 15, 16, 1); r(pal[2], x + 15, y, 1, 16); r(pal[3], x + 0.5, y + 0.5, 15, h); r(pal[3], x + 0.5, y + 0.5, h, 14.5); r(pal[3], x + 1, y + 1, 3.5, h); r(pal[3], x + 1, y + 1.5, h, 2); q.globalAlpha = 0.35; r(pal[2], x + 14.5, y + 1, h, 14); r(pal[2], x + 1, y + 14.5, 14, h); q.globalAlpha = 1; }
+  [[20, 10], [56, 36], [4, 30], [36, 52]].forEach(([x, y]) => { r(pal[2], x, y, 3, h); r(pal[2], x + 2.5, y + 0.5, 1.5, h); r(pal[2], x + 3.5, y + 1, 1, h); });
   return c;
 });
 /* 경험치 보석과 마카롱: 작은 픽셀 그림 */
@@ -1687,17 +1700,17 @@ const MAC = (() => { const c = mk(9, 8), q = c.getContext('2d'), r = (col, x, y,
 let VIG = null;
 function vignette() { if (VIG && VIG.width === lw && VIG.height === lh) return VIG; VIG = mk(lw, lh); const q = VIG.getContext('2d'); q.fillStyle = 'rgba(14,6,20,.6)'; for (let y = 0; y < lh; y++) for (let x = 0; x < lw; x++) { const dx = (x - lw / 2) / (lw / 2), dy = (y - lh / 2) / (lh / 2), d = dx * dx + dy * dy; if (d > 0.9 && (d - 0.9) * 22 > BAYER[(y & 3) * 4 + (x & 3)]) q.fillRect(x, y, 1, 1); } return VIG; }
 function spr(name, wx, wy, flip, white, lift = 0, fr = -1) {
-  const s = (B && B.act > 1 && name !== 'hero' && IMG[name + '@' + B.act]) || IMG[name]; if (!s) return; const im = fr >= 0 && s.frames ? (white ? s.whites : s.frames)[fr % s.frames.length] : white ? s.white : s.im, w = im.width, h = im.height, x = X(wx), y = Y(wy) - lift;
-  if (flip < 0) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -Math.ceil(w / 2), y - h); ctx.restore(); } else ctx.drawImage(im, x - Math.floor(w / 2), y - h);
+  const s = (B && B.act > 1 && name !== 'hero' && IMG[name + '@' + B.act]) || IMG[name]; if (!s) return; const im = fr >= 0 && s.frames ? (white ? s.whites : s.frames)[fr % s.frames.length] : white ? s.white : s.im, k = s.k || 1, w = im.width / k, h = im.height / k, x = X(wx), y = Y(wy) - lift, hw = Math.round(w / 2 * Q) / Q;
+  if (flip < 0) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -hw, y - h, w, h); ctx.restore(); } else ctx.drawImage(im, x - hw, y - h, w, h);
 }
 const SHOT_COL = { cream: '#FFFFFF', lemon: '#F4E04D', star: '#FFD86B', shard: '#C9B6FF' };
 function draw() {
   const p = B.p;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  ctx.setTransform(Q, 0, 0, Q, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
   const sk = B.shake > 0 ? Math.min(1, B.shake * 3) * 4 : 0;
-  pcx = Math.round((p.x - vw / 2) / WP + rand(-sk, sk)); pcy = Math.round((p.y - vh * 0.48) / WP + rand(-sk, sk));
+  pcx = Math.round(((p.x - vw / 2) / WP + rand(-sk, sk)) * Q) / Q; pcy = Math.round(((p.y - vh * 0.48) / WP + rand(-sk, sk)) * Q) / Q;
   /* 바닥 */
-  for (let y = -(((pcy % 64) + 64) % 64); y < lh; y += 64) for (let x = -(((pcx % 64) + 64) % 64); x < lw; x += 64) ctx.drawImage(FLOORS[B.act] || FLOORS[1], x, y);
+  for (let y = -(((pcy % 64) + 64) % 64); y < lh; y += 64) for (let x = -(((pcx % 64) + 64) % 64); x < lw; x += 64) ctx.drawImage(FLOORS[B.act] || FLOORS[1], x, y, 64, 64);
   /* 꿀 장판, 크림 웅덩이 */
   for (const z of B.zones) { const r = Math.round(z.r / WP), honey = !z.fire && !z.cream, col = z.fire ? (Math.floor(B.t * 4) % 2 ? '#FF7A3D' : '#F09030') : z.cream ? '#FFF3E6' : '#D9962A'; if (z.life < 0.5 && Math.floor(B.t * 14) % 2) continue;
     /* 꿀은 눈이 아프지 않게: 어두운 호박색을 성기게 찍고 테두리로 범위를 알려 줘요 */
@@ -1716,17 +1729,17 @@ function draw() {
     const key = gemKey(g.v, g.gold), G = GEM[key], bob = g.pull ? 0 : Math.round(Math.sin(g.ph) * 1.2 + 1.5), z = Math.round((g.z || 0) / WP) + bob, gx = X(g.x), gy = Y(g.y);
     R('rgba(14,6,20,.45)', gx - 2, gy + 2, 4, 1);
     if (g.pull) { ctx.globalAlpha = 0.6; R(GEM_COL[key], X(g.px - (g.x - g.px)), Y(g.py - (g.y - g.py)) - z, 2, 2); R(GEM_COL[key], X(g.px), Y(g.py) - z, 2, 2); ctx.globalAlpha = 1; }
-    ctx.drawImage(G, gx - (G.width >> 1), gy - z - (G.height >> 1));
+    ctx.drawImage(scale2x(G), gx - (G.width >> 1), gy - z - (G.height >> 1), G.width, G.height);
     if (Math.sin(g.ph * 0.7 + g.x) > 0.95) pstar(gx + 2, gy - z - 3, 1, '#FFFFFF');
   }
   /* 자석 아이템 */
   for (const m of B.magnets) { const mx = X(m.x), my = Y(m.y) - 3 - Math.round(Math.abs(Math.sin(m.ph)) * 3), big = Math.floor(B.t * 4) % 2;
-    ctx.drawImage(dDisc(big ? 11 : 9, big ? 8 : 6, '#FF4F6B', 6), mx - (big ? 11 : 9), my - (big ? 8 : 6)); R('rgba(14,6,20,.5)', mx - 4, Y(m.y) + 2, 8, 1);
+    putDisc(mx, my, big ? 11 : 9, big ? 8 : 6, '#FF4F6B', 6); R('rgba(14,6,20,.5)', mx - 4, Y(m.y) + 2, 8, 1);
     R(INK, mx - 6, my - 6, 13, 12); R('#E8323C', mx - 5, my - 5, 11, 9); R(INK, mx - 2, my - 5, 5, 6); R('#DDE3EA', mx - 5, my + 2, 3, 2); R('#DDE3EA', mx + 3, my + 2, 3, 2); R('#FF9AA6', mx - 4, my - 4, 2, 1);
     if (big) pstar(mx + 6, my - 7, 2, '#FFFFFF'); }
   /* 폭탄 아이템 */
   for (const m of B.bombs) { const bx = X(m.x), by = Y(m.y) - 4 - Math.round(Math.abs(Math.sin(m.ph)) * 3), blink = Math.floor(B.t * 6) % 2;
-    ctx.drawImage(dDisc(blink ? 11 : 9, blink ? 9 : 7, '#FFB02E', 6), bx - (blink ? 11 : 9), by - (blink ? 9 : 7)); R('rgba(14,6,20,.5)', bx - 4, Y(m.y) + 2, 8, 1);
+    putDisc(bx, by, blink ? 11 : 9, blink ? 9 : 7, '#FFB02E', 6); R('rgba(14,6,20,.5)', bx - 4, Y(m.y) + 2, 8, 1);
     pdisc(bx, by + 1, 6, INK); pdisc(bx, by + 1, 5, '#3A3550'); R('#6A6890', bx - 3, by - 2, 2, 2); R(INK, bx + 2, by - 7, 2, 3); R('#C98A3C', bx + 1, by - 8, 2, 2); R(blink ? '#FFFFFF' : '#FFD23F', bx + 3, by - 10, 2, 2); if (blink) pstar(bx + 4, by - 10, 2, '#FFE066'); }
   /* 적과 나를 아래쪽에 있는 것부터 겹쳐 그려요 */
   const list = B.foes.slice(); list.push(p); list.sort((a, b) => a.y - b.y);
@@ -1735,7 +1748,7 @@ function draw() {
       const px = X(p.x), py = Y(p.y);
       if (IMG.hero && IMG.hero.aura) { const pu = 1 + 0.12 * Math.sin(B.t * 5); putDisc(px, py + 1, Math.round(17 * pu), Math.round(7 * pu), IMG.hero.aura, 9); if (IMG.hero.auraG >= 4 && Math.floor(B.t * 8) % 2) pstar(px + Math.round(Math.sin(B.t * 3) * 14), py - 14 - Math.round((B.t * 18) % 22), 1, '#FFFFFF'); }
       putDisc(px, py + 1, 10, 4, '#8A5A7A', 6); R('rgba(14,6,20,.55)', px - 4, py, 8, 2); R('rgba(14,6,20,.55)', px - 3, py + 2, 6, 1);
-      B.heroDraw = null; if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) { const fr = p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3); if (IMG.hero && IMG.hero.bigFrames) B.heroDraw = { x: X(p.x), y: Y(p.y + 6), flip: p.face, fr }; else spr('hero', p.x, p.y + 6, p.face, false, 0, fr); }
+      if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 6, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
       if (p.shield) pcircle(px, py - 7, 12, Math.floor(B.t * 6) % 2 ? '#7FE3FF' : '#FFFFFF');
     } else {
       const d = FOES[o.type], age = B.t - (o.born || 0), ox = X(o.x), oy = Y(o.y), rr = Math.round(o.r / WP);
@@ -1753,7 +1766,7 @@ function draw() {
   }
   /* 무기 */
   for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (w.lv >= 10) putDisc(X(ox), Y(oy), 7, 7, '#FFD86B', Math.round(4 + 8 * (1 - Math.max(0, w.burstT) / 2.5))); ctx.drawImage(MAC, X(ox) - 4, Y(oy) - 4); }
-  if (B.pet) { const P = B.pet, sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(sp, -(sp.width >> 1), py - (sp.height >> 1)); ctx.restore(); } else ctx.drawImage(sp, px - (sp.width >> 1), py - (sp.height >> 1)); }
+  if (B.pet) { const P = B.pet, sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); const hs = scale2x(sp), pw = sp.width, ph = sp.height; if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(hs, -(pw >> 1), py - (ph >> 1), pw, ph); ctx.restore(); } else ctx.drawImage(hs, px - (pw >> 1), py - (ph >> 1), pw, ph); }
   for (const s of B.shots) {
     const sx = X(s.x), sy = Y(s.y);
     if (s.k === 'skewer') {
@@ -1764,12 +1777,12 @@ function draw() {
       continue;
     }
     const col = SHOT_COL[s.k] || '#FFFFFF', t = s.trail;
-    ctx.drawImage(dDisc(4, 4, '#FFF3D6', 4), sx - 4, sy - 4);
+    putDisc(sx, sy, 4, 4, '#FFF3D6', 4);
     if (t) for (let i = Math.max(0, t.length - 6); i < t.length; i += 2) { ctx.globalAlpha = 0.25 + 0.12 * (i - t.length + 6); R(s.aw ? '#FFD86B' : col, X(t[i]), Y(t[i + 1]), 2, 2); } ctx.globalAlpha = 1;
     if (s.k === 'star') { const big = Math.floor(B.t * 12 + s.x) % 2; R(INK, sx - 2, sy - 2, 5, 5); if (big) { R(col, sx - 2, sy, 5, 1); R(col, sx, sy - 2, 1, 5); R('#FFFFFF', sx, sy, 1, 1); } else { R(col, sx - 1, sy - 1, 3, 3); R('#FFFFFF', sx - 1, sy - 1, 1, 1); }if (s.big) { pstar(sx, sy, 4, INK); pstar(sx, sy, 3, '#FFE27A'); R('#FFFFFF', sx - 1, sy - 1, 3, 3); } }
     else { R(INK, sx - 1, sy - 2, 3, 5); R(INK, sx - 2, sy - 1, 5, 3); R(col, sx - 1, sy - 1, 3, 3); R(s.k === 'lemon' ? '#FFFFC0' : '#FFD9E6', sx - 1, sy - 1, 1, 1); }
   }
-  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; ctx.drawImage(dDisc(pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6), sx - (pu ? 7 : 6), sy - (pu ? 7 : 6)); R(INK, sx - 1, sy - 4, 3, 9); R(INK, sx - 4, sy - 1, 9, 3); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#FF2E4D', sx - 2, sy - 2, 5, 5); R('#FF2E4D', sx, sy - 3, 1, 7); R('#FF2E4D', sx - 3, sy, 7, 1); R('#FFE0E6', sx - 1, sy - 1, 2, 2); }
+  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; putDisc(sx, sy, pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6); R(INK, sx - 1, sy - 4, 3, 9); R(INK, sx - 4, sy - 1, 9, 3); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#FF2E4D', sx - 2, sy - 2, 5, 5); R('#FF2E4D', sx, sy - 3, 1, 7); R('#FF2E4D', sx - 3, sy, 7, 1); R('#FFE0E6', sx - 1, sy - 1, 2, 2); }
   /* 던진 초코 폭탄, 떨어지는 지팡이 사탕 */
   for (const L of B.lobs) {
     const k = Math.max(0, Math.min(1, L.t / L.dur)), tx0 = X(L.x), ty0 = Y(L.y);
@@ -1831,9 +1844,6 @@ function draw() {
   for (let i = 0; i < 14; i++) { const sx = Math.round(((i * 53 + B.t * (4 + i % 5 * 2)) % (lw + 10)) - 5), sy = Math.round(((i * 91 - B.t * (7 + i % 4 * 3)) % lh + lh) % lh); if (Math.sin(B.t * 2 + i) > -0.3) R(i % 3 ? 'rgba(255,231,240,.45)' : 'rgba(201,182,217,.45)', sx, sy, 1, 1); }
   /* 글자, 번쩍임, 조이스틱은 위에 겹친 선명한 판에 그려요 */
   const d = cv2.width / innerWidth, U = PZ * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
-  /* 주인공: 크기는 그대로, 픽셀은 2배 촘촘하게 (겹친 선명한 판에 그려요) */
-  if (B.heroDraw) { const h = B.heroDraw, im = IMG.hero.bigFrames[h.fr >= 0 ? h.fr % IMG.hero.bigFrames.length : 4], k = U / 2, w = Math.round(im.width * k), hh = Math.round(im.height * k), cx = Math.round(h.x * U), by = Math.round(h.y * U); tx.imageSmoothingEnabled = false;
-    if (h.flip < 0) { tx.save(); tx.translate(cx, 0); tx.scale(-1, 1); tx.drawImage(im, -Math.round(w / 2), by - hh, w, hh); tx.restore(); } else tx.drawImage(im, cx - Math.round(w / 2), by - hh, w, hh); }
   if (B.flashScr) { const fk = B.flashScr.t / B.flashScr.max; if (fk <= 0) B.flashScr = null; else { tx.fillStyle = `rgba(${B.flashScr.col},${0.4 * fk})`; tx.fillRect(0, 0, cv2.width, cv2.height); } }
   tx.textAlign = 'center'; legBanner(U, d);
   for (const t of B.texts) {
