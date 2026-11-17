@@ -808,6 +808,21 @@ const SP = {
   giant: { s: 'cape', name: '거인 사냥꾼', d: k => `망토의 무기가 보스와 엘리트에게 ${Math.round(30 * k)}% 더 세요` },
   chill: { s: 'cape', name: '서리', d: k => `망토의 무기에 맞은 적이 ${(1.5 * k).toFixed(1)}초 동안 느려져요` }
 };
+/* 전설 장비 강화: 전설 장비는 칸과 상관없이 기본 스킬 하나를 한 층 특별하게 만들어요. 생김새와 쓰는 법은 그대로, 조금 더 세고 조금 달라져요 */
+const LW = {
+  pin: { name: '연속 베기', d: '롤링핀 휘두르기가 바로 한 번 더 이어져요' },
+  cream: { name: '얼음 크림', d: '휘핑크림 +1발, 맞은 적이 1초 동안 느려져요' },
+  star: { name: '왕별사탕', d: '별사탕이 커지고 옆 적으로 1번 더 튕겨요' },
+  macaron: { name: '폭죽 마카롱', d: '마카롱 +1개, 적에게 날아가 부딪힐 때 작게 터져요' },
+  honey: { name: '꿀 홍수', d: '꿀 장판이 25% 넓어지고 피해가 50% 세져요' },
+  lemon: { name: '진한 레몬즙', d: '레몬즙 +1발, 산성이 1.5배로 쌓여요' },
+  skewer: { name: '왕꼬치', d: '꼬치 +1개, 꼬치가 굵어져서 더 잘 맞아요' },
+  choco: { name: '대왕 초코볼', d: '초코 폭탄 +1개, 폭발 범위 +15%' },
+  cotton: { name: '고압 번개', d: '번개가 1마리 더 이어지고 맞은 적이 잠깐 멈춰요' },
+  cane: { name: '사탕 비', d: '지팡이 사탕 +1개, 내리치는 범위 +20%' }
+};
+function rollLw(it) { if (it.g !== 4 || it.lw) return; const own = run && run.wpn && run.wpn.length && Math.random() < 0.7 ? pick(run.wpn).id : pick(Object.keys(LW)); it.lw = own; }
+const lwOn = id => !!(B && B.st && B.st.lw && B.st.lw[id]);
 const spK = it => it && it.sp && SP[it.sp] ? (it.g === 4 ? 1.5 : 1) : 0;
 function rollSp(it) { if (it.g < 3) return; const c = Object.keys(SP).filter(k => SP[k].s === it.s && !(k === 'twin' && ['macaron', 'honey'].includes(fxOf(it).w))); it.sp = pick(c); }
 const capeSp = (k, id) => { const c = eqOf().cape; return c && c.sp === k && fxOf(c).w === id ? spK(c) : 0; };
@@ -820,7 +835,7 @@ function rollItem(n, minG = 0, slot) {
   if (s === 'helm') { fx.crit = r1([1.5, 2.2, 3, 4, 5][g]); if (g >= 2) fx.critd = [15, 22, 30][g - 2]; }
   if (s === 'cape') { const own = run && run.wpn && run.wpn.length && Math.random() < 0.65 ? pick(run.wpn).id : pick(Object.keys(WEAPONS)); fx.w = own; fx.wd = [8, 12, 16, 22, 30][g]; fx.critd = [6, 10, 15, 22, 30][g]; if (g >= 2) { const [k, , v] = CAPE_FX[own]; fx[k] = v[g - 2]; } if (g === 4) fx.proj = (fx.proj || 0) + 1; }
   const v = rnd(SLOT[s].nouns.length), nm = s === 'cape' ? `${GRADES[g].pre} ${WEAPONS[fx.w].name} 망토` : `${GRADES[g].pre} ${SLOT[s].nouns[v]}`;
-  const it = { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm, fx, v }; rollSp(it); return it;
+  const it = { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm, fx, v }; rollSp(it); rollLw(it); return it;
 }
 const varOf = it => it.v != null ? it.v : Math.max(0, SLOT[it.s].nouns.findIndex(n => it.nm.endsWith(n)));
 const eqIcon = (it, s) => !it ? `eq_${s === 'cape' ? 'cape_pin' : s + '0'}_0` : it.s === 'cape' ? `eq_cape_${fxOf(it).w}_${it.g}` : `eq_${it.s}${varOf(it)}_${it.g}`;
@@ -844,10 +859,12 @@ function fxLines(it) {
   if (f.crit) o.push(`치명타 확률 +${f.crit}%`); if (f.critd) o.push(`치명타 피해 +${f.critd}%`);
   if (f.w) { const n = WEAPONS[f.w].name, [, lab] = CAPE_FX[f.w]; o.push(`${n} 피해 +${f.wd}%`); if (f.area) o.push(`${n} ${lab} +${f.area}%`); if (f.cd) o.push(`${n} ${lab} +${f.cd}%`); if (f.proj) o.push(`${n} ${f.proj > 1 || CAPE_FX[f.w][0] !== 'proj' ? '발사 수' : lab} +${f.proj}`); if (!wLv(f.w)) o.push(`(${n}이 없으면 효과가 없어요)`); }
   if (it.sp && SP[it.sp]) o.push(`<b>[${SP[it.sp].name}]</b> ${SP[it.sp].d(spK(it))}`);
+  if (it.lw && LW[it.lw]) o.push(`<b class="lwt">[전설 강화: ${WEAPONS[it.lw].name} · ${LW[it.lw].name}]</b> ${LW[it.lw].d}${run && wLv(it.lw) ? '' : ' (이 무기가 있어야 해요)'}`);
   return o;
 }
 const statLine = it => fxLines(it).join(' · ');
-const itemScore = it => { if (!it) return -1; const f = fxOf(it); if (it.s === 'cape') return (wLv(f.w) ? 1 + it.g * 1.2 : 0.05 * it.g) + (f.critd || 0) / 15 + (it.sp ? 2 : 0);
+const itemScore = it => itemScore0(it) + (it && it.lw ? (wLv(it.lw) ? 3 : 0.5) : 0);
+const itemScore0 = it => { if (!it) return -1; const f = fxOf(it); if (it.s === 'cape') return (wLv(f.w) ? 1 + it.g * 1.2 : 0.05 * it.g) + (f.critd || 0) / 15 + (it.sp ? 2 : 0);
   return (f.heart || 0) * 4 + (f.inv || 0) / 10 + (f.guard ? 40 / f.guard : 0) + (f.spd || 0) / 3 + ((f.hitHaste || 0) + (f.killHaste || 0)) / 25 + (f.lowHaste || 0) / 10 + (f.atk || 0) / 3 + ((f.open || 0) + (f.rush || 0) * 1.5) / 15 + (f.crit || 0) / 1.5 + (f.critd || 0) / 15 + (it.sp ? 2.5 : 0); };
 const betterThanWorn = it => itemScore(it) > itemScore(eqOf()[it.s]) + 0.01;
 function equip(it) { const e = run.eq || (run.eq = {}), inv = run.inv || (run.inv = []), k = inv.indexOf(it); if (k >= 0) inv.splice(k, 1); if (e[it.s]) inv.push(e[it.s]); e[it.s] = it; heroDirty(); }
@@ -893,6 +910,7 @@ function battleStats() {
     dmg: (1 + 0.1 * b.dmg) * (1 + 0.04 * M('atk')) * (1 + 0.06 * M('veteran')),
     crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit') + eqSum('crit') / 100, critMul: 1.8 + 0.2 * M('critd') + eqSum('critd') / 100,
     spd: (1 + 0.05 * b.spd) * (1 + 0.03 * M('spd')) * (1 + eqSum('spd') / 100),
+    lw: Object.fromEntries(eqList().filter(it => it.g === 4 && it.lw).map(it => [it.lw, 1])),
     xp: 1 + 0.06 * M('xp'), pickup: 88 * (1 + 0.15 * M('mag')) * (1 + 0.4 * (sp.magnetic || 0)), sp, invK: (1 + 0.1 * M('guard')) * (1 + eqSum('inv') / 100), area: 1 + 0.06 * M('size'),
     atk: 1 + eqSum('atk') / 100 + 0.03 * M('aspd'), guard: guardSec(), open: eqSum('open') / 100, rush: eqMax('rush'), hitHaste: eqMax('hitHaste') / 100, killHaste: eqMax('killHaste') / 100, lowHaste: eqMax('lowHaste') / 100
   };
@@ -1157,12 +1175,12 @@ window.__acc = ACC;
 function fireWeapons(dt) {
   const p = B.p;
   for (const w of B.weapons) {
-    const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10; if (w.lcd != null && w.cd > w.lcd + 0.05) { const tk = capeSp('twin', w.id); if (tk && Math.random() < 0.18 * tk) w.cd *= 0.2; } w.cd -= dt * (atkNow() + capeC(w.id)); w.lcd = w.cd; B.wid = w.id;
+    const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10, lw = lwOn(w.id); if (w.lcd != null && w.cd > w.lcd + 0.05) { const tk = capeSp('twin', w.id); if (tk && Math.random() < 0.18 * tk) w.cd *= 0.2; } w.cd -= dt * (atkNow() + capeC(w.id)); w.lcd = w.cd; B.wid = w.id;
     if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
       w.ang += dt * (s5 ? 4.2 : 3.2); w.pulse = ((w.pulse || 0) + dt) % 2.2;
       const near = nearestFoe(230), base = (s5 ? 84 : 66) * ar(), want = near ? Math.min(Math.hypot(near.x - p.x, near.y - p.y), base * 2.1) : base;   // 가까운 적까지 궤도를 넓혀요
       w.rad = (w.rad || base) + (Math.max(base, want) - (w.rad || base)) * Math.min(1, dt * 3);
-      const n = 1 + lv, R = w.rad * (1 + 0.6 * Math.max(0, Math.sin(w.pulse / 0.7 * Math.PI)) * (w.pulse < 0.7 ? 1 : 0));
+      const n = 1 + lv + (lw ? 1 : 0), R = w.rad * (1 + 0.6 * Math.max(0, Math.sin(w.pulse / 0.7 * Math.PI)) * (w.pulse < 0.7 ? 1 : 0));
       if (s10) w.burstT = (w.burstT ?? 2) - dt;
       w.orbs = [];
       for (let i = 0; i < n; i++) {
@@ -1171,7 +1189,7 @@ function fireWeapons(dt) {
         const dr = (w.dr || (w.dr = []))[i] || (w.dr[i] = { m: 0, cd: i * 0.3, t: 0 }); dr.cd -= dt;
         if (dr.m === 0 && dr.cd <= 0) { const tg = nearestFoe(230, { x: ox, y: oy }); if (tg) { dr.m = 1; dr.t = 0; dr.tg = tg; accFire('macaron'); } else dr.cd = 0.2; }
         if (dr.m === 1) { dr.t += dt * 4.5; const e = Math.min(1, dr.t), tx2 = dr.tg.x, ty2 = dr.tg.y - 10; ox += (tx2 - ox) * e; oy += (ty2 - oy) * e; dr.lx = tx2; dr.ly = ty2;
-          if (dr.t >= 1) { if (!dr.tg.dead) { hurtFoe(dr.tg, 20, w, dr.tg.x - p.x, dr.tg.y - p.y); accHit('macaron'); fxAdd({ k: 'flash', x: tx2, y: ty2, r: 10, life: 0.07, max: 0.07, col: '#FFD0E2' }); } dr.m = 2; dr.t = 0; } }
+          if (dr.t >= 1) { if (!dr.tg.dead) { hurtFoe(dr.tg, 20, w, dr.tg.x - p.x, dr.tg.y - p.y); accHit('macaron'); if (lw) blast(tx2, ty2, 40 * ar(), 14, { id: 'macaron', lv: w.lv, noAcc: true }, '#FF8FB8'); fxAdd({ k: 'flash', x: tx2, y: ty2, r: 10, life: 0.07, max: 0.07, col: '#FFD0E2' }); } dr.m = 2; dr.t = 0; } }
         else if (dr.m === 2) { dr.t += dt * 4.5; const e = Math.min(1, dr.t); ox = dr.lx + (ox - dr.lx) * e; oy = dr.ly + (oy - dr.ly) * e; if (dr.t >= 1) { dr.m = 0; dr.cd = s5 ? 0.9 : 1.2; } }
         w.orbs.push([ox, oy]);
         for (const f of B.foes) { if (f.dead) continue;
@@ -1185,7 +1203,7 @@ function fireWeapons(dt) {
     if (w.id === 'pin') {
       const R = 108 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
       if (!t) { w.cd = 0.15; continue; }
-      const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = [a]; w.cd = 0.7;
+      const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = [a]; w.cd = lw ? (w.dbl ? 0.95 : 0.16) : 0.7; w.dbl = lw && !w.dbl;
       for (const g of nearFoes(R + 40, 12)) { if (dirs.length >= lv) break; const ga = Math.atan2(g.y - p.y, g.x - p.x); if (dirs.every(d => { let da = Math.abs(ga - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da > 0.9; })) dirs.push(ga); }   // 다른 적 쪽으로 먼저
       for (let i = 1; dirs.length < lv; i++) dirs.push(a + i * 6.283 / lv);
       accFire('pin', dirs.length); const hitDirs = new Set();
@@ -1196,38 +1214,38 @@ function fireWeapons(dt) {
       B.shake = Math.max(B.shake, 0.04); sfx.swing();
     } else if (w.id === 'cream' || w.id === 'lemon') {
       const t = nearestFoe(320); if (!t) { w.cd = 0.2; continue; }
-      const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv, cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
+      const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv + (lw ? 1 : 0), cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
       fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: cream ? '#FFFFFF' : '#F4E04D' });
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 9, acid: cream ? 0 : (s5 ? 7 : 3.5), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5 }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 9, acid: cream ? 0 : (s5 ? 7 : 3.5) * (lw ? 1.5 : 1), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5, chill: cream && lw }); }
       sfx.shot();
     } else if (w.id === 'star') {
       const tg = nearestFoe(340), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 0.9;
-      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: 7, dmg: 34, pierce: 1, life: 1.0, w, hit: new Set(), aw: s10, bounce: s10 ? 3 : s5 ? 1 : 0 }); }
+      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: lw ? 10 : 7, dmg: 34, pierce: 1, life: 1.0, w, hit: new Set(), aw: s10, bounce: (s10 ? 3 : s5 ? 1 : 0) + (lw ? 1 : 0), big: lw }); }
       sfx.shot();
     } else if (w.id === 'skewer') {
-      const tg = nearestFoe(360), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = lv, sp = s5 ? 560 : 430; w.cd = 1.4;
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.12; B.shots.push({ k: 'skewer', x: p.x, y: p.y - 10, vx: Math.cos(aa) * sp, vy: Math.sin(aa) * sp, r: 9, dmg: 18, pierce: 99, life: s10 ? 1.5 : s5 ? 1.1 : 0.9, w, hit: new Set(), a: aa, aw: s10, boom: s10 }); }
+      const tg = nearestFoe(360), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = lv + (lw ? 1 : 0), sp = s5 ? 560 : 430; w.cd = 1.4;
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.12; B.shots.push({ k: 'skewer', x: p.x, y: p.y - 10, vx: Math.cos(aa) * sp, vy: Math.sin(aa) * sp, r: lw ? 14 : 9, dmg: 18, pierce: 99, life: s10 ? 1.5 : s5 ? 1.1 : 0.9, w, hit: new Set(), a: aa, aw: s10, boom: s10 }); }
       sfx.shot();
     } else if (w.id === 'honey') {
-      w.cd = 3; const r = (s5 ? 64 : 50) * ar(), life = s5 ? 4 : 3;
-      for (let i = 0; i < lv; i++) { let x = p.x, y = p.y; if (i) { const t = pick(nearFoes(220, 8)) || null; if (t) { x = t.x; y = t.y; } else { const a = Math.random() * 6.283, d = rand(60, 150); x += Math.cos(a) * d; y += Math.sin(a) * d; } } B.zones.push({ x, y, r, life, tick: 0, dmg: 6, w }); }
-      if (s10 && !B.zones.some(z => z.follow)) B.zones.push({ x: p.x, y: p.y, r: 92 * ar(), life: 1e9, tick: 0, dmg: 8, w, follow: true });
+      w.cd = 3; const r = (s5 ? 64 : 50) * ar() * (lw ? 1.25 : 1), life = s5 ? 4 : 3, hd = lw ? 1.5 : 1;
+      for (let i = 0; i < lv; i++) { let x = p.x, y = p.y; if (i) { const t = pick(nearFoes(220, 8)) || null; if (t) { x = t.x; y = t.y; } else { const a = Math.random() * 6.283, d = rand(60, 150); x += Math.cos(a) * d; y += Math.sin(a) * d; } } B.zones.push({ x, y, r, life, tick: 0, dmg: 6 * hd, w }); }
+      if (s10 && !B.zones.some(z => z.follow)) B.zones.push({ x: p.x, y: p.y, r: 92 * ar() * (lw ? 1.25 : 1), life: 1e9, tick: 0, dmg: 8 * hd, w, follow: true });
     } else if (w.id === 'choco') {
-      const ts = nearFoes(280, lv); if (!ts.length) { w.cd = 0.3; continue; } w.cd = 1.6;
-      for (let i = 0; i < lv; i++) { const t = ts[i % ts.length], j = i >= ts.length ? 30 : 0; B.lobs.push({ k: 'bomb', x0: p.x, y0: p.y - 10, x: t.x + rand(-j, j), y: t.y + rand(-j, j), t: 0, dur: 0.45 + i * 0.04, r: (s5 ? 60 : 44) * ar(), dmg: 20, w, cluster: s10 }); }
+      const nb = lv + (lw ? 1 : 0), ts = nearFoes(280, nb); if (!ts.length) { w.cd = 0.3; continue; } w.cd = 1.6;
+      for (let i = 0; i < nb; i++) { const t = ts[i % ts.length], j = i >= ts.length ? 30 : 0; B.lobs.push({ k: 'bomb', x0: p.x, y0: p.y - 10, x: t.x + rand(-j, j), y: t.y + rand(-j, j), t: 0, dur: 0.45 + i * 0.04, r: (s5 ? 60 : 44) * ar() * (lw ? 1.15 : 1), dmg: 20, w, cluster: s10 }); }
       sfx.swing();
     } else if (w.id === 'cotton') {
       const ts = nearFoes(260, lv); if (!ts.length) { w.cd = 0.25; continue; } w.cd = s10 ? 0.75 : 1.3;
-      const chain = s10 ? 8 : s5 ? 4 : 2;
+      const chain = (s10 ? 8 : s5 ? 4 : 2) + (lw ? 1 : 0);
       for (const t of ts) {
         const pts = [[p.x, p.y - 30]], hit = new Set(); let cur = t;
-        for (let k = 0; k <= chain && cur; k++) { hit.add(cur); pts.push([cur.x, cur.y - FOES[cur.type].h * 0.4]); hurtFoe(cur, 12, w, cur.x - pts[pts.length - 2][0], cur.y - pts[pts.length - 2][1]); if (s10 && cur !== B.big) cur.stun = 0.6; let nb = null, nd = 120 * 120; for (const g of B.foes) { if (g.dead || hit.has(g)) continue; const d2 = (g.x - cur.x) ** 2 + (g.y - cur.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } } if (!nb) { for (let e = 0; e < Math.min(3, chain - k) && !cur.dead; e++) hurtFoe(cur, 8, w, 0.001, 0.001); } cur = nb; }
+        for (let k = 0; k <= chain && cur; k++) { hit.add(cur); pts.push([cur.x, cur.y - FOES[cur.type].h * 0.4]); hurtFoe(cur, 12, w, cur.x - pts[pts.length - 2][0], cur.y - pts[pts.length - 2][1]); if ((s10 || lw) && cur !== B.big) cur.stun = s10 ? 0.6 + (lw ? 0.2 : 0) : 0.3; let nb = null, nd = 120 * 120; for (const g of B.foes) { if (g.dead || hit.has(g)) continue; const d2 = (g.x - cur.x) ** 2 + (g.y - cur.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } } if (!nb) { for (let e = 0; e < Math.min(3, chain - k) && !cur.dead; e++) hurtFoe(cur, 8, w, 0.001, 0.001); } cur = nb; }
         fxAdd({ k: 'bolt', pts, life: 0.16, max: 0.16 }); accFire('cotton'); accHit('cotton');
       }
       sfx.zap();
     } else if (w.id === 'cane') {
       w.cd = 2; const ts = B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw / 2 && Math.abs(f.y - p.y) < vh / 2);
-      for (let i = 0; i < lv; i++) { const t = ts.length ? pick(ts) : null, x = t ? t.x : p.x + rand(-150, 150), y = t ? t.y : p.y + rand(-200, 200); B.lobs.push({ k: 'cane', x, y, t: -i * 0.07, dur: 0.38, r: (s5 ? 50 : 36) * ar(), dmg: 22, w, shards: s10 }); }
+      for (let i = 0; i < lv + (lw ? 1 : 0); i++) { const t = ts.length ? pick(ts) : null, x = t ? t.x : p.x + rand(-150, 150), y = t ? t.y : p.y + rand(-200, 200); B.lobs.push({ k: 'cane', x, y, t: -i * 0.07, dur: 0.38, r: (s5 ? 50 : 36) * ar() * (lw ? 1.2 : 1), dmg: 22, w, shards: s10 }); }
     }
   }
 }
@@ -1457,7 +1475,7 @@ function update(dt) {
       if (s.back) { const dx = p.x - s.x, dy = p.y - 10 - s.y, d = Math.hypot(dx, dy) || 1; s.vx += (dx / d * 520 - s.vx) * Math.min(1, dt * 6); s.vy += (dy / d * 520 - s.vy) * Math.min(1, dt * 6); s.a = Math.atan2(s.vy, s.vx); if (d < 22) s.life = 0; }
     }
     if (!s.counted) { s.counted = true; if (s.w && s.w.id) accFire(s.w.id); }
-    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { if (!s.landed) { s.landed = true; if (s.w && s.w.id) accHit(s.w.id); } s.hit.add(f); if (s.acid) f.acid = Math.min(f.acid + s.acid, 10 + 4 * (s.w ? s.w.lv : 1)); /* 산성은 무한히 쌓이지 않아요 */ hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
+    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { if (!s.landed) { s.landed = true; if (s.w && s.w.id) accHit(s.w.id); } s.hit.add(f); if (s.chill) f.slow = Math.max(f.slow || 0, 1); if (s.acid) f.acid = Math.min(f.acid + s.acid, 10 + 4 * (s.w ? s.w.lv : 1)); /* 산성은 무한히 쌓이지 않아요 */ hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
       if (s.puddle && B.zones.length < 24) B.zones.push({ x: f.x, y: f.y, r: 34, life: 2.5, tick: 0.2, dmg: s.dmg * 0.25, w: s.w, cream: true });
       if (s.bounce > 0) {   // 튕기는 별사탕: 가까운 다른 적에게
         let nb = null, nd = 170 * 170; for (const g of B.foes) { if (g.dead || s.hit.has(g) || g === f) continue; const d2 = (g.x - s.x) ** 2 + (g.y - s.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } }
@@ -1677,7 +1695,7 @@ function draw() {
     const col = SHOT_COL[s.k] || '#FFFFFF', t = s.trail;
     ctx.drawImage(dDisc(4, 4, '#FFF3D6', 4), sx - 4, sy - 4);
     if (t) for (let i = Math.max(0, t.length - 6); i < t.length; i += 2) { ctx.globalAlpha = 0.25 + 0.12 * (i - t.length + 6); R(s.aw ? '#FFD86B' : col, X(t[i]), Y(t[i + 1]), 2, 2); } ctx.globalAlpha = 1;
-    if (s.k === 'star') { const big = Math.floor(B.t * 12 + s.x) % 2; R(INK, sx - 2, sy - 2, 5, 5); if (big) { R(col, sx - 2, sy, 5, 1); R(col, sx, sy - 2, 1, 5); R('#FFFFFF', sx, sy, 1, 1); } else { R(col, sx - 1, sy - 1, 3, 3); R('#FFFFFF', sx - 1, sy - 1, 1, 1); } }
+    if (s.k === 'star') { const big = Math.floor(B.t * 12 + s.x) % 2; R(INK, sx - 2, sy - 2, 5, 5); if (big) { R(col, sx - 2, sy, 5, 1); R(col, sx, sy - 2, 1, 5); R('#FFFFFF', sx, sy, 1, 1); } else { R(col, sx - 1, sy - 1, 3, 3); R('#FFFFFF', sx - 1, sy - 1, 1, 1); }if (s.big) { pstar(sx, sy, 4, INK); pstar(sx, sy, 3, '#FFE27A'); R('#FFFFFF', sx - 1, sy - 1, 3, 3); } }
     else { R(INK, sx - 1, sy - 2, 3, 5); R(INK, sx - 2, sy - 1, 5, 3); R(col, sx - 1, sy - 1, 3, 3); R(s.k === 'lemon' ? '#FFFFC0' : '#FFD9E6', sx - 1, sy - 1, 1, 1); }
   }
   for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; ctx.drawImage(dDisc(pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6), sx - (pu ? 7 : 6), sy - (pu ? 7 : 6)); R(INK, sx - 1, sy - 4, 3, 9); R(INK, sx - 4, sy - 1, 9, 3); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#FF2E4D', sx - 2, sy - 2, 5, 5); R('#FF2E4D', sx, sy - 3, 1, 7); R('#FF2E4D', sx - 3, sy, 7, 1); R('#FFE0E6', sx - 1, sy - 1, 2, 2); }
@@ -2010,20 +2028,21 @@ function eqSheet(slot0, back) {
   };
   draw();
 }
-/* 장비 합성: 가방의 같은 등급 3개 → 한 등급 위 장비 1개. 셋이 같은 칸이면 그 칸으로, 아니면 아무 칸이나 나와요 */
+const SYN = 5;      /* 합성 재료 수 */
+/* 장비 합성: 가방의 같은 등급 5개 → 한 등급 위 장비 1개. 다섯이 같은 칸이면 그 칸으로, 아니면 아무 칸이나 나와요 */
 function synthItem(mats) {
   const g = mats[0].g, slot = mats.every(m => m.s === mats[0].s) ? mats[0].s : null, n = Math.max(...mats.map(m => m.n || 1));
   run.inv = run.inv.filter(it => !mats.includes(it));
-  const it = rollItem(n, g + 1, slot); it.g = g + 1; if (it.g < 3) it.sp = null; addItems([it]); return it;
+  const it = rollItem(n, g + 1, slot); it.g = g + 1; if (it.g < 3) it.sp = null; if (it.g === 4) rollLw(it); else delete it.lw; addItems([it]); return it;
 }
-/* 자동 합성: 고른 등급 이하 장비를 가방에서 전부, 일반 → 희귀 → 유물 → 영웅 순서로 차근차근 3개씩 합성해요.
+/* 자동 합성: 고른 등급 이하 장비를 가방에서 전부, 일반 → 희귀 → 유물 → 영웅 순서로 차근차근 5개씩 합성해요.
    값 k(1~4) = 재료로 쓰는 가장 높은 등급이 k-1 (예: 2 = 희귀 이하). 합성 전에 낀 것보다 좋은 장비는 먼저 껴서 재료로 안 써요 */
 function autoSynth() {
   const k = S.autoSynth || 0; if (!k || !run) return 0; let made = 0; autoEquip();
   for (let g = 0; g < Math.min(k, 4); g++) for (let guard = 0; guard < 400; guard++) {
-    const pool = (run.inv || []).filter(it => it.g === g); if (pool.length < 3) break;
+    const pool = (run.inv || []).filter(it => it.g === g); if (pool.length < SYN) break;
     const by = {}; for (const it of pool) (by[it.s] = by[it.s] || []).push(it);
-    const grp = Object.values(by).find(l => l.length >= 3); synthItem((grp || pool).sort((a, b) => itemScore(a) - itemScore(b)).slice(0, 3)); made++;
+    const grp = Object.values(by).find(l => l.length >= SYN); synthItem((grp || pool).sort((a, b) => itemScore(a) - itemScore(b)).slice(0, SYN)); made++;
   }
   return made;
 }
@@ -2031,20 +2050,20 @@ function synthSheet(back) {
   let sel = [];
   const draw = () => {
     const inv = (run.inv || []).filter(it => it.g < 4).sort((a, b) => a.g - b.g || itemScore(a) - itemScore(b)), g = sel.length ? sel[0].g : -1, cnt = [0, 1, 2, 3].map(k => inv.filter(it => it.g === k).length);
-    const same = sel.length === 3 && sel.every(m => m.s === sel[0].s);
-    sheet(`<h2 id="cardTitle">장비 합성</h2><p>가방에서 <b>같은 등급 3개</b>를 고르면 한 등급 위 장비 1개가 돼요. 셋이 같은 칸이면 그 칸 장비가 나오고, 섞으면 아무 칸이나 나와요. 낀 장비는 재료로 못 써요.</p>
+    const same = sel.length === SYN && sel.every(m => m.s === sel[0].s);
+    sheet(`<h2 id="cardTitle">장비 합성</h2><p>가방에서 <b>같은 등급 5개</b>를 고르면 한 등급 위 장비 1개가 돼요. 다섯 개가 같은 칸이면 그 칸 장비가 나오고, 섞으면 아무 칸이나 나와요. 낀 장비는 재료로 못 써요.</p>
       <p class="eqsum">${[0, 1, 2, 3].map(k => `<i class="gn g${k}">${GRADES[k].name}</i> ${cnt[k]}개`).join(' · ')}</p>
-      <h3 class="sub3">자동 합성</h3><div class="tabs ctr">${[0, 1, 2, 3, 4].map(k => `<button class="tb${(S.autoSynth || 0) === k ? ' on' : ''}" type="button" data-act="autog" data-g="${k}">${k ? GRADES[k - 1].name + ' 이하' : '끔'}</button>`).join('')}</div><p class="eqsum">${S.autoSynth ? `보상을 받을 때마다 가방의 <b>${GRADES[S.autoSynth - 1].name} 이하 장비를 전부</b> 3개씩 차근차근 합성해요 (${GRADES[S.autoSynth].name}까지 올라가요). 합성 전에 낀 것보다 좋은 장비는 먼저 껴요.` : '켜 두면 보상을 받을 때마다 고른 등급 이하 장비를 전부 저절로 합성해요.'}</p>
-      <div class="synth">${[0, 1, 2].map(i => `<span class="sslot${sel[i] ? ' g' + sel[i].g : ''}">${sel[i] ? eqImg(sel[i]) : '?'}</span>`).join('<b>+</b>')}<b>→</b><span class="sslot res${g >= 0 ? ' g' + (g + 1) : ''}">${sel.length === 3 ? (same ? eqImg({ s: sel[0].s, g: g + 1, v: 0, fx: sel[0].fx, nm: '' }) : '?') : '?'}</span></div>
-      <button class="cta" type="button" data-act="go"${sel.length === 3 ? '' : ' aria-disabled="true"'}>${sel.length === 3 ? `합성하기 → ${GRADES[g + 1].name} ${same ? SLOT[sel[0].s].name : '장비'}` : `재료 ${sel.length}/3`}</button>
+      <h3 class="sub3">자동 합성</h3><div class="tabs ctr">${[0, 1, 2, 3, 4].map(k => `<button class="tb${(S.autoSynth || 0) === k ? ' on' : ''}" type="button" data-act="autog" data-g="${k}">${k ? GRADES[k - 1].name + ' 이하' : '끔'}</button>`).join('')}</div><p class="eqsum">${S.autoSynth ? `보상을 받을 때마다 가방의 <b>${GRADES[S.autoSynth - 1].name} 이하 장비를 전부</b> 5개씩 차근차근 합성해요 (${GRADES[S.autoSynth].name}까지 올라가요). 합성 전에 낀 것보다 좋은 장비는 먼저 껴요.` : '켜 두면 보상을 받을 때마다 고른 등급 이하 장비를 전부 저절로 합성해요.'}</p>
+      <div class="synth">${[0, 1, 2, 3, 4].map(i => `<span class="sslot${sel[i] ? ' g' + sel[i].g : ''}">${sel[i] ? eqImg(sel[i]) : '?'}</span>`).join('')}<b>→</b><span class="sslot res${g >= 0 ? ' g' + (g + 1) : ''}">${sel.length === SYN ? (same ? eqImg({ s: sel[0].s, g: g + 1, v: 0, fx: sel[0].fx, nm: '' }) : '?') : '?'}</span></div>
+      <button class="cta" type="button" data-act="go"${sel.length === SYN ? '' : ' aria-disabled="true"'}>${sel.length === SYN ? `합성하기 → ${GRADES[g + 1].name} ${same ? SLOT[sel[0].s].name : '장비'}` : `재료 ${sel.length}/${SYN}`}</button>
       <button class="btn" type="button" data-act="quick">약한 것부터 자동으로 고르기</button>
       <div class="opts">${inv.length ? inv.map((it, i) => itemRow(it, i, { act: 'pick', sel: sel.includes(it), dim: g >= 0 && it.g !== g })).join('') : '<p>합성할 장비가 없어요.</p>'}</div><button class="btn" type="button" data-act="close">돌아가기</button>`,
       (act, b) => {
         if (act === 'close') { closeSheet(); back(); return; }
         if (act === 'autog') { S.autoSynth = +b.dataset.g; sel = []; const m = autoSynth(); persist(); sfx.tap(); draw(); if (m) { sfx.rare(); toastSheetMsg(`자동 합성 ${m}번 했어요`); } return; }
-        if (act === 'pick') { const it = inv[+b.dataset.i]; if (sel.includes(it)) sel = sel.filter(x => x !== it); else if (sel.length < 3 && (g < 0 || it.g === g)) sel.push(it); else { sfx.no(); return; } sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; return; }
-        if (act === 'quick') { const k = [0, 1, 2, 3].find(x => cnt[x] >= 3); if (k == null) { sfx.no(); toastSheetMsg('같은 등급이 3개 모인 게 없어요'); return; } sel = inv.filter(it => it.g === k).slice(0, 3); sfx.tap(); draw(); return; }
-        if (act === 'go') { if (sel.length !== 3) { sfx.no(); return; } const it = synthItem(sel); sel = []; persist(); sfx.rare();
+        if (act === 'pick') { const it = inv[+b.dataset.i]; if (sel.includes(it)) sel = sel.filter(x => x !== it); else if (sel.length < SYN && (g < 0 || it.g === g)) sel.push(it); else { sfx.no(); return; } sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; return; }
+        if (act === 'quick') { const k = [0, 1, 2, 3].find(x => cnt[x] >= SYN); if (k == null) { sfx.no(); toastSheetMsg('같은 등급이 5개 모인 게 없어요'); return; } sel = inv.filter(it => it.g === k).slice(0, SYN); sfx.tap(); draw(); return; }
+        if (act === 'go') { if (sel.length !== SYN) { sfx.no(); return; } const it = synthItem(sel); sel = []; persist(); sfx.rare();
           sheet(`<h2 id="cardTitle">합성 성공!</h2><div class="opts">${itemRow(it, 0, { act: 'noop', up: betterThanWorn(it) })}</div><button class="cta" type="button" data-act="more" data-pref>계속 합성하기</button>${betterThanWorn(it) ? '<button class="btn" type="button" data-act="wear">바로 끼기</button>' : ''}<button class="btn" type="button" data-act="close">돌아가기</button>`,
             (a2, b2) => { if (a2 === 'noop' || b2.closest('.lock')) return; if (a2 === 'wear') { equip(it); sfx.good(); persist(); } if (a2 === 'close') { closeSheet(); back(); return; } draw(); });
           flipReveal(); if (!headless && it.g >= 3) setTimeout(() => confetti(it.g === 4 ? 60 : 30), 500); }
@@ -2121,6 +2140,11 @@ function convertShards() {
   o.shards = null; o.leg = null; run = was; S.legNote = `전설 조각 ${done}개를 무작위 기본 스킬 레벨업으로 바꿔 줬어요: ${Object.entries(got).map(([id, k]) => `${WEAPONS[id].name} +${k}`).join(', ')}. 전설 조각은 기본 스킬 10개를 모두 Lv10으로 만든 뒤에 나와요.`; persist();
 }
 /* 예전 장비를 새 규칙으로: 옷은 등급별 방어 효과로, 망토는 치명타 피해 추가, 영웅 이상은 고유 효과 */
+function fixLw() {      /* 예전에 얻은 전설 장비에도 스킬 강화를 붙여요 */
+  const o = S.run; if (!o) return; const was = run; run = o; let ch = 0;
+  for (const it of [...(o.inv || []), ...Object.values(o.eq || {})]) if (it && it.g === 4 && !it.lw) { rollLw(it); ch++; }
+  run = was; if (ch) persist();
+}
 function upgradeItems() {
   const o = S.run; if (!o || o.iv >= 2) return; const was = run; run = o;
   for (const it of [...(o.inv || []), ...Object.values(o.eq || {})]) { if (!it || !it.fx) continue;
@@ -2225,4 +2249,4 @@ function drawBg() {
   r('#1A0E22', 0, hz, W, H - hz); for (let k = 0; k < W; k += 2) r('#2A1838', k, hz, 1, 1);
 }
 addEventListener('resize', drawBg);
-Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); upgradeItems(); convertShards(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요. 하트는 방어 길 끝에 아주 비싸게 있어요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = S.treeReset ? '게임이 새로워졌어요' : '전설 조각이 바뀌었어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
+Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B', '12px Galmuri9'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); upgradeItems(); convertShards(); fixLw(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요. 하트는 방어 길 끝에 아주 비싸게 있어요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = S.treeReset ? '게임이 새로워졌어요' : '전설 조각이 바뀌었어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
