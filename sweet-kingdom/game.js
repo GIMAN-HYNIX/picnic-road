@@ -702,7 +702,7 @@ const LEG = {
 };
 const LEG_N = 10;
 /* 전설 피해 배율: 각성 전 무기(Lv10)가 내던 피해의 약 3배가 되게 무기마다 재서 맞춘 값이에요. 전설 스킬은 그 무기를 대신해요 */
-const LEGF = { pin: 0.474, cream: 0.616, star: 0.117, macaron: 0.139, honey: 1.41, lemon: 0.12, skewer: 0.23, choco: 0.327, cotton: 0.279, cane: 0.365 };
+const LEGF = { pin: 0.202, cream: 0.242, star: 0.234, macaron: 0.121, honey: 0.409, lemon: 0.29, skewer: 0.265, choco: 0.2, cotton: 0.383, cane: 0.224 };
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
@@ -1398,7 +1398,7 @@ function fireWeapons(dt) {
       const t = nearestFoe(320); if (!t) { w.cd = 0.2; continue; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv + (lw ? 1 : 0), cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
       fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: cream ? '#FFFFFF' : '#F4E04D' });
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 9, acid: cream ? 0 : (s5 ? 7 : 3.5) * (lw ? 1.5 : 1), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5, chill: cream && lw }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 13, acid: cream ? 0 : (s5 ? 10 : 5) * (lw ? 1.5 : 1), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5, chill: cream && lw }); }
       sfx.shot();
     } else if (w.id === 'star') {
       const tg = nearestFoe(340), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 0.9;
@@ -1684,7 +1684,7 @@ function update(dt) {
       if (s.back) { const dx = p.x - s.x, dy = p.y - 10 - s.y, d = Math.hypot(dx, dy) || 1; s.vx += (dx / d * 520 - s.vx) * Math.min(1, dt * 6); s.vy += (dy / d * 520 - s.vy) * Math.min(1, dt * 6); s.a = Math.atan2(s.vy, s.vx); if (d < 22) s.life = 0; }
     }
     if (!s.counted) { s.counted = true; if (s.w && s.w.id) accFire(s.w.id); }
-    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { if (!s.landed) { s.landed = true; if (s.w && s.w.id) accHit(s.w.id); } s.hit.add(f); if (s.chill) f.slow = Math.max(f.slow || 0, 1); if (s.acid) f.acid = Math.min(f.acid + s.acid, 10 + 4 * (s.w ? s.w.lv : 1)); /* 산성은 무한히 쌓이지 않아요 */ hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
+    for (const f of B.foes) { if (f.dead || s.hit.has(f)) continue; if ((f.x - s.x) ** 2 + (f.y - s.y) ** 2 < (f.r + s.r) ** 2) { if (!s.landed) { s.landed = true; if (s.w && s.w.id) accHit(s.w.id); } s.hit.add(f); if (s.chill) f.slow = Math.max(f.slow || 0, 1); if (s.acid) f.acid = Math.min(f.acid + s.acid, 14 + 5 * (s.w ? s.w.lv : 1)); /* 산성은 무한히 쌓이지 않아요 */ hurtFoe(f, s.dmg, s.w, s.vx, s.vy);
       if (s.puddle && B.zones.length < 24) B.zones.push({ x: f.x, y: f.y, r: 34, life: 2.5, tick: 0.2, dmg: s.dmg * 0.25, w: s.w, cream: true });
       if (s.bounce > 0) {   // 튕기는 별사탕: 가까운 다른 적에게
         let nb = null, nd = 170 * 170; for (const g of B.foes) { if (g.dead || s.hit.has(g) || g === f) continue; const d2 = (g.x - s.x) ** 2 + (g.y - s.y) ** 2; if (d2 < nd) { nd = d2; nb = g; } }
