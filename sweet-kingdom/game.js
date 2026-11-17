@@ -1152,7 +1152,10 @@ const GIM = {
   stalker: { name: '그림자', hint: '쓰러지지 않는 그림자가 쫓아와요', desc: '절대 쓰러지지 않는 그림자가 끝까지 쫓아와요. 점점 빨라지니 계속 달아나요.' },
   portal: { name: '차원문', hint: '가까운 차원문에서 적이 나와요', desc: '보라색 차원문에서 적이 튀어나와요. 문 가까이는 위험해요.' },
   turret: { name: '사탕 포탑', hint: '포탑이 쏘는 빨간 탄을 피해요', desc: '사탕 포탑이 나를 겨냥해 빨간 탄을 쏴요. 포탑은 부술 수 없어요.' },
-  regen: { name: '끈질긴 반죽', hint: '안 맞은 적은 다시 회복해요', desc: '잠깐 안 맞은 적은 체력을 다시 채워요. 한 번에 몰아서 잡아요.' }
+  regen: { name: '끈질긴 반죽', hint: '안 맞은 적은 다시 회복해요', desc: '잠깐 안 맞은 적은 체력을 다시 채워요. 한 번에 몰아서 잡아요.' },
+  spiral: { name: '시럽 나선', hint: '빙글 도는 원을 피해요', desc: '내 자리에서 시럽 방울이 나선을 그리며 바깥으로 번져요. 원이 차례로 터지니 나선 밖으로 빠져나가요.' },
+  roll: { name: '롤케이크', hint: '굴러오는 롤케이크를 피해요', desc: '굵은 줄 위로 거대한 롤케이크가 굴러가요. 나는 피하고, 줄 위의 적은 깔려서 크게 다쳐요.' },
+  coat: { name: '설탕 코팅', hint: '반짝이는 적은 단단해요', desc: '적이 설탕 껍질을 두르고 나와요. 껍질이 깨질 때까지는 피해가 덜 들어가요.' }
 };
 const STAGES = [
   { n: '과자 골목', g: [] }, { n: '보석 비 광장', g: ['gemrain'] }, { n: '츄러스 돌진로', g: ['charge'] }, { n: '안개 낀 뒷골목', g: ['fog'] }, { n: '도넛 기사의 문', boss: 'donut' },
@@ -1179,7 +1182,11 @@ const STAGES = [
   { n: '별빛 궁전 입구', g: ['sprinkle'] }, { n: '슈크림 정원', g: ['swarm'] }, { n: '촛불 복도', g: ['cross'] }, { n: '꿀벌 둥지', g: ['fast'] }, { n: '마카롱 여왕 등장', boss: 'queen', g: ['sprinkle'] },
   { n: '설탕에 취한 무도회', g: ['sugar'] }, { n: '십자 촛불과 지뢰', g: ['cross', 'mines'] }, { n: '스프링클 빙판', g: ['sprinkle', 'ice'] }, { n: '폭주하는 개미 떼', g: ['sugar', 'swarm'] }, { n: '초코 분수 대왕의 반격', boss: 'boss2', g: ['cross'] },
   { n: '촛불 정전', g: ['cross', 'blackout'] }, { n: '거인의 설탕 폭주', g: ['sugar', 'giant'] }, { n: '스프링클 차원문', g: ['sprinkle', 'portal'] }, { n: '그림자 무도회', g: ['stalker', 'sugar'] }, { n: '탄 설탕 마왕의 귀환', boss: 'boss3', g: ['sprinkle'] },
-  { n: '별빛 포탑', g: ['turret', 'cross'] }, { n: '쪼개지는 슈크림', g: ['split', 'sprinkle'] }, { n: '촛불 소용돌이', g: ['vortex', 'cross'] }, { n: '여왕의 계단', g: ['sugar', 'sprinkle', 'bounty'] }, { n: '마카롱 여왕의 진짜 힘', boss: 'queen', g: ['cross'] }
+  { n: '별빛 포탑', g: ['turret', 'cross'] }, { n: '쪼개지는 슈크림', g: ['split', 'sprinkle'] }, { n: '촛불 소용돌이', g: ['vortex', 'cross'] }, { n: '여왕의 계단', g: ['sugar', 'sprinkle', 'bounty'] }, { n: '마카롱 여왕의 진짜 힘', boss: 'queen', g: ['cross'] },
+  { n: '시럽 분수 광장', g: ['spiral'] }, { n: '롤케이크 언덕', g: ['roll'] }, { n: '반짝이는 슈크림', g: ['coat', 'swarm'] }, { n: '나선 촛불', g: ['spiral', 'cross'] }, { n: '탄 설탕 마왕의 굴', boss: 'boss3', g: ['roll'] },
+  { n: '코팅된 거인', g: ['coat', 'giant'] }, { n: '굴러오는 무도회', g: ['roll', 'sugar'] }, { n: '시럽 빙판', g: ['spiral', 'ice'] }, { n: '단단한 그림자', g: ['coat', 'stalker'] }, { n: '마카롱 여왕의 연회', boss: 'queen', g: ['spiral'] },
+  { n: '롤케이크 포탑', g: ['roll', 'turret'] }, { n: '설탕 껍질 차원문', g: ['coat', 'portal'] }, { n: '나선 스프링클', g: ['spiral', 'sprinkle'] }, { n: '쪼개지는 롤케이크', g: ['roll', 'split'] }, { n: '초코 분수 대왕의 분노', boss: 'boss2', g: ['coat'] },
+  { n: '정전된 나선', g: ['spiral', 'blackout'] }, { n: '코팅 개미 떼', g: ['coat', 'swarm', 'fast'] }, { n: '굴러가는 안개', g: ['roll', 'fog'] }, { n: '마지막 시럽 계단', g: ['spiral', 'roll', 'coat'] }, { n: '백사십 번째 왕좌: 여왕의 마지막 춤', boss: 'queen', g: ['roll'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1230,11 +1237,14 @@ function gimUpdate(dt) {
   if (G('sprinkle') && every('sp', 0.42)) { const a = Math.random() * 6.283, d = rand(30, 230); hazard({ k: 'c', x: p.x + Math.cos(a) * d + (p.moving ? p.dirX * 40 : 0), y: p.y + Math.sin(a) * d + (p.moving ? p.dirY * 40 : 0), r: 28, t: 0.95 }); }
   if (G('sugar')) { const ph = B.t % 12, on = ph > 9.6; if (ph > 8.6 && !T.swarn) { T.swarn = true; if (!headless) { toast('설탕 폭주가 와요!'); sfx.warn(); } } if (ph < 1) T.swarn = false; B.sugarK = on ? 1.85 : 1; B.sugarOn = on; }
   if (G('ghost')) B.ghostA = B.t % 5 < 2.6 ? 1 : 0.14;
+  if (G('spiral') && every('spi', 6.5)) { const a0 = Math.random() * 6.283, dir = Math.random() < 0.5 ? 1 : -1, cx = p.x, cy = p.y; for (let i = 0; i < 14; i++) { const a = a0 + dir * i * 0.5, d = 30 + i * 21; hazard({ k: 'c', x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, r: 34, t: 1.0 + i * 0.09 }); } if (!headless) sfx.warn(); }      /* 시럽 나선: 안쪽부터 차례로 터져요 */
+  if (G('roll') && every('rol', 7)) { const a = Math.random() * 6.283, c = Math.cos(a), sn = Math.sin(a), off = rand(-40, 40); hazard({ k: 'l', x: p.x - c * 560 - sn * off, y: p.y - sn * 560 + c * off, a, len: 1120, w: 36, t: 1.5, roll: true }); if (!headless) sfx.warn(); }      /* 롤케이크: 굵은 줄을 따라 굴러가요 */
   if (G('regen') && every('re', 1)) for (const f of B.foes) if (!f.dead && f !== B.big && f.hp < f.max && B.t - (f.lastHit || 0) > 2) f.hp = Math.min(f.max, f.hp + f.max * 0.12);
   if (B.haz.length) {
     for (const o of B.haz) { o.t -= dt; if (o.t > 0) continue;
       let hit; if (o.k === 'c') hit = (p.x - o.x) ** 2 + (p.y - o.y) ** 2 < (o.r - 4) ** 2; else { const c = Math.cos(o.a), s = Math.sin(o.a), rx = p.x - o.x, ry = p.y - o.y, al = rx * c + ry * s; hit = al > 0 && al < o.len && Math.abs(-rx * s + ry * c) < o.w - 3; }
       if (hit) hurtPlayer('gim');
+      if (o.roll) { const c = Math.cos(o.a), s = Math.sin(o.a); for (const f of B.foes) { if (f.dead) continue; const rx = f.x - o.x, ry = f.y - o.y, al = rx * c + ry * s; if (al > 0 && al < o.len && Math.abs(-rx * s + ry * c) < o.w + f.r) hurtFoe(f, FOES[f.type].big ? f.max * 0.03 : f.max * 0.3, null, -s, c); } if (!headless) { for (let d = 0; d < o.len; d += 80) burst(o.x + c * d, o.y + s * d, '#C98A4B', 3, 120); B.shake = Math.max(B.shake, 0.25); } }      /* 줄 위의 적은 롤케이크에 깔려요 */
       if (!headless) { if (o.k === 'c') { fxAdd({ k: 'ring', x: o.x, y: o.y, r: o.r * 0.4, to: o.r, life: 0.25, max: 0.25, col: '#FF3B5C', w: 6 }); burst(o.x, o.y, '#FF8FA8', 6, 140); } else { for (let d = 0; d < o.len; d += 60) fxAdd({ k: 'flash', x: o.x + Math.cos(o.a) * d, y: o.y + Math.sin(o.a) * d, r: 22, life: 0.12, max: 0.12, col: '#FFE066' }); B.shake = Math.max(B.shake, 0.12); } }
     }
     B.haz = B.haz.filter(o => o.t > 0);
@@ -1275,7 +1285,7 @@ function spawnFoe(type, x, y, minion) {
   const f = { type, x, y, r: d.r, hp: d.hp * (big ? (1 + 0.2 * HF + 0.012 * HF * HF) * lateMul() / (1 + 0.06 * Math.max(0, HF - 20) + 0.004 * Math.max(0, HF - 20) ** 2) : grow) * DF().hp,      /* 뒤쪽 보스는 체력이 너무 불어나지 않게 */ spd: d.spd * DF().spd * Math.min(1.5, 0.95 + 0.06 * B.floor), dmg: d.dmg * (1 + 0.1 * B.floor), flash: 0, acid: 0, acidT: 0, slow: 0, hitT: {}, ph: Math.random() * 6.28, st: 0, stT: big ? 3 : rand(0.8, 2.5), vx: 0, vy: 0, kx: 0, ky: 0, sq: 0, born: B.t, dead: false };
   if (minion) { f.minion = true; f.hp = d.hp * 0.15 * grow * DF().hp; f.r = d.r * 0.85; }     // 지난 막의 엘리트가 일반 몬스터로: 체력은 엘리트의 15%
   if (type === 'zip') f.spd = d.spd * Math.min(1.25, 0.95 + 0.012 * B.floor);
-  if (!big && B.hpK && B.hpK !== 1) f.hp *= B.hpK; if (!big && G('giant')) { f.r *= 1.5; f.sc = 2; f.xpK = 3; } f.max = f.hp; B.foes.push(f); return f;
+  if (!big && B.hpK && B.hpK !== 1) f.hp *= B.hpK; if (!big && G('giant')) { f.r *= 1.5; f.sc = 2; f.xpK = 3; } f.max = f.hp; if (!big && G('coat')) f.coat = f.max * 0.3; B.foes.push(f); return f;
 }
 function spawnRing(type, minion) {
   const a = Math.random() * 6.283, R = Math.hypot(vw, vh) / 2 + 40;
@@ -1299,7 +1309,7 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   f.critHit = crit;
   d *= FOES[f.type].big ? 1 + 0.1 * M('hunter') : 1 + 0.08 * M('sweep');
   if (w && FOES[f.type].big) d *= BOSSK[w.id] || 1;      // 보스·엘리트에게: 근접 무기는 더 세게, 번개·폭탄·크림도 조금 보강
-  d *= B.st.dmg * (1 + capeD(w && w.id)); f.hp -= d; f.flash = 0.08; f.sq = 0.35;
+  d *= B.st.dmg * (1 + capeD(w && w.id)); if (f.coat > 0) { f.coat -= d; d *= 0.35; if (f.coat <= 0 && !headless) burst(f.x, f.y - FOES[f.type].h * 0.4, '#FFFFFF', 8, 170); }      /* 설탕 껍질이 깨질 때까지는 피해가 덜 들어가요 */ f.hp -= d; f.flash = 0.08; f.sq = 0.35;
   if (SPv.execute && f.hp > 0 && !FOES[f.type].big && f.hp < f.max * 0.12 * SPv.execute) f.hp = 0;
   if (w && w.id && run) { const D = run.dmg || (run.dmg = {}); D[w.id] = (D[w.id] || 0) + Math.min(d, f.hp + d); }
   /* 맞은 방향으로 밀려나요 (큰 적은 조금만) */
@@ -1946,6 +1956,7 @@ function draw() {
       const up = Math.sin(o.ph) > 0, hop = (o.type === 'jelly' && up ? 2 : 0) + (o.sq > 0.15 ? 1 : 0);
       if (o.immortal) putDisc(ox, oy - 6, 14, 14, '#7A3FC0', Math.floor(B.t * 8) % 2 ? 9 : 6);
       if (o.gold) putDisc(ox, oy - 6, 13, 13, '#FFD23F', Math.floor(B.t * 6) % 2 ? 7 : 5);
+      if (o.coat > 0) putDisc(ox, oy - 6, 12, 12, '#EAF6FF', Math.floor(B.t * 5 + o.x) % 2 ? 8 : 5);      /* 설탕 코팅: 하얗게 반짝여요 */
       if (B.ghostA != null && o !== B.big) ctx.globalAlpha = B.ghostA;
       if (o.sc) { const gx = X(o.x), gy = Y(o.y + o.r * 0.7); ctx.save(); ctx.translate(gx, gy); ctx.scale(o.sc, o.sc); ctx.translate(-gx, -gy); spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1); ctx.restore(); } else spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1);
       ctx.globalAlpha = 1;
