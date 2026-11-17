@@ -742,8 +742,8 @@ function castLeg(w) {
       for (const f of alive()) { const rx = f.x - px, ry = f.y - py; if (Math.abs(rx * c + ry * s) < len && Math.abs(-rx * s + ry * c) < T * 0.5 + f.r) hurtFoe(f, D(a === 0.03 ? 330 : 260), { id, noAcc: true }, c, s); }
       flash('255,240,200', 0.12);
     }));
-    at(up ? 0.62 : 0.5, () => { const px = p.x, py = p.y; big(p.x, p.y, 380, 320, '#FFD86B');
-      for (const f of alive()) { const dx = f.x - px, dy = f.y - py, m = Math.hypot(dx, dy) || 1; if (m > 400 || FOES[f.type].noKb) continue; const k = f === B.big ? 0.2 : 1; f.kx = dx / m * 2400 * k; f.ky = dy / m * 2400 * k; }      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만) */      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만). 피해를 준 뒤에 밀어야 밀림이 덮어써지지 않아요 */ lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
+    at(up ? 0.47 : 0.36, () => { const px = p.x, py = p.y; big(p.x, p.y, 380, 320, '#FFD86B');
+      for (const f of alive()) { const dx = f.x - px, dy = f.y - py, m = Math.hypot(dx, dy) || 1; if (m > 400 || FOES[f.type].noKb) continue; const k = f === B.big ? 0.2 : 1; f.kx = dx / m * 1200 * k; f.ky = dy / m * 1200 * k; }      /* 마지막 베기와 함께 충격파가 주변 적을 밀쳐내요 (보스는 조금만) */ lfxAdd({ k: 'pop', x: p.x, y: p.y, r: 200, life: 0.35, max: 0.35, col: '#FFF1B0' }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 30, to: 420, life: 0.3, max: 0.3, col: '#FFFFFF', w: 14 });      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만). 피해를 준 뒤에 밀어야 밀림이 덮어써지지 않아요 */ lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
   }
   if (id === 'cream') {      /* 휘핑 해일: 화면 끝에서 끝까지 쓸고 가는 크림 파도 두 번 */
     (up ? [[-1, 0], [1, 0.62], [-1, 1.24]] : [[-1, 0], [1, 0.62]]).forEach(([dir, t]) => at(t, () => {
