@@ -702,7 +702,7 @@ const LEG = {
 };
 const LEG_N = 10;
 /* 전설 피해 배율: 각성 전 무기(Lv10)가 내던 피해의 약 3배가 되게 무기마다 재서 맞춘 값이에요. 전설 스킬은 그 무기를 대신해요 */
-const LEGF = { pin: 0.202, cream: 0.264, star: 0.206, macaron: 0.169, honey: 0.9, lemon: 0.42, skewer: 0.235, choco: 0.227, cotton: 0.383, cane: 0.224 };
+const LEGF = { pin: 0.303, cream: 0.396, star: 0.309, macaron: 0.254, honey: 1.35, lemon: 0.63, skewer: 0.352, choco: 0.341, cotton: 0.575, cane: 0.336 };      /* 각성 전 피해의 약 3배에서 한 번 더 1.5배 (약 4.5배) */
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
@@ -1861,6 +1861,19 @@ const putHi = (c, x, y, flip) => { const w = c.width / Q, h = c.height / Q; ctx.
 const ball = (r, c0, c1, c2) => (x, y) => { const d = x * x + y * y; if (d > r * r) return null; const l = (x + y) / r; return d < (r * 0.35) ** 2 && x < 0 && y < 0 ? '#FFFFFF' : l < -0.55 ? c0 : l > 0.45 ? c2 : c1; };
 const starPt = (r, rot) => (x, y) => { const a = Math.atan2(y, x) - rot, d = Math.hypot(x, y), k = ((a % (Math.PI * 0.4)) + Math.PI * 0.4) % (Math.PI * 0.4) / (Math.PI * 0.4), lim = r * (0.48 + 0.52 * Math.abs(1 - 2 * k) ** 1.6); if (d > lim) return null; return d < r * 0.25 ? '#FFFFFF' : (x + y < 0 ? '#FFF3B0' : y > r * 0.25 ? '#E0A000' : '#FFD23F'); };
 const SHOT_COL = { cream: '#FFFFFF', lemon: '#F4E04D', star: '#FFD86B', shard: '#C9B6FF' };
+/* 주인공 그리기 (전설 스킬 이펙트 위에도 한 번 더 그려요) */
+const LSNAP = mk(1, 1);
+function drawHeroLayer() {
+  const p = B.p;
+      const px = X(p.x), py = Y(p.y);
+      if (IMG.hero && IMG.hero.aura) { const pu = 1 + 0.12 * Math.sin(B.t * 5); putDisc(px, py + 1, Math.round(17 * pu), Math.round(7 * pu), IMG.hero.aura, 9); if (IMG.hero.auraG >= 4 && Math.floor(B.t * 8) % 2) pstar(px + Math.round(Math.sin(B.t * 3) * 14), py - 14 - Math.round((B.t * 18) % 22), 1, '#FFFFFF'); }
+      putDisc(px, py + 1, 10, 4, '#8A5A7A', 6); R('rgba(14,6,20,.55)', px - 4, py, 8, 2); R('rgba(14,6,20,.55)', px - 3, py + 2, 6, 1);
+      if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 6, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
+      if (p.shield) pcircle(px, py - 7, 12, Math.floor(B.t * 6) % 2 ? '#7FE3FF' : '#FFFFFF');
+}
+function drawFoeShots() {
+  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; putDisc(sx, sy, pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6); putHi(hiSpr('foeShot' + pu, 11, 11, (x, y) => { const r = pu ? 4.4 : 4, d = Math.hypot(x, y); if (d > r) return null; return d < 1.2 && x + y < 0.5 ? '#FFFFFF' : d < r * 0.55 ? '#FFB0BE' : x + y > r * 0.5 ? '#B8102E' : '#FF2E4D'; }), sx, sy); }
+}
 function draw() {
   const p = B.p;
   ctx.setTransform(Q, 0, 0, Q, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
@@ -1902,11 +1915,7 @@ function draw() {
   const list = B.foes.slice(); list.push(p); list.sort((a, b) => a.y - b.y);
   for (const o of list) {
     if (o === p) {
-      const px = X(p.x), py = Y(p.y);
-      if (IMG.hero && IMG.hero.aura) { const pu = 1 + 0.12 * Math.sin(B.t * 5); putDisc(px, py + 1, Math.round(17 * pu), Math.round(7 * pu), IMG.hero.aura, 9); if (IMG.hero.auraG >= 4 && Math.floor(B.t * 8) % 2) pstar(px + Math.round(Math.sin(B.t * 3) * 14), py - 14 - Math.round((B.t * 18) % 22), 1, '#FFFFFF'); }
-      putDisc(px, py + 1, 10, 4, '#8A5A7A', 6); R('rgba(14,6,20,.55)', px - 4, py, 8, 2); R('rgba(14,6,20,.55)', px - 3, py + 2, 6, 1);
-      if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 6, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
-      if (p.shield) pcircle(px, py - 7, 12, Math.floor(B.t * 6) % 2 ? '#7FE3FF' : '#FFFFFF');
+      drawHeroLayer();
     } else {
       const d = FOES[o.type], age = B.t - (o.born || 0), ox = X(o.x), oy = Y(o.y), rr = Math.round(o.r / WP);
       if (o === B.big) putDisc(ox, oy, Math.round(rr * 2.2), Math.round(rr * 1.6), '#C77DFF', Math.floor(B.t * 5) % 2 ? 4 : 3);
@@ -1940,7 +1949,7 @@ function draw() {
     else if (s.k === 'lemon') putHi(hiSpr('lemonShot', 7, 7, (x, y) => { const d = Math.hypot(x, y); if (d > 2.9) return null; if (d > 2.3) return '#E0C81E'; if (d < 0.5) return '#FFFBD0'; const a = Math.atan2(y, x); return Math.abs(Math.sin(a * 3)) < 0.18 ? '#FFFBD0' : x + y < -1 ? '#FFF7A0' : '#F4E04D'; }), sx, sy);
     else putHi(hiSpr('creamShot' + (s.r > 9 ? 'b' : ''), s.r > 9 ? 9 : 7, s.r > 9 ? 9 : 7, (x, y) => { const r = s.r > 9 ? 3.8 : 2.9, d = Math.hypot(x, y + Math.max(0, -y) * 0.25); if (d > r) return null; const sw = Math.sin(Math.atan2(y, x) * 2 + d * 1.6); return d < r * 0.3 && x < 0 ? '#FFFFFF' : sw > 0.6 ? '#FFD9E6' : x + y > r * 0.6 ? '#F3D8E0' : '#FFFFFF'; }), sx, sy);
   }
-  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; putDisc(sx, sy, pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6); putHi(hiSpr('foeShot' + pu, 11, 11, (x, y) => { const r = pu ? 4.4 : 4, d = Math.hypot(x, y); if (d > r) return null; return d < 1.2 && x + y < 0.5 ? '#FFFFFF' : d < r * 0.55 ? '#FFB0BE' : x + y > r * 0.5 ? '#B8102E' : '#FF2E4D'; }), sx, sy); }
+  drawFoeShots();
   /* 던진 초코 폭탄, 떨어지는 지팡이 사탕 */
   for (const L of B.lobs) {
     const k = Math.max(0, Math.min(1, L.t / L.dur)), tx0 = X(L.x), ty0 = Y(L.y);
@@ -1994,7 +2003,9 @@ function draw() {
     else if (f.k === 'ray') { const c = Math.cos(f.a), sn = Math.sin(f.a), L = f.len / WP, x0 = X(f.x), y0 = Y(f.y), t = k > 0.5 ? 5 : 3; pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), INK, t + 2); pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), k > 0.6 ? '#FFFFFF' : f.col, t); }
     else { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, (f.w || 5) > 5 && k > 0.4 ? 2 : 1); if (k > 0.6 && r > 3) pcircle(fx, fy, r - 2, f.col); } }
   }
-  legDraw();
+  /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
+  if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
+    legDraw(); ctx.globalAlpha = 0.42; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
   ctx.drawImage(vignette(), 0, 0);
   gimOver();
