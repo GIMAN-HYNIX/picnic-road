@@ -308,7 +308,30 @@ function scale2x(src) {
     const r = y * 2 * w * 2 + x * 2; o[r] = e0; o[r + 1] = e1; o[r + w * 2] = e2; o[r + w * 2 + 1] = e3; }
   q.putImageData(od, 0, 0); HI.set(src, c); return c;
 }
-function hiSprites() { for (const [n, s] of Object.entries(IMG)) { if (!s || !s.im || s.k || n === 'hero' || n === 'heroBig') continue; s.im = scale2x(s.im); s.white = scale2x(s.white); if (s.frames) s.frames = s.frames.map(scale2x); if (s.whites) s.whites = s.whites.map(scale2x); s.k = 2; } }
+/* 2배로 키운 몬스터를 다듬어요: 테두리는 반 칸으로 얇게, 위쪽엔 빛, 아래쪽엔 그늘과 점무늬 그림자를 넣어 입체감을 줘요 */
+const RELIT = new WeakMap();
+function relight(src) {
+  if (RELIT.has(src)) return RELIT.get(src); const w = src.width, h = src.height, c = mk(w, h), q = c.getContext('2d'); q.drawImage(src, 0, 0);
+  const d = q.getImageData(0, 0, w, h), D = d.data, o = new Uint8ClampedArray(D), A = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? 0 : D[(y * w + x) * 4 + 3];
+  const isOut = i => D[i] === 150 && D[i + 1] === 18 && D[i + 2] === 52, isInk = i => D[i] + D[i + 1] + D[i + 2] < 120;
+  let top = h, bot = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (A(x, y)) { top = Math.min(top, y); bot = Math.max(bot, y); }
+  const set = (i, f) => { o[i] = Math.max(0, Math.min(255, D[i] * f[0] + f[1])); o[i + 1] = Math.max(0, Math.min(255, D[i + 1] * f[0] + f[1])); o[i + 2] = Math.max(0, Math.min(255, D[i + 2] * f[0] + f[1])); };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (!D[i + 3]) continue;
+    if (isOut(i)) {      /* 바깥 테두리의 안쪽 절반은 몸 색으로 */
+      if (A(x - 1, y) && A(x + 1, y) && A(x, y - 1) && A(x, y + 1)) { for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2], [2, 0], [-2, 0], [0, -2]]) { const j = ((y + dy) * w + x + dx) * 4; if (A(x + dx, y + dy) && !isOut(j)) { o[i] = D[j]; o[i + 1] = D[j + 1]; o[i + 2] = D[j + 2]; break; } } }
+      continue; }
+    if (isInk(i)) continue;
+    const up = (k) => { const j = ((y - k) * w + x) * 4; return !A(x, y - k) || isOut(j); }, dn = (k) => { const j = ((y + k) * w + x) * 4; return !A(x, y + k) || isOut(j); }, lf = (k) => { const j = (y * w + x - k) * 4; return !A(x - k, y) || isOut(j); };
+    const t = (y - top) / Math.max(1, bot - top);
+    if (up(1) || up(2)) set(i, [1.12, 34]); else if (lf(1) || lf(2)) set(i, [1.06, 16]);      /* 빛 받는 위·왼쪽 가장자리 */
+    else if (dn(1) || dn(2)) set(i, [0.72, 0]); else if (dn(3) && (x + y) % 2) set(i, [0.84, 0]);      /* 아래쪽 그늘 */
+    else if (t > 0.62 && (x + y) % 2 === 0) set(i, [0.9, 0]);      /* 몸 아래쪽 점무늬 그림자 */
+    else if (t < 0.3 && (x * 3 + y * 5) % 23 === 0) set(i, [1.08, 30]);      /* 반짝이는 결 */
+  }
+  d.data.set(o); q.putImageData(d, 0, 0); RELIT.set(src, c); return c;
+}
+const hiFoe = im => relight(scale2x(im));
+function hiSprites() { for (const [n, s] of Object.entries(IMG)) { if (!s || !s.im || s.k || n === 'hero' || n === 'heroBig') continue; s.im = hiFoe(s.im); s.white = scale2x(s.white); if (s.frames) s.frames = s.frames.map(hiFoe); if (s.whites) s.whites = s.whites.map(scale2x); s.k = 2; } }
 /* 주인공 꾸미기: 머리 염색 */
 const HERO_COS = {
   pink: { name: '분홍 머리', ramp: ['#FF9AC0', '#E0507A', '#9C1E5C'] }, blond: { name: '금발', ramp: ['#FFE08A', '#E0A030', '#9A6010'] },
@@ -822,8 +845,8 @@ function legBanner(U, d) {      /* 스킬 이름 배너 (겹친 판에 선명하
   tx.save(); tx.globalAlpha = env; tx.textAlign = 'center'; tx.textBaseline = 'middle';
   const sw = cv2.width * 0.9 * Math.min(1, c.t / 0.3); tx.fillStyle = 'rgba(0,0,0,.55)'; tx.fillRect(cx - sw / 2, cy - sz * 0.95, sw, sz * 1.9);
   const g = tx.createLinearGradient(0, cy - sz / 2, 0, cy + sz / 2); g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.5, '#FFE27A'); g.addColorStop(1, '#FF9A1F');
-  tx.font = `${Math.round(8 * PXS * d)}px NeoDGM, sans-serif`; tx.fillStyle = '#FFD23F'; tx.fillText('★ 전설 스킬 ★', cx, cy - sz * 0.72);
-  tx.font = `${sz}px NeoDGM, sans-serif`; tx.fillStyle = INK; for (const [a, b] of [[-2, 0], [2, 0], [0, -2], [0, 2], [2, 2], [-2, -2]]) tx.fillText(c.name, cx + a * U * 0.5, cy + sz * 0.1 + b * U * 0.5);
+  tx.font = `${Math.round(8 * PXS * d)}px Galmuri11B, sans-serif`; tx.fillStyle = '#FFD23F'; tx.fillText('★ 전설 스킬 ★', cx, cy - sz * 0.72);
+  tx.font = `${sz}px Galmuri11B, sans-serif`; tx.fillStyle = INK; for (const [a, b] of [[-2, 0], [2, 0], [0, -2], [0, 2], [2, 2], [-2, -2]]) tx.fillText(c.name, cx + a * U * 0.5, cy + sz * 0.1 + b * U * 0.5);
   tx.fillStyle = g; tx.fillText(c.name, cx, cy + sz * 0.1); tx.restore();
 }
 const wLv = id => { const w = run.wpn.find(x => x.id === id); return w ? w.lv : 0; };
@@ -1676,7 +1699,7 @@ function pcircle(x, y, r, col, t = 1) {      /* 반 칸 간격으로 찍는 원 
   while (i >= j) { for (const [a, b] of [[i, j], [j, i], [-i, j], [-j, i], [i, -j], [j, -i], [-i, -j], [-j, -i]]) ctx.fillRect(x + 0.5 + a * H - o - H / 2, y + 0.5 + b * H - o - H / 2, t, t); j++; if (e < 0) e += 2 * j + 1; else { i--; e += 2 * (j - i) + 1; } }
 }
 function pline(x0, y0, x1, y1, col, t = 1) { ctx.fillStyle = col; const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 0.5) * Q; for (let i = 0; i <= n; i++) ctx.fillRect(Math.round((x0 + (x1 - x0) * i / n) * Q) / Q, Math.round((y0 + (y1 - y0) * i / n) * Q) / Q, t, t); }
-function pstar(x, y, s, col) { ctx.fillStyle = col; ctx.fillRect(x - s, y, s * 2 + 1, 1); ctx.fillRect(x, y - s, 1, s * 2 + 1); }
+function pstar(x, y, s, col) { ctx.fillStyle = col; const h = 1 / Q; ctx.fillRect(x - s, y + 0.5 - h / 2, s * 2 + 1, h); ctx.fillRect(x + 0.5 - h / 2, y - s, h, s * 2 + 1); ctx.fillRect(x, y, 1, 1); }      /* 반 칸 굵기의 가는 반짝임 */
 /* 바닥: 초콜릿 타일 무늬를 한 번 그려 두고 이어 붙여요 */
 /* 막마다 바닥 색이 달라요: 1막 초콜릿, 2막 얼음 민트, 3막 달궈진 오븐 */
 const FLOOR_PAL = [null, ['#3A2030', '#43263A', '#2A1424', '#5A3450'], ['#1F3A4A', '#24465A', '#12222E', '#3E6E86'], ['#3E1A14', '#4A2218', '#1E0A08', '#7A3A20']];
@@ -1707,6 +1730,17 @@ function spr(name, wx, wy, flip, white, lift = 0, fr = -1) {
   const s = (B && B.act > 1 && name !== 'hero' && IMG[name + '@' + B.act]) || IMG[name]; if (!s) return; const im = fr >= 0 && s.frames ? (white ? s.whites : s.frames)[fr % s.frames.length] : white ? s.white : s.im, k = s.k || 1, w = im.width / k, h = im.height / k, x = X(wx), y = Y(wy) - lift, hw = Math.round(w / 2 * Q) / Q;
   if (flip < 0) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -hw, y - h, w, h); ctx.restore(); } else ctx.drawImage(im, x - hw, y - h, w, h);
 }
+/* 촘촘한 작은 그림: 2배 해상도로 한 번 찍어 두고 다시 써요. f(x, y)는 가운데 기준 좌표(칸)를 받아 색을 돌려줘요. 바깥에 반 칸 테두리 */
+const HSPR = new Map();
+function hiSpr(key, w, h, f, ink = INK) {
+  let c = HSPR.get(key); if (c) return c; const W = Math.ceil(w * Q), H = Math.ceil(h * Q); w = W / Q; h = H / Q; c = mk(W, H); const q = c.getContext('2d'), fill = new Array(W * H).fill(null);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) fill[j * W + i] = f((i + 0.5) / Q - w / 2, (j + 0.5) / Q - h / 2);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const v = fill[j * W + i]; if (v) { q.fillStyle = v; q.fillRect(i, j, 1, 1); } else if (ink && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const x = i + a, y = j + b; return x >= 0 && y >= 0 && x < W && y < H && fill[y * W + x]; })) { q.fillStyle = ink; q.fillRect(i, j, 1, 1); } }
+  HSPR.set(key, c); return c;
+}
+const putHi = (c, x, y, flip) => { const w = c.width / Q, h = c.height / Q; ctx.drawImage(c, Math.round((x - w / 2) * Q) / Q, Math.round((y - h / 2) * Q) / Q, w, h); };
+const ball = (r, c0, c1, c2) => (x, y) => { const d = x * x + y * y; if (d > r * r) return null; const l = (x + y) / r; return d < (r * 0.35) ** 2 && x < 0 && y < 0 ? '#FFFFFF' : l < -0.55 ? c0 : l > 0.45 ? c2 : c1; };
+const starPt = (r, rot) => (x, y) => { const a = Math.atan2(y, x) - rot, d = Math.hypot(x, y), k = ((a % (Math.PI * 0.4)) + Math.PI * 0.4) % (Math.PI * 0.4) / (Math.PI * 0.4), lim = r * (0.48 + 0.52 * Math.abs(1 - 2 * k) ** 1.6); if (d > lim) return null; return d < r * 0.25 ? '#FFFFFF' : (x + y < 0 ? '#FFF3B0' : y > r * 0.25 ? '#E0A000' : '#FFD23F'); };
 const SHOT_COL = { cream: '#FFFFFF', lemon: '#F4E04D', star: '#FFD86B', shard: '#C9B6FF' };
 function draw() {
   const p = B.p;
@@ -1777,36 +1811,36 @@ function draw() {
       const a = s.aw ? B.t * 18 : s.a, c = Math.cos(a), sn = Math.sin(a);
       if (!s.aw) for (let i = 1; i <= 4; i++) { ctx.globalAlpha = 0.5 - i * 0.1; R('#FFFFFF', Math.round(sx - c * (8 + i * 4)), Math.round(sy - sn * (8 + i * 4)), 2, 2); } ctx.globalAlpha = 1;
       pline(Math.round(sx - c * 9), Math.round(sy - sn * 9), Math.round(sx + c * 10), Math.round(sy + sn * 10), s.aw ? '#FFD86B' : '#D9A066');
-      ['#E8323C', '#B9DD52', '#FF9A1F'].forEach((col, i) => { const bx = Math.round(sx + c * (-5 + i * 5)), by = Math.round(sy + sn * (-5 + i * 5)); R(INK, bx - 2, by - 2, 5, 5); R(col, bx - 1, by - 1, 3, 3); R('#FFFFFF', bx - 1, by - 1, 1, 1); });
+      [['#FF7A80', '#E8323C', '#9C1E2C'], ['#E6F58A', '#B9DD52', '#6E9A1E'], ['#FFC870', '#FF9A1F', '#B8601A']].forEach((cs, i) => putHi(hiSpr('fruit' + i + (s.r > 10 ? 'b' : ''), s.r > 10 ? 8 : 6, s.r > 10 ? 8 : 6, ball(s.r > 10 ? 3.4 : 2.6, ...cs)), sx + c * (-5 + i * 5), sy + sn * (-5 + i * 5)));
       continue;
     }
     const col = SHOT_COL[s.k] || '#FFFFFF', t = s.trail;
     putDisc(sx, sy, 4, 4, '#FFF3D6', 4);
-    if (t) for (let i = Math.max(0, t.length - 6); i < t.length; i += 2) { ctx.globalAlpha = 0.25 + 0.12 * (i - t.length + 6); R(s.aw ? '#FFD86B' : col, X(t[i]), Y(t[i + 1]), 2, 2); } ctx.globalAlpha = 1;
-    if (s.k === 'star') { const big = Math.floor(B.t * 12 + s.x) % 2; R(INK, sx - 2, sy - 2, 5, 5); if (big) { R(col, sx - 2, sy, 5, 1); R(col, sx, sy - 2, 1, 5); R('#FFFFFF', sx, sy, 1, 1); } else { R(col, sx - 1, sy - 1, 3, 3); R('#FFFFFF', sx - 1, sy - 1, 1, 1); }if (s.big) { pstar(sx, sy, 4, INK); pstar(sx, sy, 3, '#FFE27A'); R('#FFFFFF', sx - 1, sy - 1, 3, 3); } }
-    else { R(INK, sx - 1, sy - 2, 3, 5); R(INK, sx - 2, sy - 1, 5, 3); R(col, sx - 1, sy - 1, 3, 3); R(s.k === 'lemon' ? '#FFFFC0' : '#FFD9E6', sx - 1, sy - 1, 1, 1); }
+    if (t) for (let i = Math.max(0, t.length - 6); i < t.length; i += 2) { ctx.globalAlpha = 0.25 + 0.12 * (i - t.length + 6); R(s.aw ? '#FFD86B' : col, X(t[i]), Y(t[i + 1]), 1, 1); } ctx.globalAlpha = 1;
+    if (s.k === 'star') { const rs = s.big ? 5 : 3.6, rot = Math.floor((B.t * 10 + s.x) % 8); putHi(hiSpr('star' + rs + '-' + rot, rs * 2 + 2, rs * 2 + 2, starPt(rs, rot * Math.PI * 0.05)), sx, sy); }
+    else if (s.k === 'lemon') putHi(hiSpr('lemonShot', 7, 7, (x, y) => { const d = Math.hypot(x, y); if (d > 2.9) return null; if (d > 2.3) return '#E0C81E'; if (d < 0.5) return '#FFFBD0'; const a = Math.atan2(y, x); return Math.abs(Math.sin(a * 3)) < 0.18 ? '#FFFBD0' : x + y < -1 ? '#FFF7A0' : '#F4E04D'; }), sx, sy);
+    else putHi(hiSpr('creamShot' + (s.r > 9 ? 'b' : ''), s.r > 9 ? 9 : 7, s.r > 9 ? 9 : 7, (x, y) => { const r = s.r > 9 ? 3.8 : 2.9, d = Math.hypot(x, y + Math.max(0, -y) * 0.25); if (d > r) return null; const sw = Math.sin(Math.atan2(y, x) * 2 + d * 1.6); return d < r * 0.3 && x < 0 ? '#FFFFFF' : sw > 0.6 ? '#FFD9E6' : x + y > r * 0.6 ? '#F3D8E0' : '#FFFFFF'; }), sx, sy);
   }
-  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; putDisc(sx, sy, pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6); R(INK, sx - 1, sy - 4, 3, 9); R(INK, sx - 4, sy - 1, 9, 3); R(INK, sx - 2, sy - 3, 5, 7); R(INK, sx - 3, sy - 2, 7, 5); R('#FF2E4D', sx - 2, sy - 2, 5, 5); R('#FF2E4D', sx, sy - 3, 1, 7); R('#FF2E4D', sx - 3, sy, 7, 1); R('#FFE0E6', sx - 1, sy - 1, 2, 2); }
+  for (const s of B.foeShots) { const sx = X(s.x), sy = Y(s.y), pu = Math.floor(B.t * 8 + s.x) % 2; putDisc(sx, sy, pu ? 7 : 6, pu ? 7 : 6, '#FF2E4D', 6); putHi(hiSpr('foeShot' + pu, 11, 11, (x, y) => { const r = pu ? 4.4 : 4, d = Math.hypot(x, y); if (d > r) return null; return d < 1.2 && x + y < 0.5 ? '#FFFFFF' : d < r * 0.55 ? '#FFB0BE' : x + y > r * 0.5 ? '#B8102E' : '#FF2E4D'; }), sx, sy); }
   /* 던진 초코 폭탄, 떨어지는 지팡이 사탕 */
   for (const L of B.lobs) {
     const k = Math.max(0, Math.min(1, L.t / L.dur)), tx0 = X(L.x), ty0 = Y(L.y);
     if (L.k === 'bomb') {
       const bx = Math.round(X(L.x0) + (tx0 - X(L.x0)) * k), by = Math.round(Y(L.y0) + (ty0 - Y(L.y0)) * k - Math.sin(k * Math.PI) * 26), s2 = L.mini ? 2 : 3;
       R('rgba(14,6,20,.5)', tx0 - 3, ty0 + 1, 6, 1); pcircle(tx0, ty0, Math.round(L.r / WP * k), 'rgba(255,107,61,.5)');
-      R(INK, bx - s2 - 1, by - s2 - 1, s2 * 2 + 3, s2 * 2 + 3); R('#6B3A1E', bx - s2, by - s2, s2 * 2 + 1, s2 * 2 + 1); R('#A0663C', bx - s2, by - s2, 2, 2); if (Math.floor(B.t * 20) % 2) R('#FFD23F', bx + s2, by - s2 - 2, 1, 1);
+      putHi(hiSpr('bomb' + s2, s2 * 2 + 3, s2 * 2 + 4, (x, y) => { const r = s2 + 0.6, yy = y - 0.5; if (y < -r - 0.2 && Math.abs(x - 0.6) < 0.4) return '#C9A06A'; const d = Math.hypot(x, yy); if (d > r) return null; return d < r * 0.38 && x + yy < -0.3 ? '#D9A066' : x + yy > r * 0.5 ? '#3E1E0A' : '#6B3A1E'; }), bx + 0.5, by); if (Math.floor(B.t * 20) % 2) pstar(bx + 1, by - s2 - 2, 1, '#FFD23F');
     } else {
       if (L.t < 0) continue;
       const r = Math.round(L.r / WP); pcircle(tx0, ty0, Math.max(1, Math.round(r * (0.4 + 0.6 * k))), k > 0.7 ? '#FFFFFF' : '#FF8FA8');
       const cy0 = Math.round(ty0 - 90 * (1 - k)), sx = tx0;
-      R(INK, sx - 2, cy0 - 18, 5, 19); for (let j = 0; j < 17; j++) R(Math.floor((j + B.t * 30) / 3) % 2 ? '#E8323C' : '#FFFFFF', sx - 1, cy0 - 17 + j, 3, 1);
-      R(INK, sx - 1, cy0 - 21, 7, 4); R('#FFFFFF', sx, cy0 - 20, 4, 2); R('#E8323C', sx + 3, cy0 - 19, 2, 3);
+      putHi(hiSpr('caneFall', 9, 24, (x, y) => { const sh = (y + 12), stripe = Math.floor((sh * 1.4 + x * 1.4) / 1.6) % 2 ? '#E8323C' : '#FFFFFF'; if (y > -7 && Math.abs(x + 1.5) < 1.4) return x < -2.2 ? '#FFD9DE' : stripe; const dx = x - 0.6, dy = y + 7, d = Math.hypot(dx, dy); if (dy < 0.5 && d < 3.5 && d > 0.9) return stripe; return null; }), sx + 1, cy0 - 9);
     }
   }
   legDim();
   /* 효과 */
   for (const f of B.fx) {
     const k = Math.max(0, f.life / f.max), fx = X(f.x), fy = Y(f.y);
-    if (f.k === 'dot') { const s = Math.max(1, Math.round(f.r / WP * (0.5 + 0.5 * k))); R(f.col, fx, fy, s, s); }
+    if (f.k === 'dot') { const s = Math.max(1 / Q, Math.round(f.r / WP * (0.5 + 0.5 * k) * Q) / Q); R(f.col, fx, fy, s, s); }
     else if (f.k === 'line') pline(fx, fy, X(f.x - f.vx * 0.04), Y(f.y - f.vy * 0.04), f.col);
     else if (f.k === 'star') pstar(fx, fy, k > 0.5 ? 2 : 1, f.col);
     else if (f.k === 'bolt') {   /* 솜사탕 번개: 지그재그 줄기 */
@@ -1834,7 +1868,7 @@ function draw() {
     else if (f.k === 'arc' || f.k === 'spin') {
       /* 롤링핀 궤적: 점으로 찍은 호와 앞쪽 끝의 방망이 */
       const e = 1 - k, spin = f.k === 'spin', a0 = spin ? f.a : f.a - 1.3, a1 = a0 + (spin ? 6.283 * Math.min(1, e * 1.6) : 2.6 * Math.min(1, e * 2.2)), rr = f.r * 0.82 / WP, cx0 = X(f.x), cy0 = Y(f.y - 12);
-      for (let a = Math.max(a0, a1 - (spin ? 2.4 : 1.6)); a < a1; a += 1.5 / rr) { const near = a1 - a; R(near < 0.5 ? '#FFFFFF' : spin ? '#FFD86B' : '#FFE1A8', Math.round(cx0 + Math.cos(a) * rr), Math.round(cy0 + Math.sin(a) * rr), near < 0.8 ? 3 : 2, near < 0.8 ? 3 : 2); if (near > 0.5 && near < 1.4) R(spin ? '#FFD86B' : '#FFE1A8', Math.round(cx0 + Math.cos(a) * (rr - 3)), Math.round(cy0 + Math.sin(a) * (rr - 3)), 1, 1); }
+      for (let a = Math.max(a0, a1 - (spin ? 2.4 : 1.6)); a < a1; a += 0.6 / rr) { const near = a1 - a, sz = near < 0.5 ? 2.5 : near < 0.8 ? 2 : near < 1.3 ? 1.5 : 1; R(near < 0.5 ? '#FFFFFF' : spin ? '#FFD86B' : '#FFE1A8', Math.round((cx0 + Math.cos(a) * rr - sz / 2) * Q) / Q, Math.round((cy0 + Math.sin(a) * rr - sz / 2) * Q) / Q, sz, sz); if (near > 0.5 && near < 1.4) R(spin ? '#FFD86B' : '#FFE1A8', Math.round(cx0 + Math.cos(a) * (rr - 3)), Math.round(cy0 + Math.sin(a) * (rr - 3)), 1, 1); }
       const hx = cx0 + Math.cos(a1) * rr, hy = cy0 + Math.sin(a1) * rr, tx0 = -Math.sin(a1), ty0 = Math.cos(a1);
       pline(Math.round(hx - tx0 * 5), Math.round(hy - ty0 * 5), Math.round(hx + tx0 * 5), Math.round(hy + ty0 * 5), INK, 4); pline(Math.round(hx - tx0 * 4), Math.round(hy - ty0 * 4), Math.round(hx + tx0 * 4), Math.round(hy + ty0 * 4), spin ? '#FFD86B' : '#D9A066', 2);
     }
@@ -1853,7 +1887,7 @@ function draw() {
   for (const t of B.texts) {
     const e = 1 - t.life / t.max, pop = e < 0.12 ? 1 : 0, size = Math.round((t.big ? 12 : 10) * (PXS + pop) * d), sx = Math.round(X(t.x) * U), sy = Math.round(Y(t.y) * U);
     if (t.life < 0.15 && Math.floor(t.life * 40) % 2) continue;
-    tx.font = `${size}px ${t.big ? 'NeoDGM' : 'NeoDGM'}, sans-serif`; tx.fillStyle = INK;
+    tx.font = `${size}px ${t.big ? 'Galmuri11B' : 'Galmuri11'}, sans-serif`; tx.fillStyle = INK;
     for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) tx.fillText(t.t, sx + a * U, sy + b * U);
     tx.fillStyle = t.col === '#4A2040' ? '#FFFFFF' : t.col; tx.fillText(t.t, sx, sy);
   }
@@ -2341,4 +2375,4 @@ function drawBg() {
   r('#1A0E22', 0, hz, W, H - hz); for (let k = 0; k < W; k += 2) r('#2A1838', k, hz, 1, 1);
 }
 addEventListener('resize', drawBg);
-Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px NeoDGM', '12px NeoDGM', '12px NeoDGM'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); upgradeItems(); convertShards(); fixLw(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = '게임이 새로워졌어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
+Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px Galmuri11', '12px Galmuri11B'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); upgradeItems(); convertShards(); fixLw(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = '게임이 새로워졌어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });

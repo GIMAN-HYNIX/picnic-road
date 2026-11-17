@@ -13,12 +13,13 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-@font-face{font-family:'NeoDGM'; src:url(fonts/neodgm.woff2) format('woff2'); font-display:swap}
+@font-face{font-family:'Galmuri11'; src:url(fonts/galmuri11.woff2) format('woff2'); font-display:swap}
+@font-face{font-family:'Galmuri11B'; src:url(fonts/galmuri11-bold.woff2) format('woff2'); font-display:swap}
 /* 픽셀 게임 한 가지 모습: 해 질 녘 과자 도시. 짙은 자두색 바탕, 크림색 각진 테두리, 분홍·금색·하늘색 네온. 움직임은 뚝뚝 끊어서. */
 :root{
   --bg:#1A0E22; --panel:#2A1838; --panel-2:#3A2350; --edge:#6B4E86; --ink:#FFF3E6; --ink-2:#C9B6D9; --dark:#0E0614;
   --pink:#FF4F9A; --pink-d:#9C1E5C; --gold:#FFD86B; --cyan:#7FE3FF; --green:#7FFF8A; --bad:#FF4F6B;
-  --font-sign:'NeoDGM',monospace; --font-ui:'NeoDGM',monospace; --font-sm:'NeoDGM',monospace;
+  --font-sign:'Galmuri11B','Galmuri11',monospace; --font-ui:'Galmuri11',monospace; --font-sm:'Galmuri11',monospace;
   --box:0 -3px 0 0 var(--ink), 0 3px 0 0 var(--ink), -3px 0 0 0 var(--ink), 3px 0 0 0 var(--ink);
   --drop:0 9px 0 0 var(--dark), 3px 6px 0 0 var(--dark), -3px 6px 0 0 var(--dark);
   color-scheme:dark;
@@ -27,7 +28,7 @@
 button,input{word-spacing:inherit}
 html,body{height:100%; margin:0}
 html{touch-action:manipulation; -webkit-text-size-adjust:100%}
-body{background:var(--bg); color:var(--ink); font-family:var(--font-ui); font-size:16px; line-height:1.5; word-spacing:-.28em; word-break:keep-all; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-font-smoothing:none; font-smooth:never}
+body{background:var(--bg); color:var(--ink); font-family:var(--font-ui); font-size:16px; line-height:1.5; word-break:keep-all; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-font-smoothing:none; font-smooth:never}
 [hidden]{display:none!important}
 button{font:inherit; color:inherit; cursor:pointer; border:0; border-radius:0; -webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:3px solid var(--cyan); outline-offset:6px}
@@ -303,7 +304,7 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
       <button class="btn" id="btnInstall" type="button" hidden>홈 화면에 앱으로 설치하기</button>
       <button class="btn" id="btnTree" type="button">성장 트리</button>
       <div class="row2"><button class="btn" id="btnPet" type="button">펫</button><button class="btn" id="btnRec" type="button">기록 보내기</button></div>
-      <button class="btn" id="btnSet" type="button">소리와 진동 바꾸기</button>
+      <button class="btn" id="btnSet" type="button">⚙ 설정 (소리 · 초기화)</button>
       <button class="vertag" id="verTag" type="button">버전 확인</button>
     </div>
   </div>
