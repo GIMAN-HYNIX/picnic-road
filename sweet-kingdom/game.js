@@ -702,7 +702,7 @@ const LEG = {
 };
 const LEG_N = 10;
 /* 전설 피해 배율: 각성 전 무기(Lv10)가 내던 피해의 약 3배가 되게 무기마다 재서 맞춘 값이에요. 전설 스킬은 그 무기를 대신해요 */
-const LEGF = { pin: 0.202, cream: 0.242, star: 0.234, macaron: 0.121, honey: 0.409, lemon: 0.29, skewer: 0.265, choco: 0.2, cotton: 0.383, cane: 0.224 };
+const LEGF = { pin: 0.202, cream: 0.264, star: 0.206, macaron: 0.169, honey: 0.9, lemon: 0.42, skewer: 0.235, choco: 0.227, cotton: 0.383, cane: 0.224 };
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
@@ -1244,6 +1244,8 @@ function toast(t) { if (headless) return; const e = $('#toast'); e.textContent =
 const stageMul = () => Math.min(6.5, 0.8 + 0.5 * B.floor);
 /* 2막부터는 적이 훨씬 단단해져요. 캐릭터가 무기를 다 키우는 속도에 맞춘 값 */
 /* 100번 스테이지(층 85)를 넘으면 몬스터 체력이 느는 속도를 30%로 줄여요. 그 전까지는 그대로예요 */
+/* 무기마다 쓰임새: 잡몹을 쓸어 담는 무기와 보스를 때리는 무기가 달라요. 보스·엘리트에게 주는 피해 배율 */
+const BOSSK = { pin: 1.5, macaron: 1.5, honey: 1.5, cotton: 1.8, choco: 1.4, cream: 1.15 };
 const hpFloor = () => B.floor <= 85 ? B.floor : 85 + (B.floor - 85) * 0.3;
 const lateMul = (fl = hpFloor()) => { const k = Math.max(0, fl - 5); return 1 + LATE * k + 0.006 * k * k; };
 const LATE = 0.18;
@@ -1275,7 +1277,7 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (SPv.grit && B.p.hp <= 1) d *= 1 + 0.2 * SPv.grit; if (f.markT > B.t) d *= 1 + 0.15 * (SPv.mark || 0); if (crit && SPv.mark) f.markT = B.t + 3;
   if (w && w.id) { const gk = capeSp('giant', w.id), ck = capeSp('chill', w.id); if (gk && FOES[f.type].big) d *= 1 + 0.3 * gk; if (ck) f.slow = Math.max(f.slow || 0, 1.5 * ck); }
   f.critHit = crit;
-  if (w && FOES[f.type].big && (w.id === 'pin' || w.id === 'macaron' || w.id === 'honey')) d *= 1.5;      // 근접 무기는 보스·엘리트에게 더 세게
+  if (w && FOES[f.type].big) d *= BOSSK[w.id] || 1;      // 보스·엘리트에게: 근접 무기는 더 세게, 번개·폭탄·크림도 조금 보강
   d *= B.st.dmg * (1 + capeD(w && w.id)); f.hp -= d; f.flash = 0.08; f.sq = 0.35;
   if (SPv.execute && f.hp > 0 && !FOES[f.type].big && f.hp < f.max * 0.12 * SPv.execute) f.hp = 0;
   if (w && w.id && run) { const D = run.dmg || (run.dmg = {}); D[w.id] = (D[w.id] || 0) + Math.min(d, f.hp + d); }
@@ -1371,12 +1373,12 @@ function fireWeapons(dt) {
         const dr = (w.dr || (w.dr = []))[i] || (w.dr[i] = { m: 0, cd: i * 0.3, t: 0 }); dr.cd -= dt;
         if (dr.m === 0 && dr.cd <= 0) { const tg = nearestFoe(230, { x: ox, y: oy }); if (tg) { dr.m = 1; dr.t = 0; dr.tg = tg; accFire('macaron'); } else dr.cd = 0.2; }
         if (dr.m === 1) { dr.t += dt * 4.5; const e = Math.min(1, dr.t), tx2 = dr.tg.x, ty2 = dr.tg.y - 10; ox += (tx2 - ox) * e; oy += (ty2 - oy) * e; dr.lx = tx2; dr.ly = ty2;
-          if (dr.t >= 1) { if (!dr.tg.dead) { hurtFoe(dr.tg, 20, w, dr.tg.x - p.x, dr.tg.y - p.y); accHit('macaron'); if (lw) blast(tx2, ty2, 40 * ar(), 14, { id: 'macaron', lv: w.lv, noAcc: true }, '#FF8FB8'); fxAdd({ k: 'flash', x: tx2, y: ty2, r: 10, life: 0.07, max: 0.07, col: '#FFD0E2' }); } dr.m = 2; dr.t = 0; } }
+          if (dr.t >= 1) { if (!dr.tg.dead) { hurtFoe(dr.tg, 28, w, dr.tg.x - p.x, dr.tg.y - p.y); accHit('macaron'); if (lw) blast(tx2, ty2, 40 * ar(), 14, { id: 'macaron', lv: w.lv, noAcc: true }, '#FF8FB8'); fxAdd({ k: 'flash', x: tx2, y: ty2, r: 10, life: 0.07, max: 0.07, col: '#FFD0E2' }); } dr.m = 2; dr.t = 0; } }
         else if (dr.m === 2) { dr.t += dt * 4.5; const e = Math.min(1, dr.t); ox = dr.lx + (ox - dr.lx) * e; oy = dr.ly + (oy - dr.ly) * e; if (dr.t >= 1) { dr.m = 0; dr.cd = s5 ? 0.9 : 1.2; } }
         w.orbs.push([ox, oy]);
         for (const f of B.foes) { if (f.dead) continue;
-          if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.28; hurtFoe(f, 23, w, f.x - ox, f.y - oy); } }
-        if (s10 && w.burstT <= 0) blast(ox, oy, 52 * ar(), 22, w, '#FF8FB8');
+          if ((f.x - ox) ** 2 + (f.y - oy) ** 2 < (f.r + 11) ** 2 && (f.hitT.mac || 0) <= B.t) { f.hitT.mac = B.t + 0.28; hurtFoe(f, 32, w, f.x - ox, f.y - oy); } }
+        if (s10 && w.burstT <= 0) blast(ox, oy, 52 * ar(), 30, w, '#FF8FB8');
       }
       if (s10 && w.burstT <= 0) { w.burstT = 2; sfx.swing(); B.shake = Math.max(B.shake, 0.08); }
       continue;
@@ -1398,11 +1400,11 @@ function fireWeapons(dt) {
       const t = nearestFoe(320); if (!t) { w.cd = 0.2; continue; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv + (lw ? 1 : 0), cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
       fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: cream ? '#FFFFFF' : '#F4E04D' });
-      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 14 : 11) : 13, acid: cream ? 0 : (s5 ? 10 : 5) * (lw ? 1.5 : 1), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5, chill: cream && lw }); }
+      for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 15 : 12) : 13, acid: cream ? 0 : (s5 ? 10 : 5) * (lw ? 1.5 : 1), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5, chill: cream && lw }); }
       sfx.shot();
     } else if (w.id === 'star') {
       const tg = nearestFoe(340), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = 2 + lv; w.cd = 0.9;
-      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: lw ? 10 : 7, dmg: 34, pierce: 1, life: 1.0, w, hit: new Set(), aw: s10, bounce: (s10 ? 3 : s5 ? 1 : 0) + (lw ? 1 : 0), big: lw }); }
+      for (let i = 0; i < n; i++) { const aa = s10 ? a + i * 6.283 / n : a + (i - (n - 1) / 2) * 0.2; B.shots.push({ k: 'star', x: p.x, y: p.y - 10, vx: Math.cos(aa) * 310, vy: Math.sin(aa) * 310, r: lw ? 10 : 7, dmg: 30, pierce: 1, life: 1.0, w, hit: new Set(), aw: s10, bounce: (s10 ? 3 : s5 ? 1 : 0) + (lw ? 1 : 0), big: lw }); }
       sfx.shot();
     } else if (w.id === 'skewer') {
       const tg = nearestFoe(360), a = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : Math.atan2(p.dirY, p.dirX), n = lv + (lw ? 1 : 0), sp = s5 ? 560 : 430; w.cd = 1.4;
@@ -1410,11 +1412,11 @@ function fireWeapons(dt) {
       sfx.shot();
     } else if (w.id === 'honey') {
       w.cd = 3; const r = (s5 ? 64 : 50) * ar() * (lw ? 1.25 : 1), life = s5 ? 4 : 3, hd = lw ? 1.5 : 1;
-      for (let i = 0; i < lv; i++) { let x = p.x, y = p.y; if (i) { const t = pick(nearFoes(220, 8)) || null; if (t) { x = t.x; y = t.y; } else { const a = Math.random() * 6.283, d = rand(60, 150); x += Math.cos(a) * d; y += Math.sin(a) * d; } } B.zones.push({ x, y, r, life, tick: 0, dmg: 6 * hd, w }); }
-      if (s10 && !B.zones.some(z => z.follow)) B.zones.push({ x: p.x, y: p.y, r: 92 * ar() * (lw ? 1.25 : 1), life: 1e9, tick: 0, dmg: 8 * hd, w, follow: true });
+      for (let i = 0; i < lv; i++) { let x = p.x, y = p.y; if (i) { const t = pick(nearFoes(220, 8)) || null; if (t) { x = t.x; y = t.y; } else { const a = Math.random() * 6.283, d = rand(60, 150); x += Math.cos(a) * d; y += Math.sin(a) * d; } } B.zones.push({ x, y, r, life, tick: 0, dmg: 9 * hd, w }); }
+      if (s10 && !B.zones.some(z => z.follow)) B.zones.push({ x: p.x, y: p.y, r: 92 * ar() * (lw ? 1.25 : 1), life: 1e9, tick: 0, dmg: 11 * hd, w, follow: true });
     } else if (w.id === 'choco') {
       const nb = lv + (lw ? 1 : 0), ts = nearFoes(280, nb); if (!ts.length) { w.cd = 0.3; continue; } w.cd = 1.6;
-      for (let i = 0; i < nb; i++) { const t = ts[i % ts.length], j = i >= ts.length ? 30 : 0; B.lobs.push({ k: 'bomb', x0: p.x, y0: p.y - 10, x: t.x + rand(-j, j), y: t.y + rand(-j, j), t: 0, dur: 0.45 + i * 0.04, r: (s5 ? 60 : 44) * ar() * (lw ? 1.15 : 1), dmg: 20, w, cluster: s10 }); }
+      for (let i = 0; i < nb; i++) { const t = ts[i % ts.length], j = i >= ts.length ? 30 : 0; B.lobs.push({ k: 'bomb', x0: p.x, y0: p.y - 10, x: t.x + rand(-j, j), y: t.y + rand(-j, j), t: 0, dur: 0.45 + i * 0.04, r: (s5 ? 60 : 44) * ar() * (lw ? 1.15 : 1), dmg: 29, w, cluster: s10 }); }
       sfx.swing();
     } else if (w.id === 'cotton') {
       const ts = nearFoes(260, lv); if (!ts.length) { w.cd = 0.25; continue; } w.cd = s10 ? 0.75 : 1.3;
@@ -1437,7 +1439,7 @@ function updateLobs(dt) {
     L.t += dt; if (L.t < L.dur) continue; L.done = true;
     if (L.k === 'bomb') {
       blast(L.x, L.y, L.r, L.dmg, L.w, '#8B5A3C'); sfx.boom();
-      if (L.cluster && !L.mini) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, d = rand(40, 70); B.lobs.push({ k: 'bomb', mini: true, x0: L.x, y0: L.y, x: L.x + Math.cos(a) * d, y: L.y + Math.sin(a) * d, t: 0, dur: 0.3, r: L.r * 0.55, dmg: 10, w: L.w }); }
+      if (L.cluster && !L.mini) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, d = rand(40, 70); B.lobs.push({ k: 'bomb', mini: true, x0: L.x, y0: L.y, x: L.x + Math.cos(a) * d, y: L.y + Math.sin(a) * d, t: 0, dur: 0.3, r: L.r * 0.55, dmg: 14, w: L.w }); }
     } else {
       blast(L.x, L.y, L.r, L.dmg, L.w, '#FFF3C0'); sfx.thud(); B.shake = Math.max(B.shake, 0.06);
       if (L.shards) for (let i = 0; i < 6; i++) { const a = i * 1.047 + Math.random() * 0.3; B.shots.push({ k: 'star', x: L.x, y: L.y, vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, r: 6, dmg: 9, pierce: 1, life: 0.5, w: L.w, hit: new Set() }); }
@@ -1661,7 +1663,7 @@ function update(dt) {
     if (f.dead) continue;
     if (f.flash > 0) f.flash -= dt;
     if (f.slow > 0) f.slow -= dt; if (f.stun > 0) f.stun -= dt;
-    if (f.acid > 0) { f.acidT -= dt; if (f.acidT <= 0) { f.acidT = 0.5; const d = f.acid * 0.9; f.hp -= d * B.st.dmg; { const D = run.dmg || (run.dmg = {}); D.acid = (D.acid || 0) + d * B.st.dmg; } f.acid = Math.max(0, f.acid - 0.5); textAdd(f.x, f.y - f.r, Math.round(d), '#7FA81E'); if (f.hp <= 0) { killFoe(f, null); continue; } } }
+    if (f.acid > 0) { f.acidT -= dt; if (f.acidT <= 0) { f.acidT = 0.5; const d = f.acid * 0.9; f.hp -= d * B.st.dmg; { const D = run.dmg || (run.dmg = {}); D.acid = (D.acid || 0) + d * B.st.dmg; if (f === B.big) D.acidBig = (D.acidBig || 0) + d * B.st.dmg; } f.acid = Math.max(0, f.acid - 0.5); textAdd(f.x, f.y - f.r, Math.round(d), '#7FA81E'); if (f.hp <= 0) { killFoe(f, null); continue; } } }
     let busy = false;
     if (f.type === 'boss') bossThink(f, dt); else if (f.type === 'boss2') boss2Think(f, dt); else if (f.type === 'boss3') busy = boss3Think(f, dt); else if (f.type === 'queen') busy = queenThink(f, dt); else if (f.type === 'donut') busy = eliteThink(f, dt); else if (f.type === 'golem') busy = golemThink(f, dt); else if (f.type === 'knight') busy = knightThink(f, dt); else if (FOES[f.type].ai) busy = foeAI(f, dt, FOES[f.type].ai);
     const dx = p.x - f.x, dy = p.y - f.y, m = Math.hypot(dx, dy) || 1;
