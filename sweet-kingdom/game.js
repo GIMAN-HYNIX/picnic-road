@@ -315,7 +315,7 @@ function setGrade(eq) { const l = SLOTS.map(s => eq[s]).filter(Boolean); return 
 function buildHero() {
   const eq = run ? eqOf() : {}, sg = setGrade(eq), rc = sg >= 2 ? (h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)])(GRADES[sg].ramp[0]) : null, doll = composeHero(HERO_RAW, eq, lookNow()), big = heroStyle(doll, rc), im = heroStyle(doll.mini, rc);      /* 전투에서는 절반 크기, 창에서는 큰 그림 */
   IMG.heroBig = { im: big };
-  IMG.hero = { aura: sg >= 3 ? GRADES[sg].ramp[1] : null, auraG: sg, im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im, 3, 0.5); IMG.hero.whites = IMG.hero.frames.map(whiteOf); heroUrlC = null;
+  IMG.hero = { aura: sg >= 3 ? GRADES[sg].ramp[1] : null, auraG: sg, im, white: whiteOf(im), ratio: im.width / im.height }; IMG.hero.frames = walkFrames(im, 3, 0.5); IMG.hero.whites = IMG.hero.frames.map(whiteOf); IMG.hero.bigFrames = walkFrames(big, 6, 1); heroUrlC = null;
 }
 function heroDirty() { buildHero(); }
 function heroUrl(k = 4) { if (heroUrlC && heroUrlC.k === k) return heroUrlC.u; const s = IMG.heroBig && IMG.heroBig.im; if (!s) return 'img/hero.png'; const c = mk(s.width * k, s.height * k), q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); heroUrlC = { k, u: c.toDataURL() }; return heroUrlC.u; }
@@ -1735,7 +1735,7 @@ function draw() {
       const px = X(p.x), py = Y(p.y);
       if (IMG.hero && IMG.hero.aura) { const pu = 1 + 0.12 * Math.sin(B.t * 5); putDisc(px, py + 1, Math.round(17 * pu), Math.round(7 * pu), IMG.hero.aura, 9); if (IMG.hero.auraG >= 4 && Math.floor(B.t * 8) % 2) pstar(px + Math.round(Math.sin(B.t * 3) * 14), py - 14 - Math.round((B.t * 18) % 22), 1, '#FFFFFF'); }
       putDisc(px, py + 1, 10, 4, '#8A5A7A', 6); R('rgba(14,6,20,.55)', px - 4, py, 8, 2); R('rgba(14,6,20,.55)', px - 3, py + 2, 6, 1);
-      if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 6, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
+      B.heroDraw = null; if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) { const fr = p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3); if (IMG.hero && IMG.hero.bigFrames) B.heroDraw = { x: X(p.x), y: Y(p.y + 6), flip: p.face, fr }; else spr('hero', p.x, p.y + 6, p.face, false, 0, fr); }
       if (p.shield) pcircle(px, py - 7, 12, Math.floor(B.t * 6) % 2 ? '#7FE3FF' : '#FFFFFF');
     } else {
       const d = FOES[o.type], age = B.t - (o.born || 0), ox = X(o.x), oy = Y(o.y), rr = Math.round(o.r / WP);
@@ -1831,6 +1831,9 @@ function draw() {
   for (let i = 0; i < 14; i++) { const sx = Math.round(((i * 53 + B.t * (4 + i % 5 * 2)) % (lw + 10)) - 5), sy = Math.round(((i * 91 - B.t * (7 + i % 4 * 3)) % lh + lh) % lh); if (Math.sin(B.t * 2 + i) > -0.3) R(i % 3 ? 'rgba(255,231,240,.45)' : 'rgba(201,182,217,.45)', sx, sy, 1, 1); }
   /* 글자, 번쩍임, 조이스틱은 위에 겹친 선명한 판에 그려요 */
   const d = cv2.width / innerWidth, U = PZ * d; tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, cv2.width, cv2.height);
+  /* 주인공: 크기는 그대로, 픽셀은 2배 촘촘하게 (겹친 선명한 판에 그려요) */
+  if (B.heroDraw) { const h = B.heroDraw, im = IMG.hero.bigFrames[h.fr >= 0 ? h.fr % IMG.hero.bigFrames.length : 4], k = U / 2, w = Math.round(im.width * k), hh = Math.round(im.height * k), cx = Math.round(h.x * U), by = Math.round(h.y * U); tx.imageSmoothingEnabled = false;
+    if (h.flip < 0) { tx.save(); tx.translate(cx, 0); tx.scale(-1, 1); tx.drawImage(im, -Math.round(w / 2), by - hh, w, hh); tx.restore(); } else tx.drawImage(im, cx - Math.round(w / 2), by - hh, w, hh); }
   if (B.flashScr) { const fk = B.flashScr.t / B.flashScr.max; if (fk <= 0) B.flashScr = null; else { tx.fillStyle = `rgba(${B.flashScr.col},${0.4 * fk})`; tx.fillRect(0, 0, cv2.width, cv2.height); } }
   tx.textAlign = 'center'; legBanner(U, d);
   for (const t of B.texts) {
