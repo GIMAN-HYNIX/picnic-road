@@ -56,57 +56,92 @@ let run = null;
 
 /* ───── 펫: 모험이 끝날 때마다 하나를 얻어요. 같은 펫을 또 얻으면 레벨이 올라요 (최고 Lv5) ───── */
 const PETS = {
-  kong: { name: '젤리곰 콩이', desc: '가끔 멀리 있는 보석까지 한 번에 모아 와요.', lvDesc: lv => `${Math.max(2.5, 7 - lv).toFixed(1)}초마다, 반경 ${130 + 35 * lv}` },
+  kong: { name: '젤리곰 콩이', desc: '몇 초마다 말랑한 젤리 방패를 씌워 줘요. 방패는 공격 한 번을 막고 주변 적을 튕겨내요.', lvDesc: lv => `${(14 - 1.6 * lv).toFixed(1)}초마다 방패${lv >= 5 ? ', 막을 때 주변 적 잠깐 기절' : ''}` },
   shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `모험마다 ${lv >= 5 ? 3 : lv >= 3 ? 2 : 1}번, 하트 ${1 + (lv >= 2) + (lv >= 4)}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
   byul: { name: '별사탕 요정 별이', desc: '가까운 적에게 별사탕을 쏴요. 스테이지가 높아질수록 별사탕도 세져요.', lvDesc: lv => `${Math.max(0.35, 1.1 - 0.15 * lv).toFixed(2)}초마다, 기본 피해 ${8 + 4 * lv}${lv >= 5 ? ', 적 1마리 꿰뚫기' : ''}` }
 };
 const PMAX = 5;
 if (!S.pets || typeof S.pets !== 'object') S.pets = {};
 const petLv = id => Math.min(PMAX, S.pets[id] || 0);
-/* 아주 작은 픽셀 그림: 글자 한 칸 = 픽셀 하나 */
-const PET_ART = {
-  kong: { pal: { k: '#1A0E22', o: '#FF9A3D', l: '#FFD08A', d: '#C9621E', w: '#FFFFFF' }, rows: ['.kk...kk.', 'kook.kook', 'kooooooook', 'kowokowok.', 'kooodooook', '.koolllok.', 'kooolllook', 'kooooooook', '.kok..kok.'] },
-  shu: { pal: { k: '#1A0E22', y: '#FFE45C', c: '#FFF3D6', s: '#E9C27A', w: '#FFFFFF', p: '#FF8FB8' }, rows: ['...yyyy...', '..y....y..', 'w..kkkk..w', 'ww.kcccck.ww', '.wkccccccw.', '.kckcckcck.', '.kcpccccpk.', '..kssssk...', '...kkkk....'] },
-  byul: { pal: { k: '#1A0E22', y: '#FFD23F', l: '#FFF3A8', o: '#E0A000', p: '#FF8FB8' }, rows: ['....k....', '...kyk...', 'kkkkylkkkk', 'kyyyyyyyk', '.kykyyky..', '.kpyyyypk.', '..kyoyyk..', '.kyk..kyk.', '.kk....kk.'] }
-};
-const PET_BASE = {};
-for (const [id, a] of Object.entries(PET_ART)) {
-  const w = Math.max(...a.rows.map(r => r.length)), h = a.rows.length, c = document.createElement('canvas'); c.width = w; c.height = h; const q = c.getContext('2d');
-  a.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (a.pal[ch]) { q.fillStyle = a.pal[ch]; q.fillRect(x, y, 1, 1); } }));
-  PET_BASE[id] = c;
+/* 펫 그림: 2배 촘촘한 그림을 붓질처럼 직접 그려요 (명암, 반짝임, 테두리). 전투에서는 절반 크기로 보여요 */
+const PW_ = 30, PH_ = 36, PINK_ = '#FF8FB8';
+function petPainter() {
+  const c = mk(PW_, PH_), q = c.getContext('2d'), d = q.createImageData(PW_, PH_), A = new Uint32Array(d.data.buffer);
+  const hexv = h => { const n = parseInt(h.slice(1), 16); return (255 << 24) | ((n & 255) << 16) | (((n >> 8) & 255) << 8) | (n >> 16); };
+  const set = (x, y, col) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < PW_ && y < PH_) A[y * PW_ + x] = hexv(col); };
+  const get = (x, y) => x >= 0 && y >= 0 && x < PW_ && y < PH_ ? A[y * PW_ + x] : 0;
+  /* 타원: 왼쪽 위에서 빛이 와요. ramp = [밝음 … 어두움] */
+  const ell = (cx, cy, rx, ry, ramp, o = {}) => { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) { const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry, dd = dx * dx + dy * dy; if (dd > 1) continue; if (o.ring && dd < o.ring) continue;
+    const lam = Math.max(0, -(dx * -0.55 + dy * -0.75) * 0.8 + Math.sqrt(Math.max(0, 1 - dd)) * 0.55), l = (o.base ?? 0.15) + (o.span ?? 0.85) * (1 - Math.min(1, lam)), t = Math.min(0.999, Math.max(0, l)) * (ramp.length - 1); let k = Math.floor(t); if ((t - k) * 16 > BAYER[(y & 3) * 4 + (x & 3)] && k + 1 < ramp.length) k++; set(x, y, ramp[k]); } };
+  const poly = (pts, col) => { const ys = pts.map(p => p[1]), y0 = Math.floor(Math.min(...ys)), y1 = Math.ceil(Math.max(...ys)); for (let y = y0; y <= y1; y++) for (let x = 0; x < PW_; x++) { let ins = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y + 0.5) !== (yj > y + 0.5) && x + 0.5 < (xj - xi) * (y + 0.5 - yi) / (yj - yi) + xi) ins = !ins; } if (ins) set(x, y, typeof col === 'function' ? col(x, y) : col); } };
+  const outline = ink => { const B0 = new Uint32Array(A); for (let y = 0; y < PH_; y++) for (let x = 0; x < PW_; x++) if (!B0[y * PW_ + x] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const xx = x + a, yy = y + b; return xx >= 0 && yy >= 0 && xx < PW_ && yy < PH_ && B0[yy * PW_ + xx]; })) A[y * PW_ + x] = hexv(ink); };
+  return { c, q, d, set, get, ell, poly, outline, done: () => { q.putImageData(d, 0, 0); c.k = 2; return c; } };
 }
-/* 펫 꾸미기: 머리 위에 얹는 작은 픽셀 장식 */
-const PET_COS = {
-  crown: { name: '작은 왕관', pal: { k: '#1A0E22', y: '#FFD23F', r: '#E8323C' }, rows: ['k.k.k.k', 'kykykyk', 'kyyryyk', 'kkkkkkk'] },
-  ribbon: { name: '분홍 리본', pal: { k: '#1A0E22', p: '#FF6FA5', l: '#FFB3CF' }, rows: ['kk...kk', 'kpk.kpk', 'klpkplk', 'kk.k.kk'] },
-  party: { name: '고깔모자', pal: { k: '#1A0E22', y: '#FFD23F', b: '#59B8FF', p: '#FF6FA5' }, rows: ['...y...', '..kpk..', '.kbpbk.', 'kpbpbpk', 'kkkkkkk'] },
-  flower: { name: '꽃핀', pal: { k: '#1A0E22', p: '#FF8FB8', y: '#FFD23F' }, rows: ['.k.k.', 'kpkpk', '.kyk.', 'kpkpk', '.k.k.'] },
-  leaf: { name: '새싹', pal: { k: '#1A0E22', g: '#5CD66A', d: '#2E9A3C' }, rows: ['kk.kk', 'kgkdk', '.kgk.', '..k..'] },
-  glass: { name: '동그란 안경', face: ['#2B3A67', '#BFE6FF'] },
-  sun: { name: '선글라스', face: ['#1A0E22', '#3A3550', '#FFFFFF'] },
-  heartg: { name: '분홍 안경', face: ['#E0457B', '#FFD0E4'] },
-  goldg: { name: '금테 안경', face: ['#C98A00', '#FFF6C0'] },
-  star: { name: '별 머리띠', pal: { k: '#1A0E22', y: '#FFD23F', w: '#FFF6C0' }, rows: ['..k..', '.kyk.', 'kywyk', '.kyk.', '..k..'] }
+const RAMP_ = {
+  orange: ['#FFE6C0', '#FFBE6E', '#FF9433', '#E0661A', '#9A3E10'], cream: ['#FFFFFF', '#FFF7E6', '#F4E2BE', '#DEC094', '#A8865A'], gold: ['#FFF8C8', '#FFE15A', '#FFC21F', '#D99000', '#8F5E00'],
+  sky: ['#FFFFFF', '#E6F6FF', '#BFE4FF', '#8CC4F0'], pink: ['#FFE3EE', '#FFB0CC', '#FF7FAA', '#D9507F'], red: ['#FFB0B0', '#FF5A5A', '#D92E3C', '#8C1A26'], green: ['#D8FFB8', '#8FE06A', '#4FB840', '#2E7A2A'], blue: ['#D6F0FF', '#7FC8FF', '#3E8EDE', '#24589C']
 };
+/* 펫마다 머리 꼭대기(모자 자리)와 눈 자리 */
+const PET_ANCHOR = { kong: { cx: 15, top: 9, eyes: [11.5, 18.5], ey: 15 }, shu: { cx: 15, top: 12, eyes: [11.5, 18.5], ey: 19 }, byul: { cx: 15, top: 13, eyes: [11.5, 18.5], ey: 21 } };
+const eyes2 = (P, a) => { for (const ex of a.eyes) { const x = Math.round(ex) - 1, y = a.ey - 1; for (const [i, j] of [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]]) P.set(x + i, y + j, '#2A1430'); P.set(x, y, '#FFFFFF'); } };
+const PET_PAINT = {
+  kong(P) {      /* 젤리곰: 말랑한 주황 젤리, 반투명한 반짝임 */
+    const o = RAMP_.orange; P.ell(15, 30, 3.2, 2, o); P.ell(15 + 0, 30, 3.2, 2, o); P.ell(10.5, 31, 3, 2, o); P.ell(19.5, 31, 3, 2, o);
+    P.ell(15, 25, 7.5, 6.5, o); P.ell(7.5, 23.5, 2.6, 3.6, o); P.ell(22.5, 23.5, 2.6, 3.6, o); P.ell(15, 26, 4, 3.5, ['#FFF2D8', '#FFD9A0', '#FFC27A'], { base: 0 });
+    P.ell(8.5, 9.5, 3.4, 3.4, o); P.ell(21.5, 9.5, 3.4, 3.4, o); P.ell(8.5, 9.8, 1.6, 1.6, ['#FFD9A0', '#FFC27A'], { base: 0 }); P.ell(21.5, 9.8, 1.6, 1.6, ['#FFD9A0', '#FFC27A'], { base: 0 });
+    P.ell(15, 15, 9, 7, o); P.ell(15, 17.6, 3.6, 2.4, ['#FFF2D8', '#FFDDB0'], { base: 0 }); P.set(14, 16.5, '#5A2410'); P.set(15, 16.5, '#5A2410'); P.set(14.5, 18.5, '#7A3416');
+    for (const [x, y] of [[9, 11], [10, 10], [11, 10], [9, 12], [10, 22], [11, 21]]) P.set(x, y, '#FFFFFF');
+    eyes2(P, PET_ANCHOR.kong); for (const x of [9, 21]) { P.set(x, 18, '#FF9AA8'); P.set(x + 1, 18, '#FF9AA8'); }
+  },
+  shu(P, hat) {      /* 천사 슈: 하얀 찹쌀떡 몸, 날개, 금빛 고리 */
+    const s = RAMP_.sky, cr = RAMP_.cream; P.ell(5.5, 20, 5, 4.2, s, { base: 0 }); P.ell(24.5, 20, 5, 4.2, s, { base: 0 }); P.ell(4, 23, 3.5, 2.6, s, { base: 0 }); P.ell(26, 23, 3.5, 2.6, s, { base: 0 });
+    for (const x of [3, 5, 7]) P.set(x, 21, '#8CC4F0'); for (const x of [23, 25, 27]) P.set(x, 21, '#8CC4F0');
+    P.ell(15, 22, 9, 9, cr, { base: 0, span: 0.62 }); P.ell(11, 31, 2.6, 1.6, cr); P.ell(19, 31, 2.6, 1.6, cr);
+    for (const [x, y] of [[10, 16], [11, 15], [12, 15]]) P.set(x, y, '#FFFFFF');
+    eyes2(P, PET_ANCHOR.shu); for (const x of [9, 20]) { P.set(x, 22, PINK_); P.set(x + 1, 22, PINK_); } P.set(14, 23, '#C2607A'); P.set(15, 23, '#C2607A');
+    if (!hat) P.ell(15, 7, 5.5, 1.8, RAMP_.gold, { ring: 0.35, base: 0 });
+  },
+  byul(P) {      /* 별사탕 요정 별이: 노란 별, 작은 날개, 반짝이 */
+    P.ell(6.5, 14, 4, 3, RAMP_.sky, { base: 0 }); P.ell(23.5, 14, 4, 3, RAMP_.sky, { base: 0 });
+    const cx = 15, cy = 21, R0 = 12, r0 = 5.2, pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r0 : R0; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); }
+    const g = RAMP_.gold; P.poly(pts, (x, y) => { const l = 0.18 + 0.5 * ((x - cx) + (y - cy)) / R0 + 0.25 * Math.hypot(x - cx, y - cy) / R0, t = Math.min(0.999, Math.max(0, l)) * (g.length - 1); let k = Math.floor(t); if ((t - k) * 16 > BAYER[(y & 3) * 4 + (x & 3)] && k + 1 < g.length) k++; return g[k]; });
+    for (const [x, y] of [[13, 13], [14, 12], [12, 15]]) P.set(x, y, '#FFFFFF');
+    eyes2(P, PET_ANCHOR.byul); for (const x of [9, 20]) { P.set(x, 24, PINK_); P.set(x + 1, 24, PINK_); } P.set(14, 25, '#B86A00'); P.set(15, 25, '#B86A00');
+  }
+};
+/* 펫 꾸미기: 머리 장식(꼭대기 기준)과 안경(눈 기준) */
+const PET_COS = {
+  crown: { name: '작은 왕관', paint(P, a) { const { cx, top } = a, g = RAMP_.gold; for (let x = cx - 5; x <= cx + 5; x++) for (let y = top - 3; y <= top; y++) { const k = (x - cx + 5) % 5; if (y >= top - 1 || (y >= top - 3 + Math.abs(k - 2) && k !== 2) || (k === 2 && y >= top - 3)) P.set(x, y, g[Math.min(3, 1 + (x > cx) + (y === top))]); } P.set(cx, top - 1, '#E8323C'); P.set(cx - 4, top - 1, '#59B8FF'); P.set(cx + 4, top - 1, '#59B8FF'); P.set(cx, top - 4, '#FFF8C8'); } },
+  ribbon: { name: '분홍 리본', paint(P, a) { const x0 = a.cx + 5, y0 = a.top + 1; P.poly([[x0, y0], [x0 - 5, y0 - 3], [x0 - 5, y0 + 3]], '#FF6FA5'); P.poly([[x0, y0], [x0 + 5, y0 - 3], [x0 + 5, y0 + 3]], '#FF6FA5'); P.set(x0 - 4, y0 - 1, '#FFC2DA'); P.set(x0 + 3, y0 - 1, '#FFC2DA'); P.ell(x0 + 0.5, y0 + 0.5, 1.6, 1.6, ['#FFB3CF', '#E0457B'], { base: 0 }); } },
+  party: { name: '고깔모자', paint(P, a) { const { cx, top } = a; P.poly([[cx, top - 10], [cx - 5, top + 0.5], [cx + 5, top + 0.5]], (x, y) => ((x + y) >> 1) % 2 ? '#59B8FF' : '#FF6FA5'); P.ell(cx, top - 10, 1.8, 1.8, ['#FFF8C8', '#FFD23F'], { base: 0 }); for (let x = cx - 5; x <= cx + 5; x++) P.set(x, top, '#FFD23F'); } },
+  flower: { name: '꽃핀', paint(P, a) { const x0 = a.cx + 6, y0 = a.top + 1; for (let i = 0; i < 5; i++) { const t = i * 1.2566 - 1.57; P.ell(x0 + Math.cos(t) * 2.2, y0 + Math.sin(t) * 2.2, 1.7, 1.7, RAMP_.pink, { base: 0 }); } P.ell(x0, y0, 1.2, 1.2, ['#FFF3A8', '#FFD23F'], { base: 0 }); } },
+  leaf: { name: '새싹', paint(P, a) { const { cx, top } = a; for (let y = top - 4; y <= top; y++) P.set(cx, y, '#2E9A3C'); P.ell(cx - 2.5, top - 5, 2.6, 1.5, RAMP_.green, { base: 0 }); P.ell(cx + 2.5, top - 6, 2.6, 1.5, RAMP_.green, { base: 0 }); } },
+  star: { name: '별 머리띠', paint(P, a) { const { cx, top } = a; for (let x = cx - 7; x <= cx + 7; x++) P.set(x, top + 1 + Math.round(Math.abs(x - cx) * Math.abs(x - cx) / 40), '#FF8FB8'); const pts = []; for (let i = 0; i < 10; i++) { const t = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? 1.6 : 3.6; pts.push([cx + Math.cos(t) * rr, top - 2 + Math.sin(t) * rr]); } P.poly(pts, (x, y) => x + y < cx + top - 3 ? '#FFF8C8' : '#FFD23F'); } },
+  glass: { name: '동그란 안경', face: 1, paint(P, a) { glassesP(P, a, '#2B3A67', '#BFE6FF', 'round'); } },
+  sun: { name: '선글라스', face: 1, paint(P, a) { glassesP(P, a, '#1A0E22', '#3A3550', 'sun'); } },
+  heartg: { name: '분홍 안경', face: 1, paint(P, a) { glassesP(P, a, '#E0457B', '#FFD0E4', 'heart'); } },
+  goldg: { name: '금테 안경', face: 1, paint(P, a) { glassesP(P, a, '#C98A00', '#FFF6C0', 'round'); } }
+};
+function glassesP(P, a, frame, lens, kind) {
+  for (const ex of a.eyes) { const cx = Math.round(ex) - 0.5, cy = a.ey;
+    for (let y = cy - 3; y <= cy + 3; y++) for (let x = cx - 3; x <= cx + 3; x++) { const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy);
+      if (kind === 'heart') { const hx = Math.abs(dx) / 3, hy = (dy + 0.6) / 3, v = hx * hx + Math.pow(hy - Math.sqrt(hx) * 0.6, 2); if (v < 0.75) P.set(x, y, v > 0.42 ? frame : lens); continue; }
+      if (r <= 3.1) P.set(x, y, r > 2.2 ? frame : kind === 'sun' ? lens : lens); }
+    if (kind === 'sun') { P.set(cx - 1.5, cy - 1.5, '#FFFFFF'); P.set(cx - 0.5, cy - 1.5, '#8C88A8'); } else P.set(cx - 1, cy - 1, '#FFFFFF'); }
+  const [l, r] = a.eyes; for (let x = Math.round(l) + 2; x <= Math.round(r) - 3; x++) P.set(x, a.ey - 1, frame);
+}
 if (!S.cos || typeof S.cos !== 'object') S.cos = { hero: [], pet: [] };
 if (!S.petCos || typeof S.petCos !== 'object') S.petCos = {};
 if (!S.petFace || typeof S.petFace !== 'object') S.petFace = {};
-/* 펫마다 눈 자리: [왼쪽 눈 x, 오른쪽 눈 x, y]. 안경은 여기에 맞춰 그려요 */
-const PET_EYES = { kong: [2, 6, 3], shu: [3, 6, 5], byul: [3, 6, 4] };
 const PET_SPR_C = new Map();
 function petSpr(id) {
   const cos = S.petCos[id], fc = S.petFace[id], key = id + (cos || '') + '/' + (fc || ''); let c = PET_SPR_C.get(key); if (c) return c;
-  const base = PET_BASE[id], H = cos && PET_COS[cos] && !PET_COS[cos].face ? PET_COS[cos] : null, F = fc && PET_COS[fc] && PET_COS[fc].face;
-  if (!H && !F) { PET_SPR_C.set(key, base); return base; }
-  const hw = H ? H.rows[0].length : 0, hh = H ? H.rows.length : 0, top = H ? Math.max(0, hh - 2) : 0;
-  c = document.createElement('canvas'); c.width = Math.max(base.width, hw); c.height = base.height + top; const q = c.getContext('2d'), bx = (c.width - base.width) >> 1;
-  q.drawImage(base, bx, top);
-  if (F) { const [x1, x2, ey] = PET_EYES[id], R = (col, x, y, w = 1) => { q.fillStyle = col; q.fillRect(bx + x, top + y, w, 1); };      /* 안경: 눈마다 3칸 테, 가운데는 알, 사이는 다리 */
-    for (const ex of [x1, x2]) { R(F[0], ex - 1, ey - 1, 3); R(F[0], ex - 1, ey); R(F[1], ex, ey); R(F[0], ex + 1, ey); } R(F[0], x1 + 2, ey - 1, x2 - x1 - 3); if (F[2]) R(F[2], x1 - 1, ey - 1); }
-  if (H) { const ox = (c.width - hw) >> 1; H.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (H.pal[ch]) { q.fillStyle = H.pal[ch]; q.fillRect(ox + x, y, 1, 1); } })); }
+  const P = petPainter(), a = PET_ANCHOR[id], H = cos && PET_COS[cos] && !PET_COS[cos].face ? PET_COS[cos] : null, F = fc && PET_COS[fc] && PET_COS[fc].face ? PET_COS[fc] : null;
+  PET_PAINT[id](P, !!H); if (F) F.paint(P, a); if (H) H.paint(P, a); P.outline('#1A0E22'); c = P.done();
   PET_SPR_C.set(key, c); return c;
 }
-const petImg = (id, size = 40) => { const s = petSpr(id), c = document.createElement('canvas'), k = Math.max(1, Math.floor(size / Math.max(s.width, s.height))); c.width = s.width * k; c.height = s.height * k; const q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); return `<img class="pxi" src="${c.toDataURL()}" alt="">`; };
+const PET_BASE = new Proxy({}, { get: (_, id) => petSpr(id) });
+const petImg = (id, size = 40) => { const s = petSpr(id), c = document.createElement('canvas'), k = Math.max(1, Math.round(size * 1.5 / Math.max(s.width, s.height))); c.width = s.width * k; c.height = s.height * k; const q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(s, 0, 0, c.width, c.height); return `<img class="pxi" src="${c.toDataURL()}" alt="">`; };
 /* 모험이 끝나면 펫 하나 */
 function gainPet() {
   const id = pick(Object.keys(PETS)), was = petLv(id);
@@ -118,7 +153,7 @@ function petLine(g) { return `<div class="opt r2 petget"><span class="ic">${petI
 function petSheet(back) {
   let slot = 0;
   const draw = () => { const two = pet2On(), sid = slot ? S.pet2 : S.pet, cur = sid && petLv(sid) ? sid : null, own = S.cos.pet || [];
-    sheet(`<h2 id="cardTitle">펫</h2><p>보스를 잡으면 가끔 펫이나 펫 꾸미기를 받아요. 같은 펫이면 레벨이 올라요. ${two ? '두 마리를 데리고 갈 수 있어요. 칸을 고른 뒤 펫을 눌러요.' : '하나를 골라 데리고 가요. 100스테이지를 깨면 두 마리를 데리고 갈 수 있어요.'}</p>${two ? `<div class="tabs ctr">${[0, 1].map(k => { const id = k ? S.pet2 : S.pet; return `<button class="tb${slot === k ? ' on' : ''}" type="button" data-act="slot" data-k="${k}">${k ? '둘째' : '첫째'} 칸 · ${id && petLv(id) ? PETS[id].name.split(' ').pop() : '비어 있음'}</button>`; }).join('')}</div>` : ''}<div class="opts">${Object.keys(PETS).map(id => { const lv = petLv(id), tag = S.pet === id ? '첫째' : two && S.pet2 === id ? '둘째' : ''; return `<button class="opt${(slot ? S.pet2 : S.pet) === id ? ' on' : ''}" type="button" data-act="pet" data-id="${id}"${lv ? '' : ' aria-disabled="true"'}>${tag ? `<em class="tag wt">${tag}</em>` : ''}<span class="ic">${lv ? petImg(id) : '?'}</span><span class="tx"><b>${lv ? `${PETS[id].name} Lv${lv}` : '아직 못 만났어요'}</b><span>${lv ? `${PETS[id].desc} (${PETS[id].lvDesc(lv)})` : '보스를 잡으면 만날 수 있어요.'}</span></span></button>`; }).join('')}</div>${cur ? `<h3 class="sub3">${PETS[cur].name.split(' ').pop()} 꾸미기</h3>${own.length ? [['머리', 0], ['안경', 1]].map(([lab, fc]) => { const T = fc ? S.petFace : S.petCos, l = own.filter(c => !!PET_COS[c].face === !!fc); return l.length ? `<div class="cosrow"><span class="coslab">${lab}</span><button class="cos${T[cur] ? '' : ' on'}" type="button" data-act="pcos" data-fc="${fc}" data-id="">없음</button>${l.map(c => `<button class="cos${T[cur] === c ? ' on' : ''}" type="button" data-act="pcos" data-fc="${fc}" data-id="${c}" aria-label="${PET_COS[c].name}">${cosPetIcon(cur, c)}</button>`).join('')}</div>` : ''; }).join('') : '<p>아직 펫 꾸미기가 없어요. 보스를 잡으면 받을 수 있어요.</p>'}` : ''}<button class="btn" type="button" data-act="close">닫기</button>`,
+    sheet(`<h2 id="cardTitle">펫</h2><p>보스를 잡으면 가끔 펫이나 펫 꾸미기를 받아요. 같은 펫이면 레벨이 올라요. ${two ? '두 마리를 데리고 갈 수 있어요. 칸을 고른 뒤 펫을 눌러요.' : '하나를 골라 데리고 가요. 100스테이지를 깨면 두 마리를 데리고 갈 수 있어요.'}</p>${two ? `<div class="tabs ctr">${[0, 1].map(k => { const id = k ? S.pet2 : S.pet; return `<button class="tb${slot === k ? ' on' : ''}" type="button" data-act="slot" data-k="${k}">${k ? '둘째' : '첫째'} 칸 · ${id && petLv(id) ? PETS[id].name.split(' ').pop() : '비어 있음'}</button>`; }).join('')}</div>` : ''}<div class="opts">${Object.keys(PETS).map(id => { const lv = petLv(id), tag = S.pet === id ? '첫째' : two && S.pet2 === id ? '둘째' : ''; return `<button class="opt${(slot ? S.pet2 : S.pet) === id ? ' on' : ''}" type="button" data-act="pet" data-id="${id}"${lv ? '' : ' aria-disabled="true"'}>${tag ? `<em class="tag wt">${tag}</em>` : ''}<span class="ic">${lv ? petImg(id) : '?'}</span><span class="tx"><b>${lv ? `${PETS[id].name} Lv${lv}` : '아직 못 만났어요'}</b><span>${lv ? `${PETS[id].desc} (${PETS[id].lvDesc(lv)})` : '보스를 잡으면 만날 수 있어요.'}</span></span></button>`; }).join('')}</div>${cur ? `<h3 class="sub3">${PETS[cur].name.split(' ').pop()} 꾸미기</h3><div class="pic" style="text-align:center"><span style="display:inline-block;width:112px;height:120px">${petImg(cur, 120)}</span></div>${own.length ? [['머리', 0], ['안경', 1]].map(([lab, fc]) => { const T = fc ? S.petFace : S.petCos, l = own.filter(c => !!PET_COS[c].face === !!fc); return l.length ? `<div class="cosrow big"><span class="coslab">${lab}</span><button class="cos${T[cur] ? '' : ' on'}" type="button" data-act="pcos" data-fc="${fc}" data-id="">없음</button>${l.map(c => `<button class="cos${T[cur] === c ? ' on' : ''}" type="button" data-act="pcos" data-fc="${fc}" data-id="${c}" aria-label="${PET_COS[c].name}">${cosPetIcon(cur, c)}</button>`).join('')}</div>` : ''; }).join('') : '<p>아직 펫 꾸미기가 없어요. 보스를 잡으면 받을 수 있어요.</p>'}` : ''}<button class="btn" type="button" data-act="close">닫기</button>`,
     (act, b) => { if (act === 'close') { closeSheet(); if (back) back(); return; }
       if (act === 'pcos') { const T = b.dataset.fc === '1' ? S.petFace : S.petCos; if (b.dataset.id) T[cur] = b.dataset.id; else delete T[cur]; persist(); sfx.tap(); draw(); return; }
       if (act === 'slot') { slot = +b.dataset.k; sfx.tap(); draw(); return; }
@@ -140,10 +175,8 @@ function petUpdate1(P, dt) {
   let tx = p.x - 22 * p.face * (P.slot ? -1 : 1), ty = p.y - 18 - (P.slot ? 6 : 0);
   if (P.go) { tx = P.go.x; ty = P.go.y; P.go.t -= dt; if (P.go.t <= 0) P.go = null; }
   const k = Math.min(1, dt * (P.go ? 12 : 6)); P.x += (tx - P.x) * k; P.y += (ty - P.y) * k;
-  if (P.id === 'kong' && P.cd <= 0) {
-    P.cd = Math.max(2.5, 7 - P.lv); const R = 130 + 35 * P.lv;
-    let best = null, bn = 0; for (const g of B.gems) { if (g.pull) continue; let n = 0; for (const h of B.gems) if (Math.abs(h.x - g.x) < 90 && Math.abs(h.y - g.y) < 90) n++; if (n > bn && (g.x - p.x) ** 2 + (g.y - p.y) ** 2 < 600 * 600) { bn = n; best = g; } }
-    if (best) { P.go = { x: best.x, y: best.y, t: 0.35 }; for (const g of B.gems) if ((g.x - best.x) ** 2 + (g.y - best.y) ** 2 < R * R) { g.vz = null; g.z = 0; g.pull = true; g.sp = 300; } if (!headless) { fxAdd({ k: 'ring', x: best.x, y: best.y, r: 10, to: R, life: 0.35, max: 0.35, col: '#FF9A3D', w: 4 }); sfx.gem(6); } }
+  if (P.id === 'kong' && P.cd <= 0) {      /* 젤리 방패: 방패가 없을 때만 새로 씌워요 */
+    if (p.shield) P.cd = 0.5; else { P.cd = 14 - 1.6 * P.lv; p.shield = true; p.kongShield = P.lv >= 5; P.go = { x: p.x, y: p.y - 10, t: 0.25 }; if (!headless) { fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: 34, to: 8, life: 0.35, max: 0.35, col: '#FF9A3D', w: 5 }); textAdd(p.x, p.y - 46, '젤리 방패!', '#FFB560'); sfx.block(); } }
   }
   if (P.id === 'byul' && P.cd <= 0) {
     const t = nearestFoe(300, P); if (!t) { P.cd = 0.2; return; } P.cd = Math.max(0.35, 1.1 - 0.15 * P.lv);
@@ -656,18 +689,20 @@ const RELICS = {
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
 /* 전설 스킬: Lv10 무기의 조각을 10개 모으면 무기가 전설로 바뀌어 커다란 기술이 주기적으로 터져요 */
 const LEG = {
-  pin: { name: '천지 가르기', desc: '화면을 가로지르는 거대한 베기가 세 번 이어지고, 마지막에 큰 충격파가 터져요.', cd: 5 },
-  cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 6 },
-  star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 5.5 },
-  macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 4.5 },
-  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 넓은 꿀 바다가 나를 따라다녀요.', cd: 7 },
-  lemon: { name: '레몬 폭풍', desc: '모든 적에게 산성을 쌓고, 초록 회오리 세 개가 적을 찾아 휩쓸어요.', cd: 6 },
-  skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 두 번 꿰뚫고 지나가요.', cd: 4.5 },
-  choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 운석이 떨어져 큰 폭발과 용암을 남겨요.', cd: 6 },
-  cotton: { name: '심판의 빛', desc: '하늘이 갈라지며 화면 전체에 빛이 내려 모든 적을 태워요.', cd: 5 },
-  cane: { name: '지팡이 대폭격', desc: '거대한 지팡이 사탕이 두 겹으로 내리꽂히고, 마지막에 초대형 한 방이 떨어져요.', cd: 5 }
+  pin: { name: '천지 가르기', desc: '화면을 가로지르는 거대한 베기가 세 번 이어지고, 마지막에 큰 충격파가 터져요.', cd: 3.4 },
+  cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 4.6 },
+  star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 4.0 },
+  macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 3.8 },
+  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 넓은 꿀 바다가 나를 따라다녀요.', cd: 5.8 },
+  lemon: { name: '레몬 폭풍', desc: '모든 적에게 산성을 쌓고, 초록 회오리 세 개가 적을 찾아 휩쓸어요.', cd: 5.0 },
+  skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 두 번 꿰뚫고 지나가요.', cd: 3.6 },
+  choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 운석이 떨어져 큰 폭발과 용암을 남겨요.', cd: 5.4 },
+  cotton: { name: '심판의 빛', desc: '하늘이 갈라지며 화면 전체에 빛이 내려 모든 적을 태워요.', cd: 4.8 },
+  cane: { name: '지팡이 대폭격', desc: '거대한 지팡이 사탕이 두 겹으로 내리꽂히고, 마지막에 초대형 한 방이 떨어져요.', cd: 4.3 }
 };
 const LEG_N = 10;
+/* 전설 피해 배율: 각성 전 무기(Lv10)가 내던 피해의 약 3배가 되게 무기마다 재서 맞춘 값이에요. 전설 스킬은 그 무기를 대신해요 */
+const LEGF = { pin: 0.474, cream: 0.616, star: 0.117, macaron: 0.139, honey: 1.41, lemon: 0.12, skewer: 0.23, choco: 0.327, cotton: 0.279, cane: 0.365 };
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
@@ -687,11 +722,11 @@ const lfxAdd = o => { if (!headless) B.lfx.push(o); return o; };
 const legTick = (t0, dur, step, fn) => { for (let t = 0; t <= dur + 1e-6; t += step) legLater(t0 + t, () => fn(t / dur)); };
 const LEGW = 0.32;      /* 기 모으는 시간 */
 function castLeg(w) {
-  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * legK();
+  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * LEGF[id];
   const big = (x, y, r, d, col) => blast(x, y, r, D(d), { id, noAcc: true }, col);
   const alive = () => B.foes.filter(f => !f.dead), onScreen = () => B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw * 0.58 && Math.abs(f.y - p.y) < vh * 0.58);
   const rnd = (t, a) => t.length ? t[(Math.random() * t.length) | 0] : null;
-  if (!headless) { sfx.leg(); B.cin = { t: 0, max: W + 1.5, name: LEG[id].name }; lfxAdd({ k: 'charge', life: W, max: W }); }
+  if (!headless) { sfx.leg(); lfxAdd({ k: 'charge', life: W, max: W }); }      /* 이름 배너와 화면 어둡게 하기는 없앴어요 */
   const at = (t, f) => legLater(W + t, f), shake = s => { B.shake = Math.max(B.shake, s); }, flash = (c, t) => { B.flashScr = { col: c, t, max: t }; };
   if (id === 'pin') {      /* 히어로 브랜디쉬: 화면을 가로지르는 세 번의 거대한 베기 */
     [[0.62, 0, 540, 96], [-0.62, 0.17, 540, 96], [0.03, 0.34, 620, 130]].forEach(([a, t, len, T]) => at(t, () => {
@@ -725,11 +760,11 @@ function castLeg(w) {
     at(0.28, () => { big(p.x, p.y, 270, 220, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 230, life: 4, tick: 0, dmg: D(45), w, follow: true, leg: true }); shake(0.5); flash('255,210,100', 0.2); });
   }
   if (id === 'lemon') {      /* 레몬 폭풍: 초록 회오리 세 개가 적을 찾아 휩쓸어요 */
-    at(0, () => { for (const f of onScreen()) { f.acid = Math.min((f.acid || 0) + 40, 90); f.flash = 0.1; } flash('200,240,90', 0.25);
+    at(0, () => { for (const f of onScreen()) { f.acid = Math.min((f.acid || 0) + 2.5, 22); f.flash = 0.1; } flash('200,240,90', 0.25);
       const T = 1.7, ts = shuffle(onScreen()).slice(0, 3); while (ts.length < 3) ts.push({ x: p.x + (Math.random() - 0.5) * 300, y: p.y + (Math.random() - 0.5) * 300 });
       ts.forEach((f, i) => { const tw = { k: 'twister', x: f.x, y: f.y, seed: i * 2.1, life: T, max: T }; lfxAdd(tw);
         legTick(0, T, 0.12, u => { let b = null, bd = 1e9; for (const g of alive()) { const d = (g.x - tw.x) ** 2 + (g.y - tw.y) ** 2; if (d < bd) { bd = d; b = g; } } if (b) { const d = Math.sqrt(bd) || 1; tw.x += (b.x - tw.x) / d * 24; tw.y += (b.y - tw.y) / d * 24; }
-          for (const g of alive()) if ((g.x - tw.x) ** 2 + (g.y - tw.y) ** 2 < (130 + g.r) ** 2) { hurtFoe(g, D(55), { id, noAcc: true }, g.x - tw.x, g.y - tw.y); g.acid = Math.min((g.acid || 0) + 10, 90); } });
+          for (const g of alive()) if ((g.x - tw.x) ** 2 + (g.y - tw.y) ** 2 < (130 + g.r) ** 2) { hurtFoe(g, D(55), { id, noAcc: true }, g.x - tw.x, g.y - tw.y); g.acid = Math.min((g.acid || 0) + 0.6, 22); } });
         legLater(T, () => big(tw.x, tw.y, 150, 220, '#B9DD52')); }); });
   }
   if (id === 'skewer') {      /* 꼬치 소나기: 거대한 꼬치가 사방으로 두 번 꿰뚫고 지나가요 */
@@ -761,7 +796,7 @@ function legUpdate(dt) {
   if (B.cin) { B.cin.t += dt; if (B.cin.t > B.cin.max) B.cin = null; }
   for (const f of B.lfx) f.life -= dt; B.lfx = B.lfx.filter(f => f.life > 0);
   if (!run.leg) return;
-  for (const w of B.weapons) if (isLeg(w.id)) { w.ut = (w.ut ?? 2.5) - dt * atkNow(); if (w.ut <= 0 && B.foes.length) { w.ut = LEG[w.id].cd + 1.4; castLeg(w); } }
+  for (const w of B.weapons) if (isLeg(w.id)) { w.ut = (w.ut ?? 2.5) - dt * atkNow(); if (w.ut <= 0 && B.foes.length) { w.ut = LEG[w.id].cd; castLeg(w); } }
   for (const q of B.legQ) { q.t -= dt; if (q.t <= 0) q.f(); } B.legQ = B.legQ.filter(q => q.t > 0);
 }
 /* 연출 그리기: 어두워지는 화면과 위아래 검은 띠 */
@@ -1286,6 +1321,7 @@ function hurtPlayer(src) {
   const push = (R, d) => B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < R && f !== B.big && !FOES[f.type].noKb) { f.kx = dx / m * d; f.ky = dy / m * d; } });
   if (M('dodge') && Math.random() < 0.06 * M('dodge')) { p.inv = 0.5; textAdd(p.x, p.y - 50, '피함!', '#7FFF8A', true); sfx.block(); return; }
   if (p.shield && B.st.sp.bulwark) { for (const f of B.foes) if (!f.dead && f !== B.big && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < 170 * 170) f.stun = Math.max(f.stun || 0, 1.5 * B.st.sp.bulwark); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.35, max: 0.35, col: '#FFD23F', w: 6 }); }
+  if (p.shield && p.kongShield) { p.kongShield = false; for (const f of B.foes) if (!f.dead && f !== B.big && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < 150 * 150) f.stun = Math.max(f.stun || 0, 1); }
   if (p.shield) { p.shield = false; p.inv = 0.8; textAdd(p.x, p.y - 50, '막음!', '#59B8FF', true); sfx.block(); push(120, 400); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 30, to: 120, life: 0.3, max: 0.3, col: '#59B8FF', w: 6 }); return; }
   if (B.st.sp.thorn) blast(p.x, p.y, 140, 160 * B.st.sp.thorn / Math.max(0.01, B.st.dmg), { id: 'gear', noAcc: true }, '#FF8FB8');
   run.hits = (run.hits || 0) + 1; const HB = run.hitBy || (run.hitBy = {}); HB[src || '?'] = (HB[src || '?'] || 0) + 1; if (B.st.hitHaste) B.hasteT = 3;
@@ -1318,6 +1354,7 @@ window.__acc = ACC;
 function fireWeapons(dt) {
   const p = B.p;
   for (const w of B.weapons) {
+    if (isLeg(w.id)) { if (w.id === 'honey' && !w.legClean) { w.legClean = true; B.zones = B.zones.filter(z => !(z.w === w && !z.leg)); } continue; }      /* 각성한 무기는 전설 스킬이 대신해요 */
     const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10, lw = lwOn(w.id); if (w.lcd != null && w.cd > w.lcd + 0.05) { const tk = capeSp('twin', w.id); if (tk && Math.random() < 0.18 * tk) w.cd *= 0.2; } w.cd -= dt * (atkNow() + capeC(w.id)); w.lcd = w.cd; B.wid = w.id;
     if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
       w.ang += dt * (s5 ? 4.2 : 3.2); w.pulse = ((w.pulse || 0) + dt) % 2.2;
@@ -1882,7 +1919,7 @@ function draw() {
   }
   /* 무기 */
   for (const w of B.weapons) if (w.id === 'macaron' && w.orbs) for (const [ox, oy] of w.orbs) { if (w.lv >= 10) putDisc(X(ox), Y(oy), 7, 7, '#FFD86B', Math.round(4 + 8 * (1 - Math.max(0, w.burstT) / 2.5))); ctx.drawImage(MAC, X(ox) - 4, Y(oy) - 4); }
-  for (const P of B.pets || []) { const sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); const hs = scale2x(sp), pw = sp.width, ph = sp.height; if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(hs, -(pw >> 1), py - (ph >> 1), pw, ph); ctx.restore(); } else ctx.drawImage(hs, px - (pw >> 1), py - (ph >> 1), pw, ph); }
+  for (const P of B.pets || []) { const sp = petSpr(P.id), px = X(P.x), py = Y(P.y) - Math.round(Math.abs(Math.sin(P.t * 5)) * 2); R('rgba(14,6,20,.4)', px - 3, Y(P.y) + 6, 6, 1); const hs = sp, pw = sp.width / (sp.k || 1), ph = sp.height / (sp.k || 1); if (P.x > B.p.x) { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(hs, -pw / 2, py - ph / 2, pw, ph); ctx.restore(); } else ctx.drawImage(hs, px - pw / 2, py - ph / 2, pw, ph); }
   for (const s of B.shots) {
     const sx = X(s.x), sy = Y(s.y);
     if (s.k === 'skewer') {
