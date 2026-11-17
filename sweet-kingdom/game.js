@@ -1693,12 +1693,26 @@ function dDisc(rx, ry, col, dens) {
   if (discs.size > 300) discs.clear(); discs.set(key, c); return c;
 }
 const putDisc = (x, y, rx, ry, col, dens) => { rx = Math.max(1, Math.round(rx)); ry = Math.max(1, Math.round(ry)); const c = dDisc(rx, ry, col, dens); ctx.drawImage(c, x - rx - 0.5 / Q, y - ry - 0.5 / Q, c.width / Q, c.height / Q); };
-function pdisc(x, y, r, col) { ctx.fillStyle = col; const H = 1 / Q, rr = (r + 0.5) * (r + 0.5); for (let j = -r - 0.5 + H / 2; j <= r + 0.5; j += H) { const w = Math.floor(Math.sqrt(Math.max(0, rr - j * j)) * Q) / Q; if (w > 0) ctx.fillRect(x + 0.5 - w, y + 0.5 + j - H / 2, w * 2, H); } }      /* 반 칸 줄로 찍어서 동그라미가 매끈해요 */
-function pcircle(x, y, r, col, t = 1) {      /* 반 칸 간격으로 찍는 원 */
-  ctx.fillStyle = col; const H = 1 / Q, R2 = Math.max(1, Math.round(r * Q)); let i = R2, j = 0, e = 1 - R2; const o = (t - H) / 2;
-  while (i >= j) { for (const [a, b] of [[i, j], [j, i], [-i, j], [-j, i], [i, -j], [j, -i], [-i, -j], [-j, -i]]) ctx.fillRect(x + 0.5 + a * H - o - H / 2, y + 0.5 + b * H - o - H / 2, t, t); j++; if (e < 0) e += 2 * j + 1; else { i--; e += 2 * (j - i) + 1; } }
+/* 동그라미·원은 크기와 색마다 한 번만 찍어 두고 도장처럼 붙여요 (그림은 똑같고 훨씬 가벼워요) */
+const STAMP = new Map();
+function stamp(key, S, paint) {
+  let c = STAMP.get(key); if (c) return c; if (STAMP.size > 600) STAMP.clear();
+  c = mk(Math.ceil(S * Q), Math.ceil(S * Q)); const q = c.getContext('2d'); q.setTransform(Q, 0, 0, Q, 0, 0); paint(q, S / 2 - 0.5); STAMP.set(key, c); return c;
 }
-function pline(x0, y0, x1, y1, col, t = 1) { ctx.fillStyle = col; const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 0.5) * Q; for (let i = 0; i <= n; i++) ctx.fillRect(Math.round((x0 + (x1 - x0) * i / n) * Q) / Q, Math.round((y0 + (y1 - y0) * i / n) * Q) / Q, t, t); }
+function pdisc(x, y, r, col) {      /* 반 칸 줄로 찍어서 동그라미가 매끈해요 */
+  if (r <= 0) { ctx.fillStyle = col; ctx.fillRect(x, y, 1, 1); return; } const S = Math.ceil(r) * 2 + 2;
+  ctx.drawImage(stamp('d' + r + col, S, (q, cx) => { q.fillStyle = col; const H = 1 / Q, rr = (r + 0.5) * (r + 0.5); for (let j = -r - 0.5 + H / 2; j <= r + 0.5; j += H) { const w = Math.floor(Math.sqrt(Math.max(0, rr - j * j)) * Q) / Q; if (w > 0) q.fillRect(cx + 0.5 - w, cx + 0.5 + j - H / 2, w * 2, H); } }), x - (S / 2 - 0.5), y - (S / 2 - 0.5), S, S);
+}
+function pcircle(x, y, r, col, t = 1) {      /* 반 칸 간격으로 찍는 원 */
+  const S = Math.ceil(r) * 2 + Math.ceil(t) * 2 + 2;
+  ctx.drawImage(stamp('c' + r + col + t, S, (q, cx) => { q.fillStyle = col; const H = 1 / Q, R2 = Math.max(1, Math.round(r * Q)); let i = R2, j = 0, e = 1 - R2; const o = (t - H) / 2;
+    while (i >= j) { for (const [a, b] of [[i, j], [j, i], [-i, j], [-j, i], [i, -j], [j, -i], [-i, -j], [-j, -i]]) q.fillRect(cx + 0.5 + a * H - o - H / 2, cx + 0.5 + b * H - o - H / 2, t, t); j++; if (e < 0) e += 2 * j + 1; else { i--; e += 2 * (j - i) + 1; } } }), x - (S / 2 - 0.5), y - (S / 2 - 0.5), S, S);
+}
+function pline(x0, y0, x1, y1, col, t = 1) {      /* 점들을 한 번에 칠해요 */
+  ctx.fillStyle = col; const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 0.5) * Q; ctx.beginPath();
+  for (let i = 0; i <= n; i++) ctx.rect(Math.round((x0 + (x1 - x0) * i / n) * Q) / Q, Math.round((y0 + (y1 - y0) * i / n) * Q) / Q, t, t);
+  ctx.fill();
+}
 function pstar(x, y, s, col) { ctx.fillStyle = col; const h = 1 / Q; ctx.fillRect(x - s, y + 0.5 - h / 2, s * 2 + 1, h); ctx.fillRect(x + 0.5 - h / 2, y - s, h, s * 2 + 1); ctx.fillRect(x, y, 1, 1); }      /* 반 칸 굵기의 가는 반짝임 */
 /* 바닥: 초콜릿 타일 무늬를 한 번 그려 두고 이어 붙여요 */
 /* 막마다 바닥 색이 달라요: 1막 초콜릿, 2막 얼음 민트, 3막 달궈진 오븐 */
@@ -1728,7 +1742,7 @@ let VIG = null;
 function vignette() { if (VIG && VIG.width === lw && VIG.height === lh) return VIG; VIG = mk(lw, lh); const q = VIG.getContext('2d'); q.fillStyle = 'rgba(14,6,20,.6)'; for (let y = 0; y < lh; y++) for (let x = 0; x < lw; x++) { const dx = (x - lw / 2) / (lw / 2), dy = (y - lh / 2) / (lh / 2), d = dx * dx + dy * dy; if (d > 0.9 && (d - 0.9) * 22 > BAYER[(y & 3) * 4 + (x & 3)]) q.fillRect(x, y, 1, 1); } return VIG; }
 function spr(name, wx, wy, flip, white, lift = 0, fr = -1) {
   const s = (B && B.act > 1 && name !== 'hero' && IMG[name + '@' + B.act]) || IMG[name]; if (!s) return; const im = fr >= 0 && s.frames ? (white ? s.whites : s.frames)[fr % s.frames.length] : white ? s.white : s.im, k = s.k || 1, w = im.width / k, h = im.height / k, x = X(wx), y = Y(wy) - lift, hw = Math.round(w / 2 * Q) / Q;
-  if (flip < 0) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -hw, y - h, w, h); ctx.restore(); } else ctx.drawImage(im, x - hw, y - h, w, h);
+  if (flip < 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(im, -hw, y - h, w, h); ctx.scale(-1, 1); ctx.translate(-x, 0); } else ctx.drawImage(im, x - hw, y - h, w, h);      /* 뒤집고 바로 되돌려요 (save/restore보다 가벼워요) */
 }
 /* 촘촘한 작은 그림: 2배 해상도로 한 번 찍어 두고 다시 써요. f(x, y)는 가운데 기준 좌표(칸)를 받아 색을 돌려줘요. 바깥에 반 칸 테두리 */
 const HSPR = new Map();
