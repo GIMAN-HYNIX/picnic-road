@@ -251,7 +251,14 @@ const TREE = [
   { id: 'guard', name: '설탕 갑옷', desc: '맞은 뒤 무적 시간 +10%', max: 4, cost: [2, 3, 4, 5], col: 4, row: 0, icon: 'dough' },
   { id: 'shield', name: '솜사탕 방패', desc: '전투마다 처음 맞는 공격 1번을 막아요', max: 1, cost: [8], col: 4, row: 1, req: 'guard', icon: 'cream' },
   { id: 'start2', name: '두 번째 바람', desc: '스테이지마다 한 번, 쓰러지면 하트 1칸으로 다시 일어나요', max: 1, cost: [20], col: 4, row: 2, req: 'shield', icon: 'cocoa' },
-  { id: 'dodge', name: '아슬아슬 피하기', desc: '맞을 공격을 6% 확률로 피해요', max: 3, cost: [20, 35, 55], col: 4, row: 3, req: 'start2', icon: 'cotton' }
+  { id: 'dodge', name: '아슬아슬 피하기', desc: '맞을 공격을 6% 확률로 피해요', max: 3, cost: [20, 35, 55], col: 4, row: 3, req: 'start2', icon: 'cotton' },
+  /* 후반을 위한 노드: 한참 키운 뒤에 쓸 별이 생기도록 비싸요 */
+  { id: 'master', name: '제빵 명인', desc: '모든 피해 +8%', max: 3, cost: [30, 50, 80], col: 0, row: 4, req: 'veteran', icon: 'pin' },
+  { id: 'haste2', name: '번개 손', desc: '공격 속도 +4%', max: 4, cost: [25, 40, 60, 80], col: 1, row: 4, req: 'reroll', icon: 'cane' },
+  { id: 'hunter', name: '보스 사냥꾼', desc: '보스와 엘리트에게 주는 피해 +10%', max: 3, cost: [20, 30, 45], col: 3, row: 2, req: 'star', icon: 'dough' },
+  { id: 'sweep', name: '잡몹 청소부', desc: '일반 몬스터에게 주는 피해 +8%', max: 3, cost: [15, 25, 40], col: 3, row: 3, req: 'hunter', icon: 'macaron' },
+  { id: 'shield2', name: '다시 부풀기', desc: '솜사탕 방패가 막은 뒤 다시 생겨요 (50초, 레벨마다 10초씩 빨라져요)', max: 3, cost: [35, 60, 90], col: 4, row: 4, req: 'dodge', icon: 'cream' },
+  { id: 'shardplus', name: '조각 수집가', desc: '보스를 처음 잡을 때 받는 전설 조각 +1개', max: 2, cost: [50, 90], col: 2, row: 5, req: 'choice', icon: 'chest' }
 ];
 if (!S.meta || typeof S.meta !== 'object' || !S.meta.n) S.meta = { pts: 0, total: 0, n: {} };
 const M = id => S.meta.n[id] || 0;
@@ -261,7 +268,7 @@ const canLearn = t => M(t.id) < t.max && (!t.req || M(t.req) > 0);
 function sugarStars(r, won) { return Math.max(1, Math.round(floorNo() * 1.5 + Math.min(8, (run.kills || 0) / 1500) + (run.elites || 0) * 2 + (won ? 10 : 0))     /* 3막까지 이기면 50개 남짓: 서너 번 이기면 트리를 다 배워요 */); }
 function treeSheet(back) {
   let sel = null;
-  const cell = 64, W = 5 * cell, H = 5 * 78 + 40, pos = t => [t.col * cell + cell / 2, t.row * 78 + 60], COLN = ['공격', '기동', '성장', '보상', '방어'];
+  const cell = 64, W = 5 * cell, H = 6 * 78 + 40, pos = t => [t.col * cell + cell / 2, t.row * 78 + 60], COLN = ['공격', '기동', '성장', '보상', '방어'];
   const draw = () => {
     let lines = ''; TREE.forEach(t => { if (!t.req) return; const [a, b] = pos(TNODE[t.req]), [c, d] = pos(t); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="${M(t.req) ? 'on' : ''}"/>`; });
     const nodes = TREE.map(t => { const [x, y] = pos(t), r = M(t.id), st = r >= t.max ? 'max' : canLearn(t) ? 'can' : 'lock'; return `<button class="tn ${st}${r ? ' got' : ''}${sel === t.id ? ' sel' : ''}" type="button" data-act="node" data-id="${t.id}" style="left:${x}px; top:${y}px" aria-label="${t.name}"><span class="ti">${svg(ICON[t.icon])}</span><span class="tr">${r}/${t.max}</span></button>`; }).join('');
@@ -707,7 +714,7 @@ const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);    
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
   if (!legUnlocked()) return null; const S2 = run.shards || (run.shards = {}), got = [], done = [];
-  for (let k = 2 + (Math.random() < 0.5 ? 1 : 0); k > 0; k--) {
+  for (let k = 2 + (Math.random() < 0.5 ? 1 : 0) + M('shardplus'); k > 0; k--) {
     const left = run.wpn.filter(w => !isLeg(w.id)).map(w => w.id); if (!left.length) break;
     const top = left.reduce((a, b) => (S2[b] || 0) > (S2[a] || 0) ? b : a, left[0]), id = Math.random() < 0.5 ? top : pick(left);
     S2[id] = (S2[id] || 0) + 1; got.push(id); if (S2[id] >= LEG_N) { (run.leg || (run.leg = {}))[id] = 1; done.push(id); }
@@ -1071,12 +1078,12 @@ addEventListener('resize', resize);
 function battleStats() {
   const b = run.bonus || { spd: 0, dmg: 0, crit: 0 }, sp = Object.fromEntries(eqList().filter(it => spK(it)).map(it => [it.sp, spK(it)]));
   return {
-    dmg: (1 + 0.1 * b.dmg) * (1 + 0.04 * M('atk')) * (1 + 0.06 * M('veteran')),
+    dmg: (1 + 0.1 * b.dmg) * (1 + 0.04 * M('atk')) * (1 + 0.06 * M('veteran')) * (1 + 0.08 * M('master')),
     crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit') + eqSum('crit') / 100, critMul: 1.8 + 0.2 * M('critd') + eqSum('critd') / 100,
     spd: (1 + 0.05 * b.spd) * (1 + 0.03 * M('spd')) * (1 + eqSum('spd') / 100),
     lw: Object.fromEntries(eqList().filter(it => it.g === 4 && it.lw).map(it => [it.lw, 1])),
     xp: 1 + 0.06 * M('xp'), pickup: 88 * (1 + 0.15 * M('mag')) * (1 + 0.4 * (sp.magnetic || 0)), sp, invK: (1 + 0.1 * M('guard')) * (1 + eqSum('inv') / 100), area: 1 + 0.06 * M('size'),
-    atk: 1 + eqSum('atk') / 100 + 0.03 * M('aspd'), guard: guardSec(), open: eqSum('open') / 100, rush: eqMax('rush'), hitHaste: eqMax('hitHaste') / 100, killHaste: eqMax('killHaste') / 100, lowHaste: eqMax('lowHaste') / 100
+    atk: 1 + eqSum('atk') / 100 + 0.03 * M('aspd') + 0.04 * M('haste2'), guard: guardSec(), open: eqSum('open') / 100, rush: eqMax('rush'), hitHaste: eqMax('hitHaste') / 100, killHaste: eqMax('killHaste') / 100, lowHaste: eqMax('lowHaste') / 100
   };
 }
 const needOf = lvl => Math.round(5 + 3 * (lvl - 1) + 0.07 * (lvl - 1) ** 2 + 0.012 * (lvl - 1) ** 3);      /* 스테이지가 끝없이 이어지니까 뒤로 갈수록 레벨이 천천히 올라요 */
@@ -1278,6 +1285,7 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (SPv.grit && B.p.hp <= 1) d *= 1 + 0.2 * SPv.grit; if (f.markT > B.t) d *= 1 + 0.15 * (SPv.mark || 0); if (crit && SPv.mark) f.markT = B.t + 3;
   if (w && w.id) { const gk = capeSp('giant', w.id), ck = capeSp('chill', w.id); if (gk && FOES[f.type].big) d *= 1 + 0.3 * gk; if (ck) f.slow = Math.max(f.slow || 0, 1.5 * ck); }
   f.critHit = crit;
+  d *= FOES[f.type].big ? 1 + 0.1 * M('hunter') : 1 + 0.08 * M('sweep');
   if (w && FOES[f.type].big) d *= BOSSK[w.id] || 1;      // 보스·엘리트에게: 근접 무기는 더 세게, 번개·폭탄·크림도 조금 보강
   d *= B.st.dmg * (1 + capeD(w && w.id)); f.hp -= d; f.flash = 0.08; f.sq = 0.35;
   if (SPv.execute && f.hp > 0 && !FOES[f.type].big && f.hp < f.max * 0.12 * SPv.execute) f.hp = 0;
@@ -1327,7 +1335,7 @@ function hurtPlayer(src) {
   if (M('dodge') && Math.random() < 0.06 * M('dodge')) { p.inv = 0.5; textAdd(p.x, p.y - 50, '피함!', '#7FFF8A', true); sfx.block(); return; }
   if (p.shield && B.st.sp.bulwark) { for (const f of B.foes) if (!f.dead && f !== B.big && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < 170 * 170) f.stun = Math.max(f.stun || 0, 1.5 * B.st.sp.bulwark); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.35, max: 0.35, col: '#FFD23F', w: 6 }); }
   if (p.shield && p.kongShield) { p.kongShield = false; for (const f of B.foes) if (!f.dead && f !== B.big && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < 150 * 150) f.stun = Math.max(f.stun || 0, 1); }
-  if (p.shield) { p.shield = false; p.inv = 0.8; textAdd(p.x, p.y - 50, '막음!', '#59B8FF', true); sfx.block(); push(120, 400); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 30, to: 120, life: 0.3, max: 0.3, col: '#59B8FF', w: 6 }); return; }
+  if (p.shield) { p.shield = false; if (M('shield2')) p.reshield = 60 - 10 * M('shield2'); p.inv = 0.8; textAdd(p.x, p.y - 50, '막음!', '#59B8FF', true); sfx.block(); push(120, 400); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 30, to: 120, life: 0.3, max: 0.3, col: '#59B8FF', w: 6 }); return; }
   if (B.st.sp.thorn) blast(p.x, p.y, 140, 160 * B.st.sp.thorn / Math.max(0.01, B.st.dmg), { id: 'gear', noAcc: true }, '#FF8FB8');
   run.hits = (run.hits || 0) + 1; const HB = run.hitBy || (run.hitBy = {}); HB[src || '?'] = (HB[src || '?'] || 0) + 1; if (B.st.hitHaste) B.hasteT = 3;
   p.hp -= 1; p.inv = DF().inv * B.st.invK; B.shake = 0.35; B.hitstop = 0.12; B.slow = 0.35; B.flashScr = { col: '224,68,90', t: 0.35, max: 0.35 }; B.heartPop = 0.5;
@@ -1678,6 +1686,7 @@ function update(dt) {
   /* 서로 겹치지 않게 살짝 밀어내요 */
   const F = B.foes;
   for (let i = 0; i < F.length; i++) { const a = F[i]; if (a.dead) continue; for (let j = i + 1; j < F.length; j++) { const b = F[j]; if (b.dead) continue; const dx = b.x - a.x; if (dx > 40 || dx < -40) continue; const dy = b.y - a.y, rr = a.r + b.r, d2 = dx * dx + dy * dy; if (d2 < rr * rr && d2 > 0.01) { const d = Math.sqrt(d2), push = (rr - d) * 0.5 / d, wa = a === B.big ? 0 : b === B.big ? 2 : 1; a.x -= dx * push * wa; a.y -= dy * push * wa; b.x += dx * push * (2 - wa); b.y += dy * push * (2 - wa); } } }
+  if (p.reshield > 0) { p.reshield -= dt; if (p.reshield <= 0) { p.shield = true; if (!headless) { textAdd(p.x, p.y - 46, '방패 복구!', '#7FE3FF'); sfx.block(); } } }
   fireWeapons(dt); legUpdate(dt); updateLobs(dt); petUpdate(dt);
   /* 내 탄 */
   for (const s of B.shots) {
