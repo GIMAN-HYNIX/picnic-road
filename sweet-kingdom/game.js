@@ -1183,10 +1183,10 @@ const STAGES = [
   { n: '설탕에 취한 무도회', g: ['sugar'] }, { n: '십자 촛불과 지뢰', g: ['cross', 'mines'] }, { n: '스프링클 빙판', g: ['sprinkle', 'ice'] }, { n: '폭주하는 개미 떼', g: ['sugar', 'swarm'] }, { n: '초코 분수 대왕의 반격', boss: 'boss2', g: ['cross'] },
   { n: '촛불 정전', g: ['cross', 'blackout'] }, { n: '거인의 설탕 폭주', g: ['sugar', 'giant'] }, { n: '스프링클 차원문', g: ['sprinkle', 'portal'] }, { n: '그림자 무도회', g: ['stalker', 'sugar'] }, { n: '탄 설탕 마왕의 귀환', boss: 'boss3', g: ['sprinkle'] },
   { n: '별빛 포탑', g: ['turret', 'cross'] }, { n: '쪼개지는 슈크림', g: ['split', 'sprinkle'] }, { n: '촛불 소용돌이', g: ['vortex', 'cross'] }, { n: '여왕의 계단', g: ['sugar', 'sprinkle', 'bounty'] }, { n: '마카롱 여왕의 진짜 힘', boss: 'queen', g: ['cross'] },
-  { n: '시럽 분수 광장', g: ['spiral'] }, { n: '롤케이크 언덕', g: ['roll'] }, { n: '반짝이는 슈크림', g: ['coat', 'swarm'] }, { n: '나선 촛불', g: ['spiral', 'cross'] }, { n: '탄 설탕 마왕의 굴', boss: 'boss3', g: ['roll'] },
-  { n: '코팅된 거인', g: ['coat', 'giant'] }, { n: '굴러오는 무도회', g: ['roll', 'sugar'] }, { n: '시럽 빙판', g: ['spiral', 'ice'] }, { n: '단단한 그림자', g: ['coat', 'stalker'] }, { n: '마카롱 여왕의 연회', boss: 'queen', g: ['spiral'] },
+  { n: '시럽 분수 광장', g: ['spiral'] }, { n: '롤케이크 언덕', g: ['roll'] }, { n: '반짝이는 슈크림', g: ['coat', 'swarm'] }, { n: '나선 촛불', g: ['spiral', 'gemrain'] }, { n: '탄 설탕 마왕의 굴', boss: 'boss3', g: ['roll'] },
+  { n: '코팅된 거인', g: ['coat', 'giant'] }, { n: '굴러오는 무도회', g: ['roll', 'sugar'] }, { n: '시럽 보석 비', g: ['spiral', 'gemrain'] }, { n: '단단한 그림자', g: ['coat', 'stalker'] }, { n: '마카롱 여왕의 연회', boss: 'queen', g: ['spiral'] },
   { n: '롤케이크 포탑', g: ['roll', 'turret'] }, { n: '설탕 껍질 차원문', g: ['coat', 'portal'] }, { n: '나선 스프링클', g: ['spiral', 'sprinkle'] }, { n: '쪼개지는 롤케이크', g: ['roll', 'split'] }, { n: '초코 분수 대왕의 분노', boss: 'boss2', g: ['coat'] },
-  { n: '정전된 나선', g: ['spiral', 'blackout'] }, { n: '코팅 개미 떼', g: ['coat', 'swarm', 'fast'] }, { n: '굴러가는 안개', g: ['roll', 'fog'] }, { n: '마지막 시럽 계단', g: ['spiral', 'roll', 'coat'] }, { n: '백사십 번째 왕좌: 여왕의 마지막 춤', boss: 'queen', g: ['roll'] }
+  { n: '시럽 나선 광장', g: ['spiral'] }, { n: '코팅 개미 떼', g: ['coat', 'swarm'] }, { n: '굴러가는 보석', g: ['roll', 'gemrain'] }, { n: '마지막 시럽 계단', g: ['roll', 'coat'] }, { n: '백사십 번째 왕좌: 여왕의 마지막 춤', boss: 'queen', g: ['roll'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1237,7 +1237,7 @@ function gimUpdate(dt) {
   if (G('sprinkle') && every('sp', 0.42)) { const a = Math.random() * 6.283, d = rand(30, 230); hazard({ k: 'c', x: p.x + Math.cos(a) * d + (p.moving ? p.dirX * 40 : 0), y: p.y + Math.sin(a) * d + (p.moving ? p.dirY * 40 : 0), r: 28, t: 0.95 }); }
   if (G('sugar')) { const ph = B.t % 12, on = ph > 9.6; if (ph > 8.6 && !T.swarn) { T.swarn = true; if (!headless) { toast('설탕 폭주가 와요!'); sfx.warn(); } } if (ph < 1) T.swarn = false; B.sugarK = on ? 1.85 : 1; B.sugarOn = on; }
   if (G('ghost')) B.ghostA = B.t % 5 < 2.6 ? 1 : 0.14;
-  if (G('spiral') && every('spi', 6.5)) { const a0 = Math.random() * 6.283, dir = Math.random() < 0.5 ? 1 : -1, cx = p.x, cy = p.y; for (let i = 0; i < 14; i++) { const a = a0 + dir * i * 0.5, d = 30 + i * 21; hazard({ k: 'c', x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, r: 34, t: 1.0 + i * 0.09 }); } if (!headless) sfx.warn(); }      /* 시럽 나선: 안쪽부터 차례로 터져요 */
+  if (G('spiral') && every('spi', 8)) { const a0 = Math.random() * 6.283, dir = Math.random() < 0.5 ? 1 : -1, cx = p.x, cy = p.y; for (let i = 0; i < 14; i++) { const a = a0 + dir * i * 0.5, d = 30 + i * 21; hazard({ k: 'c', x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, r: 34, t: 1.0 + i * 0.09 }); } if (!headless) sfx.warn(); }      /* 시럽 나선: 안쪽부터 차례로 터져요 */
   if (G('roll') && every('rol', 7)) { const a = Math.random() * 6.283, c = Math.cos(a), sn = Math.sin(a), off = rand(-40, 40); hazard({ k: 'l', x: p.x - c * 560 - sn * off, y: p.y - sn * 560 + c * off, a, len: 1120, w: 36, t: 1.5, roll: true }); if (!headless) sfx.warn(); }      /* 롤케이크: 굵은 줄을 따라 굴러가요 */
   if (G('regen') && every('re', 1)) for (const f of B.foes) if (!f.dead && f !== B.big && f.hp < f.max && B.t - (f.lastHit || 0) > 2) f.hp = Math.min(f.max, f.hp + f.max * 0.12);
   if (B.haz.length) {
