@@ -34,6 +34,10 @@ function pixelIcon(inner) {
 const KEY = 'sweet-kingdom-v1';
 let S = { muted: false, vib: true, wins: 0, run: null };
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+/* 지우기 번호: 전부 지우기를 하면 바뀌어요. 다른 창(열려 있던 앱·브라우저 탭)이 옛 기록을 다시 덮어쓰지 못하게 막아요 */
+const WKEY = KEY + '-wipe'; let WID = ''; try { WID = localStorage.getItem(WKEY) || ''; } catch (e) {}
+let wiped = false;
+addEventListener('storage', e => { if (e.key === WKEY && (e.newValue || '') !== WID) { wiped = true; location.reload(); } });
 
 /* 난이도: 적이 나오는 수, 적 속도, 적 체력, 맞은 뒤 무적 시간, 엘리트·보스 공격 예고 시간 */
 const DIFF = {
@@ -47,7 +51,7 @@ if (S.run && S.run.deck && !S.run.wpn) {   // 예전 덱 저장을 새 무기 �
   const r = S.run, ids = [...new Set(r.deck.map(c => c.id))].filter(id => ['pin', 'cream', 'star', 'macaron', 'honey', 'lemon', 'skewer'].includes(id));
   r.wpn = (ids.length ? ids : ['pin']).map(id => ({ id, lv: 1 })); r.lvl = 1; r.xp = 0; r.bonus = { spd: 0, dmg: 0, crit: 0 }; r.rerolls = 0; delete r.deck; delete r.equip;
 }
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const persist = () => { if (wiped) return; try { if ((localStorage.getItem(WKEY) || '') !== WID) { wiped = true; location.reload(); return; } localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 let run = null;
 
 /* ───── 펫: 모험이 끝날 때마다 하나를 얻어요. 같은 펫을 또 얻으면 레벨이 올라요 (최고 Lv5) ───── */
@@ -2242,10 +2246,10 @@ function upgradeItems() {
   o.iv = 2; run = was; persist();
 }
 function resetSheet() {
-  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">캐릭터만 지우고 처음부터</button><button class="btn" type="button" data-act="all">전부 지우기 (트리·펫·꾸미기까지)</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); renderTitle(); } if (act === 'all') allResetSheet(); });
+  sheet(`<h2 id="cardTitle">정말 처음부터 할까요?</h2><p>캐릭터의 레벨, 무기, 장비와 깬 스테이지 기록이 지워져요. 성장 트리, 펫, 꾸미기는 그대로 남아요.</p><button class="cta" type="button" data-act="yes">캐릭터만 지우고 처음부터</button><button class="btn" type="button" data-act="all">전부 지우기 (트리·펫·꾸미기까지)</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { run = S.run = null; heroDirty(); persist(); show('title'); renderTitle(); } if (act === 'all') allResetSheet(); });
 }
 function allResetSheet() {      /* 완전 초기화: 이 기기의 저장을 통째로 지워요 */
-  sheet(`<h2 id="cardTitle">정말 전부 지울까요?</h2><p>레벨, 스테이지, 장비, 성장 트리, 하트, 펫, 꾸미기까지 이 기기의 기록이 모두 사라져요. 되돌릴 수 없어요.</p><button class="cta" type="button" data-act="yes">전부 지우기</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { try { localStorage.removeItem(KEY); } catch (_) {} location.reload(); } });
+  sheet(`<h2 id="cardTitle">정말 전부 지울까요?</h2><p>레벨, 스테이지, 장비, 성장 트리, 하트, 펫, 꾸미기까지 이 기기의 기록이 모두 사라져요. 되돌릴 수 없어요.</p><button class="cta" type="button" data-act="yes">전부 지우기</button><button class="btn" type="button" data-act="no" data-pref>그만두기</button>`, act => { closeSheet(); if (act === 'yes') { wiped = true; try { localStorage.setItem(WKEY, String(Date.now())); localStorage.removeItem(KEY); } catch (_) {} location.reload(); } });
 }
 /* ───── 처음 화면, 메뉴, 설치 ───── */
 let installEvt = null, newArmed = 0;
@@ -2300,7 +2304,7 @@ function menuSheet(home) {
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
-    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : row('reset', '처음부터 다시 시작 / 초기화', '캐릭터만 지우거나, 트리·펫·꾸미기까지 전부 지울 수 있어요.')) + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
+    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + row('reset', '처음부터 다시 시작 / 초기화', '캐릭터만 지우거나, 트리·펫·꾸미기까지 전부 지울 수 있어요.') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
     act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
