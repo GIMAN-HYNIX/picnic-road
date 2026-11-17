@@ -58,7 +58,7 @@ let run = null;
 const PETS = {
   kong: { name: '젤리곰 콩이', desc: '가끔 멀리 있는 보석까지 한 번에 모아 와요.', lvDesc: lv => `${Math.max(2.5, 7 - lv).toFixed(1)}초마다, 반경 ${130 + 35 * lv}` },
   shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `모험마다 ${lv >= 5 ? 3 : lv >= 3 ? 2 : 1}번, 하트 ${1 + (lv >= 2) + (lv >= 4)}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
-  byul: { name: '별사탕 요정 별이', desc: '가까운 적에게 작은 별사탕을 쏴요.', lvDesc: lv => `${Math.max(0.35, 1.1 - 0.15 * lv).toFixed(2)}초마다, 피해 ${8 + 4 * lv}` }
+  byul: { name: '별사탕 요정 별이', desc: '가까운 적에게 별사탕을 쏴요. 스테이지가 높아질수록 별사탕도 세져요.', lvDesc: lv => `${Math.max(0.35, 1.1 - 0.15 * lv).toFixed(2)}초마다, 기본 피해 ${8 + 4 * lv}${lv >= 5 ? ', 적 1마리 꿰뚫기' : ''}` }
 };
 const PMAX = 5;
 if (!S.pets || typeof S.pets !== 'object') S.pets = {};
@@ -147,7 +147,7 @@ function petUpdate1(P, dt) {
   }
   if (P.id === 'byul' && P.cd <= 0) {
     const t = nearestFoe(300, P); if (!t) { P.cd = 0.2; return; } P.cd = Math.max(0.35, 1.1 - 0.15 * P.lv);
-    const a = Math.atan2(t.y - P.y, t.x - P.x); B.shots.push({ k: 'star', x: P.x, y: P.y, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, r: 5, dmg: 8 + 4 * P.lv, pierce: 0, life: 1, w: { id: 'pet' }, hit: new Set() });
+    const a = Math.atan2(t.y - P.y, t.x - P.x); B.shots.push({ k: 'star', x: P.x, y: P.y, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, r: 5, dmg: (8 + 4 * P.lv) * Math.sqrt(legK()), pierce: P.lv >= 5 ? 1 : 0, life: 1, w: { id: 'pet' }, hit: new Set() });      /* 몬스터 체력이 커지는 만큼(제곱근) 별사탕도 세져요 */
   }
 }
 /* 천사 슈: 부활 + 적 전부 없애기 (보스는 일부만) */
