@@ -189,7 +189,7 @@ function toastSheet(t) { const b = cardEl.querySelector('[data-act="copy"]'); if
 
 /* ───── 성장 트리: 모험이 끝날 때마다 받는 설탕 별로 주인공의 기본 능력을 키워요 ───── */
 /* col 0~4, row 0~5. req: 먼저 1단계 이상 배워야 하는 칸 */
-/* 성장 트리: 별로 배우는 영구 강화. 공격(왼쪽) · 기동 · 성장 · 보상 · 방어(오른쪽). 하트는 방어 길의 맨 끝에 아주 비싸게 있어요 */
+/* 성장 트리: 별로 배우는 영구 강화. 공격(왼쪽) · 기동 · 성장 · 보상 · 방어(오른쪽). 하트는 트리에 없어요 (옷과 레벨업으로만 늘어요) */
 const TREE = [
   { id: 'atk', name: '단단한 팔', desc: '공격력 +4%', max: 6, cost: [1, 2, 2, 3, 3, 4], col: 0, row: 0, icon: 'star' },
   { id: 'crit', name: '날카로운 눈', desc: '치명타 확률 +3%', max: 5, cost: [2, 2, 3, 3, 4], col: 0, row: 1, req: 'atk', icon: 'ench' },
@@ -208,7 +208,7 @@ const TREE = [
   { id: 'guard', name: '설탕 갑옷', desc: '맞은 뒤 무적 시간 +10%', max: 4, cost: [2, 3, 4, 5], col: 4, row: 0, icon: 'dough' },
   { id: 'shield', name: '솜사탕 방패', desc: '전투마다 처음 맞는 공격 1번을 막아요', max: 1, cost: [8], col: 4, row: 1, req: 'guard', icon: 'cream' },
   { id: 'start2', name: '두 번째 바람', desc: '스테이지마다 한 번, 쓰러지면 하트 1칸으로 다시 일어나요', max: 1, cost: [20], col: 4, row: 2, req: 'shield', icon: 'cocoa' },
-  { id: 'hp', name: '포근한 앞치마', desc: '최대 하트 +1칸', max: 3, cost: [45, 110, 220], col: 4, row: 3, req: 'start2', icon: 'heart' }
+  { id: 'dodge', name: '아슬아슬 피하기', desc: '맞을 공격을 6% 확률로 피해요', max: 3, cost: [20, 35, 55], col: 4, row: 3, req: 'start2', icon: 'cotton' }
 ];
 if (!S.meta || typeof S.meta !== 'object' || !S.meta.n) S.meta = { pts: 0, total: 0, n: {} };
 const M = id => S.meta.n[id] || 0;
@@ -916,7 +916,7 @@ const capeP = id => { const c = capeFor(id); return c ? c.proj || 0 : 0; };
 const capeA = id => { const c = capeFor(id); return c ? (c.area || 0) / 100 : 0; };
 const capeC = id => { const c = capeFor(id); return c ? (c.cd || 0) / 100 : 0; };
 const has = () => false;
-const heartsMax = () => 1 + M('hp') + ((run && run.bonus && run.bonus.heart) || 0) + eqSum('heart');
+const heartsMax = () => 1 + ((run && run.bonus && run.bonus.heart) || 0) + eqSum('heart');
 function fxLines(it) {
   const f = fxOf(it), o = [];
   if (f.heart) o.push(`하트 +${f.heart}칸`); if (f.inv) o.push(`맞은 뒤 무적 시간 +${f.inv}%`); if (f.guard) o.push(`${f.guard}초마다 공격 한 번을 막는 방패`);
@@ -1208,6 +1208,7 @@ function killFoe(f, w) {
 function hurtPlayer(src) {
   const p = B.p; if (p.inv > 0 || B.over) return; if (window.__dbg) (window.__dbg.hits = window.__dbg.hits || {})[src || '?'] = ((window.__dbg.hits || {})[src || '?'] || 0) + 1;
   const push = (R, d) => B.foes.forEach(f => { const dx = f.x - p.x, dy = f.y - p.y, m = Math.hypot(dx, dy) || 1; if (m < R && f !== B.big && !FOES[f.type].noKb) { f.kx = dx / m * d; f.ky = dy / m * d; } });
+  if (M('dodge') && Math.random() < 0.06 * M('dodge')) { p.inv = 0.5; textAdd(p.x, p.y - 50, '피함!', '#7FFF8A', true); sfx.block(); return; }
   if (p.shield && B.st.sp.bulwark) { for (const f of B.foes) if (!f.dead && f !== B.big && (f.x - p.x) ** 2 + (f.y - p.y) ** 2 < 170 * 170) f.stun = Math.max(f.stun || 0, 1.5 * B.st.sp.bulwark); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 170, life: 0.35, max: 0.35, col: '#FFD23F', w: 6 }); }
   if (p.shield) { p.shield = false; p.inv = 0.8; textAdd(p.x, p.y - 50, '막음!', '#59B8FF', true); sfx.block(); push(120, 400); fxAdd({ k: 'ring', x: p.x, y: p.y - 24, r: 30, to: 120, life: 0.3, max: 0.3, col: '#59B8FF', w: 6 }); return; }
   if (B.st.sp.thorn) blast(p.x, p.y, 140, 160 * B.st.sp.thorn / Math.max(0.01, B.st.dmg), { id: 'gear', noAcc: true }, '#FF8FB8');
@@ -2173,7 +2174,7 @@ function noteSheet(title, text, icon, next) {
 
 /* ───── 모험의 시작과 끝 ───── */
 function newRun() {
-  run = S.run = { v: 4, stage: 0, cur: null, hp: 1 + M('hp'), maxHp: 1 + M('hp'), gold: 0, potion: false, kills: 0, elites: 0,
+  run = S.run = { v: 4, stage: 0, cur: null, hp: 1, maxHp: 1, gold: 0, potion: false, kills: 0, elites: 0,
     wpn: [], lvl: 1, xp: 0, bonus: { spd: 0, dmg: 0, crit: 0, heart: 0 }, rerolls: 0, relics: [], eq: {}, inv: [], iv: 2, dmg: {}, hits: 0, hitBy: {}, time: 0, petUsed: 0 };
   heroDirty(); persist(); showMap();
   sheet(`<div class="pic"><img src="${heroUrl(4)}" alt=""></div><h2 id="cardTitle">간식 왕국을 지켜요</h2><p>상한 간식들이 왕국을 차지했어요. 스테이지를 하나씩 깨며 나아가요. 5번째 스테이지마다 보스가 기다려요.</p><p>화면을 누른 채 끌어서 움직이기만 하면 돼요. 공격은 저절로 나가요. 레벨이 오르면 무기와 능력을 골라요. 스테이지를 깨면 장비를 받아요. 한 번 얻은 건 계속 이어지고, 쓰러져도 사라지지 않아요.</p><button class="cta" type="button" data-act="go" data-pref>출발하기</button>`, () => { sfx.tap(); starterPick(); });
@@ -2195,6 +2196,7 @@ function gameOver(id, r) {
 }
 /* 예전 저장(지도 모험)을 새 구조로 옮겨요: 무기와 레벨은 그대로, 스테이지는 1부터 */
 function migrate() {
+  if (S.meta.n && S.meta.n.hp) { const c = [45, 110, 220].slice(0, S.meta.n.hp).reduce((a, b) => a + b, 0); S.meta.pts += c; delete S.meta.n.hp; S.legNote = (S.legNote ? S.legNote + ' ' : '') + `성장 트리의 하트 칸이 없어지고 '아슬아슬 피하기'로 바뀌었어요. 하트 칸에 쓴 설탕 별 <b>${c}개</b>를 돌려줬어요.`; persist(); }      /* 트리의 하트 칸은 없어졌어요: 쓴 별을 돌려줘요 */
   if ((S.meta.tv || 1) < 2) { S.meta.pts = S.meta.total; S.meta.n = {}; S.meta.tv = 2; S.treeReset = S.meta.total > 0; persist(); }
   const o = S.run; if (!o) return; if (o.v === 3) { const conv = it => it && !it.fx ? rollItem(it.n || 1, it.g, it.s) : it; o.inv = (o.inv || []).map(conv); for (const s of Object.keys(o.eq || {})) { if (o.eq[s] && !o.eq[s].fx) { const ni = conv(o.eq[s]); ni.g = o.eq[s].g; o.eq[s] = ni; } } o.v = 4; persist(); return; } if (o.v === 4) return;
   /* 예전 유물은 같은 효과를 가진 영웅 장비로 바꿔서 가방에 넣어 줘요 */
@@ -2322,4 +2324,4 @@ function drawBg() {
   r('#1A0E22', 0, hz, W, H - hz); for (let k = 0; k < W; k += 2) r('#2A1838', k, hz, 1, 1);
 }
 addEventListener('resize', drawBg);
-Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px NeoDGM', '12px NeoDGM', '12px NeoDGM'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); upgradeItems(); convertShards(); fixLw(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요. 하트는 방어 길 끝에 아주 비싸게 있어요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = S.treeReset ? '게임이 새로워졌어요' : '전설 조각이 바뀌었어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
+Promise.all([loadImages(), ...Object.values(ICON).concat(HEART_EMPTY).map(pixelIcon), ...(document.fonts ? ['12px NeoDGM', '12px NeoDGM', '12px NeoDGM'].map(f => document.fonts.load(f, '가0').catch(() => {})) : [])]).then(() => { migrate(); upgradeItems(); convertShards(); fixLw(); if (S.treeReset || S.legNote) { const parts = []; if (S.treeReset) parts.push('<p>성장 트리가 새로워져서, 지금까지 쓴 설탕 별을 <b>모두 돌려줬어요</b>. 다시 골라서 배워요.</p>'); if (S.legNote) parts.push(`<p>${S.legNote}</p>`); const t = '게임이 새로워졌어요'; S.treeReset = false; S.legNote = null; persist(); setTimeout(() => sheet(`<h2 id="cardTitle">${t}</h2>${parts.join('')}<button class="cta" type="button" data-act="go" data-pref>확인</button>`, () => { closeSheet(); }), 400); } run = S.run; buildHero(); run = null; document.querySelector('.t-art .h').src = heroUrl(4); drawBg(); show('title'); renderTitle(); });
