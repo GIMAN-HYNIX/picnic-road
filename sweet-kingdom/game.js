@@ -669,6 +669,16 @@ const LEG = {
 };
 const LEG_N = 10;
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
+/* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
+function bossShards() {
+  if (!legUnlocked()) return null; const S2 = run.shards || (run.shards = {}), got = [], done = [];
+  for (let k = 2 + (Math.random() < 0.5 ? 1 : 0); k > 0; k--) {
+    const left = run.wpn.filter(w => !isLeg(w.id)).map(w => w.id); if (!left.length) break;
+    const top = left.reduce((a, b) => (S2[b] || 0) > (S2[a] || 0) ? b : a, left[0]), id = Math.random() < 0.5 ? top : pick(left);
+    S2[id] = (S2[id] || 0) + 1; got.push(id); if (S2[id] >= LEG_N) { (run.leg || (run.leg = {}))[id] = 1; done.push(id); }
+  }
+  return { got, done };
+}
 const isLeg = id => !!(run && run.leg && run.leg[id]);
 const legLater = (t, f) => B.legQ.push({ t, f });
 /* ═════ 전설 연출: 기 모으기 → 화면이 어두워지고 → 스킬마다 전용 대형 기술이 터져요 ═════ */
@@ -2130,7 +2140,7 @@ function pickNode(id, quiet) {
   picked = id; const s = STAGES[id - 1], dn = id <= run.stage, lock = id > run.stage + 1;
   document.querySelectorAll('.node').forEach(b => b.classList.toggle('sel', +b.dataset.id === id));
   if (!quiet) sfx.tap();
-  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이기고 장비 5개를 받아요.${dn ? '' : ' <b>처음 잡으면 꾸미기나 펫도 받아요.</b>'}${id === 100 && !S.pet2On ? ' <b>여기를 깨면 펫을 두 마리 데리고 다닐 수 있어요!</b>' : ''}` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 2분을 버티면 이기고 장비 3개를 받아요.' : '특별한 일 없이 2분만 버티면 이기고 장비 3개를 받아요.';
+  const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이기고 장비 5개를 받아요.${dn ? '' : ` <b>처음 잡으면 꾸미기나 펫도 받아요.${legUnlocked() ? ' 전설 조각 2~3개도 받아요.' : ''}</b>`}${id === 100 && !S.pet2On ? ' <b>여기를 깨면 펫을 두 마리 데리고 다닐 수 있어요!</b>' : ''}` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 2분을 버티면 이기고 장비 3개를 받아요.' : '특별한 일 없이 2분만 버티면 이기고 장비 3개를 받아요.';
   info(`<h3>${id}. ${s.n}</h3><p>${lock ? '앞 스테이지를 먼저 깨야 열려요.' : (dn ? '이미 깬 곳이에요. 다시 하면 경험치를 더 모을 수 있어요. ' : '<b>처음 깨면 이 판에서 얻은 경험치를 한 번 더 받아요.</b> ') + what}</p>`, lock ? null : id);
 }
 $('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
@@ -2279,6 +2289,7 @@ function afterBattle(id, r) {
   persist(); showMap();
   const steps = [next => winFx(s.boss ? '보스 격파!' : '스테이지 클리어!', 0, 0, next, !!s.boss)];
   { const items = Array.from({ length: s.boss ? 5 : 3 }, (_, k) => rollItem(id, s.boss && k === 0 ? 1 : 0)), bonus = s.boss && first ? bossBonus() : null; steps.push(next => rewardSheet(items, bonus, s.boss ? '보스 보상' : '클리어 보상', next)); }
+  if (s.boss && first) { const sh = bossShards(); if (sh && sh.got.length) steps.push(next => noteSheet(`전설 조각 +${sh.got.length}개!`, `보스를 처음 잡은 보상이에요. ${[...new Set(sh.got)].map(w => `${WEAPONS[w].name} ${(run.shards || {})[w] || 0}/${LEG_N}`).join(', ')}.${sh.done.length ? ` <b>전설 스킬 완성: ${sh.done.map(w => LEG[w].name).join(', ')}!</b>` : ''}`, 'star', next)); }
   if (first && id === 100 && !S.pet2On) { S.pet2On = true; persist(); steps.push(next => noteSheet('펫 두 마리 해금!', '100스테이지를 처음 깼어요. 이제 펫을 두 마리 데리고 다닐 수 있어요. 펫 창에서 둘째 칸을 골라 줘요.', 'chest', next)); }
   if (xpBonus) steps.push(next => noteSheet(`첫 클리어 보너스! 경험치 +${xpBonus}`, `처음 깬 스테이지라서 이번 판에서 얻은 경험치를 한 번 더 받았어요.${lvUp ? ` 레벨이 ${lvUp} 올랐어요!` : ''}`, 'star', next));
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
