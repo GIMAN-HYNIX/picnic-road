@@ -790,7 +790,8 @@ function castLeg(w) {
         B.zones.push({ x, y, r: 200, life: 3.5, tick: 0, dmg: D(30), w, fire: true, leg: true }); shake(1); flash('255,210,150', 0.4); }); });
   }
   if (id === 'cotton') {      /* 제네시스: 하늘이 갈라지고 화면 전체에 빛이 내려요 */
-    at(0, () => { const px = p.x, py = p.y; lfxAdd({ k: 'pillar', x: px, y: py, life: 1.05, max: 1.05, w: 120 }); flash('255,250,220', 0.6); shake(0.9);
+    at(0, () => { lfxAdd({ k: 'rise', x: p.x, y: p.y, life: 0.55, max: 0.55 }); flash('255,250,220', 0.2); shake(0.3); });      /* 먼저 내 몸에서 빛이 하늘로 솟구쳐요 */
+    at(0.55, () => { const px = p.x, py = p.y; flash('255,250,220', 0.5); shake(0.9);      /* 그 빛이 하늘에서 적에게 내리쳐요 */
       for (const f of onScreen().slice(0, 30)) hurtFoe(f, D(430), { id, noAcc: true }, f.x - px, f.y - py);
       big(px, py, 420, 260, '#FFF6C0'); lfxAdd({ k: 'ring', x: px, y: py, r: 20, to: 420, life: 0.5, max: 0.5, col: '#FFFFFF', w: 12 });
       shuffle(onScreen()).slice(0, 14 + 6 * up).forEach((f, i) => legLater(0.05 + i * 0.05, () => { lfxAdd({ k: 'beam', x: f.x, y: f.y, life: 0.4, max: 0.4 }); big(f.x, f.y, 70, 180, '#FFF6C0'); })); });
@@ -900,7 +901,13 @@ function legDraw() {
       if (h >= 1) { pcircle(fx, fy, Math.round(14 * sc * (e - fl) / (1 - fl) * 2) + 4, '#FFFFFF', 2); } ctx.globalAlpha = 1;
     }
     else if (f.k === 'ring') { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, 3); pcircle(fx, fy, Math.max(1, r - 3), f.col, 2); if (k > 0.5) pcircle(fx, fy, Math.max(1, r - 6), '#FFFFFF', 1); } }
-    else if (f.k === 'beam') { const w = Math.max(2, Math.round(11 * Math.min(1, k * 1.6))); ctx.globalAlpha = 0.5; R('#FFD86B', fx - w, 0, w * 2, fy + 2); ctx.globalAlpha = 1; R('#FFF3C0', fx - Math.ceil(w / 2), 0, w, fy + 2); R('#FFFFFF', fx - 1, 0, 2, fy + 2); putDisc(fx, fy + 1, 18 + Math.round(e * 14), 7 + Math.round(e * 5), '#FFF3C0', 10); }
+    else if (f.k === 'rise') {      /* 몸에서 하늘로 솟구치는 빛 */
+      const env = Math.sin(Math.PI * Math.min(1, e)), w = Math.max(2, Math.round(pxw(40) * (0.4 + 0.6 * env))), top = Math.round(fy * (1 - Math.min(1, e * 1.5))), hh = fy - top + 4;
+      ctx.globalAlpha = 0.3 * env; R('#FFD86B', fx - w * 2, top, w * 4, hh + 2); ctx.globalAlpha = 1; R('#FFE27A', fx - w, top, w * 2, hh); R('#FFFFFF', fx - Math.ceil(w / 2), top, w, hh);
+      for (let i = 0; i < 20; i++) { const sx = fx - w * 2 + ((i * 31) % (w * 4 + 1)), sy = fy - ((i * 47 + e * 520) % Math.max(12, hh)); R(i % 2 ? '#FFFFFF' : '#FFE27A', sx, sy, 1 + i % 2, 6 + (i % 3) * 6); }
+      putDisc(fx, fy + 4, 36 + Math.round(e * 22), 14, '#FFF3C0', 10); pstar(fx, top, 3, '#FFFFFF');
+    }
+    else if (f.k === 'beam') { const w = Math.max(2, Math.round(11 * Math.min(1, k * 1.6))), hd = Math.min(1, e / 0.3), y1 = Math.round((fy + 2) * hd), y0 = hd < 1 ? Math.max(0, y1 - 150) : 0; ctx.globalAlpha = 0.5; R('#FFD86B', fx - w, y0, w * 2, y1 - y0); ctx.globalAlpha = 1; R('#FFF3C0', fx - Math.ceil(w / 2), y0, w, y1 - y0); R('#FFFFFF', fx - 1, y0, 2, y1 - y0); putDisc(fx, fy + 1, 18 + Math.round(e * 14), 7 + Math.round(e * 5), '#FFF3C0', 10); }
     else if (f.k === 'pop') { const r0 = Math.round(f.r / WP * e * 1.2), r1 = r0 + Math.max(2, Math.round(7 * k)); for (let i = 0; i < 10; i++) { const b = i * 0.628, c = Math.cos(b), s2 = Math.sin(b); pline(Math.round(fx + c * r0), Math.round(fy + s2 * r0), Math.round(fx + c * r1), Math.round(fy + s2 * r1), i % 2 ? f.col : '#FFFFFF', k > 0.5 ? 3 : 1); } if (k > 0.6) pdisc(fx, fy, 4, '#FFFFFF'); }
   }
 }
