@@ -191,13 +191,13 @@ function petUpdate1(P, dt) {
 }
 /* 별이가 전설 스킬을 대신 써요: 위력 0.45~0.65배 */
 function byulLeg(P, w) {
-  const K = 0.4 + 0.05 * P.lv; castLeg(w, K); P.go = { x: B.p.x + (P.x > B.p.x ? 34 : -34), y: B.p.y - 30, t: 0.7 };
+  const K = 0.4 + 0.05 * P.lv; B.legPet = true; try { castLeg(w, K); } finally { B.legPet = false; } P.go = { x: B.p.x + (P.x > B.p.x ? 34 : -34), y: B.p.y - 30, t: 0.7 };
   if (!headless) { fxAdd({ k: 'ring', x: P.x, y: P.y, r: 6, to: 60, life: 0.45, max: 0.45, col: '#FFD23F', w: 6 }); burst(P.x, P.y, '#FFE27A', 10, 220); textAdd(P.x, P.y - 30, `별이: ${LEG[w.id].name}!`, '#FFD23F', true); }
 }
 /* 별이가 무기 하나를 한 번 더 써요: 그 무기의 원래 타이머는 건드리지 않아요 */
 function byulUse(P, w) {
   const c0 = w.cd, d0 = (w.dr || []).map(o => o && o.cd); w.cd = 0; if (w.dr) w.dr.forEach(o => { if (o && o.m === 0) o.cd = 0; });      /* 마카롱은 도는 구슬이 바로 날아가요 */
-  const A = B.weapons.find(x => x === w); const had = B.shots.length; fireOne(w, 0, true); w.cd = c0; if (w.dr) w.dr.forEach((o, i) => { if (o && d0[i] != null && o.m === 0 && o.cd <= 0) o.cd = 0.5; });
+  const A = B.weapons.find(x => x === w); const had = B.shots.length; B.legPet = true; try { fireOne(w, 0, true); } finally { B.legPet = false; } w.cd = c0; if (w.dr) w.dr.forEach((o, i) => { if (o && d0[i] != null && o.m === 0 && o.cd <= 0) o.cd = 0.5; });
   P.go = { x: B.p.x + (P.x > B.p.x ? 30 : -30), y: B.p.y - 26, t: 0.4 };
   if (!headless) { fxAdd({ k: 'ring', x: P.x, y: P.y, r: 6, to: 40, life: 0.35, max: 0.35, col: '#FFD23F', w: 5 }); burst(P.x, P.y, '#FFE27A', 7, 180); textAdd(P.x, P.y - 28, WEAPONS[w.id].name + '!', '#FFD23F', false); sfx.pet && sfx.pet(); }
 }
@@ -796,7 +796,7 @@ function bossShards() {
   return { got, done };
 }
 const isLeg = id => !!(run && run.leg && run.leg[id]);
-const legLater = (t, f) => B.legQ.push({ t, f });
+const legLater = (t, f) => { const pet = B.legPet; B.legQ.push({ t, f: pet ? () => { const o = B.legPet; B.legPet = pet; try { f(); } finally { B.legPet = o; } } : f }); };      /* 별이가 쓴 스킬의 늦게 터지는 피해도 별이 몫으로 */
 /* ═════ 전설 연출: 기 모으기 → 화면이 어두워지고 → 스킬마다 전용 대형 기술이 터져요 ═════ */
 const legK = () => Math.max(1, ((1 + 0.92 * Math.pow(hpFloor(), 0.8)) * lateMul()) / 5.9);      /* 전설 데미지는 그 스테이지 몬스터 체력에 맞춰 같이 커져요 (적을 확확 밀어버리는 맛) */
 const lfxAdd = o => { if (!headless) B.lfx.push(o); return o; };
@@ -844,7 +844,7 @@ function castLeg(w, K = 1) {      /* K: 위력 배율 (별이가 대신 쓸 때�
   }
   if (id === 'honey') {      /* 꿀 폭포: 하늘에서 쏟아지는 꿀 기둥, 그 뒤로 꿀 바다 */
     at(0, () => { lfxAdd({ k: 'fall', x: p.x, y: p.y, life: 0.9, max: 0.9 }); });
-    at(0.28, () => { big(p.x, p.y, 270 + 60 * up, 220, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 230 + 60 * up, life: 4 + up, tick: 0, dmg: D(30 + 10 * up), pop: D(26), w, follow: true, leg: true, sticky: true });      /* 끈적 꿀: 오래 있을수록 더 아프고, 끝날 때 터져요 */ shake(0.5); flash('255,210,100', 0.2); });
+    at(0.28, () => { big(p.x, p.y, 270 + 60 * up, 220, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 230 + 60 * up, life: 4 + up, tick: 0, dmg: D(30 + 10 * up), pop: D(26), w, follow: true, leg: true, sticky: true, pet: !!B.legPet });      /* 끈적 꿀: 오래 있을수록 더 아프고, 끝날 때 터져요 */ shake(0.5); flash('255,210,100', 0.2); });
   }
   if (id === 'lemon') {      /* 레몬 폭풍: 회오리가 적에게 산성 표식을 쌓고, 폭풍이 끝나면 표식이 한꺼번에 터져요 */
     at(0, () => { for (const f of onScreen()) { f.acid = Math.min((f.acid || 0) + 2.5, 22); f.lmk = 1; f.flash = 0.1; } flash('200,240,90', 0.25);
@@ -868,7 +868,7 @@ function castLeg(w, K = 1) {      /* K: 위력 배율 (별이가 대신 쓸 때�
       const x = best ? best.x : p.x, y = best ? best.y : p.y - 120; lfxAdd({ k: 'warn', x, y, r: 230, life: 0.85, max: 0.85 }); lfxAdd({ k: 'meteor', x, y, dx: 260, dy: -560, life: 0.85, max: 0.85, cols: ['#7A2E10', '#FF7A1F', '#FFE27A'], r: 26, slow: true });
       legLater(0.85, () => { big(x, y, 240 + 40 * up, 760, '#6B3A1E'); for (let k = 0; k < 8 + 4 * up; k++) { const a = k * 6.283 / (8 + 4 * up); big(x + Math.cos(a) * 170, y + Math.sin(a) * 170, 90, 220, '#A0663C'); }
         lfxAdd({ k: 'quake', x, y, life: 0.9, max: 0.9 }); lfxAdd({ k: 'ring', x, y, r: 20, to: 330, life: 0.5, max: 0.5, col: '#FFFFFF', w: 12 }); lfxAdd({ k: 'ring', x, y, r: 10, to: 250, life: 0.55, max: 0.55, col: '#FF7A1F', w: 12 });
-        B.zones.push({ x, y, r: 200, life: 3.5, tick: 0, dmg: D(30), w, fire: true, leg: true }); shake(1); flash('255,210,150', 0.4); }); });
+        B.zones.push({ x, y, r: 200, life: 3.5, tick: 0, dmg: D(30), w, fire: true, leg: true, pet: !!B.legPet }); shake(1); flash('255,210,150', 0.4); }); });
   }
   if (id === 'cotton') {      /* 제네시스: 하늘이 갈라지고 화면 전체에 빛이 내려요 */
     at(0, () => { lfxAdd({ k: 'rise', x: p.x, y: p.y, life: 0.55, max: 0.55 }); flash('255,250,220', 0.2); shake(0.3); });      /* 먼저 내 몸에서 빛이 하늘로 솟구쳐요 */
@@ -1408,7 +1408,7 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (w && FOES[f.type].big) d *= BOSSK[w.id] || 1;      // 보스·엘리트에게: 근접 무기는 더 세게, 번개·폭탄·크림도 조금 보강
   d *= B.st.dmg * (1 + capeD(w && w.id)); if (f.coat > 0) { f.coat -= d; d *= 0.35; if (f.coat <= 0 && !headless) burst(f.x, f.y - FOES[f.type].h * 0.4, '#FFFFFF', 8, 170); }      /* 설탕 껍질이 깨질 때까지는 피해가 덜 들어가요 */ f.hp -= d; f.flash = 0.08; f.sq = 0.35;
   if (SPv.execute && f.hp > 0 && !FOES[f.type].big && f.hp < f.max * 0.12 * SPv.execute) f.hp = 0;
-  if (w && w.id && run) { const D = run.dmg || (run.dmg = {}); D[w.id] = (D[w.id] || 0) + Math.min(d, f.hp + d); }
+  if (w && w.id && run) { const D = run.dmg || (run.dmg = {}), key = B.legPet ? 'pet' : w.id; D[key] = (D[key] || 0) + Math.min(d, f.hp + d); }
   /* 맞은 방향으로 밀려나요 (큰 적은 조금만) */
   let dx = ax, dy = ay; if (dx == null) { dx = f.x - B.p.x; dy = f.y - B.p.y; } const m = Math.hypot(dx, dy) || 1, kb = (f === B.big ? 40 : 230) * (crit ? 1.5 : 1) * kbm;
   if (!FOES[f.type].noKb) { f.kx = dx / m * kb; f.ky = dy / m * kb; }
@@ -1881,9 +1881,9 @@ function update(dt) {
   }
   B.shots = B.shots.filter(s => s.life > 0);
   /* 꿀 장판 */
-  for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; if (z.w && z.w.id === 'honey') accFire('honey'); let n = 0; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; if (z.sticky) { f.hny = Math.min(8, (f.hny || 0) + 1); hurtFoe(f, z.dmg * (1 + 0.25 * (f.hny - 1)), z.w, 0.001, 0.001); } else hurtFoe(f, z.dmg, z.w, 0.001, 0.001); n++; } if (n && z.w && z.w.id === 'honey') accHit('honey'); } }
+  for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; B.legPet = !!z.pet; if (z.w && z.w.id === 'honey') accFire('honey'); let n = 0; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; if (z.sticky) { f.hny = Math.min(8, (f.hny || 0) + 1); hurtFoe(f, z.dmg * (1 + 0.25 * (f.hny - 1)), z.w, 0.001, 0.001); } else hurtFoe(f, z.dmg, z.w, 0.001, 0.001); n++; } if (n && z.w && z.w.id === 'honey') accHit('honey'); } }
   for (const z of B.zones) if (z.sticky && z.life <= 0) { let n = 0; for (const f of B.foes) if (!f.dead && f.hny) { const k = f.hny; f.hny = 0; hurtFoe(f, z.pop * k, z.w, f.x - z.x, f.y - z.y, 0.3); if (!headless && n++ < 40) fxAdd({ k: 'ring', x: f.x, y: f.y, r: 8, to: 24 + k * 4, life: 0.3, max: 0.3, col: '#FFC23D', w: 4 }); } if (n && !headless) { B.shake = Math.max(B.shake, 0.4); burst(z.x, z.y, '#FFC23D', 14, 260); } }      /* 꿀 폭발: 꿀이 많이 묻은 적일수록 세게 */
-  B.zones = B.zones.filter(z => z.life > 0);
+  B.legPet = false; B.zones = B.zones.filter(z => z.life > 0);
   /* 적의 탄 */
   for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + HERO_R * 0.85) ** 2) { hurtPlayer(s.gum ? 'gum' : 'shot'); s.life = 0; } }
   B.foeShots = B.foeShots.filter(s => s.life > 0);
@@ -2403,7 +2403,7 @@ function weaponSheet() {
 function lastDmgHtml() {
   const r = (S.hist || [])[S.hist.length - 1]; if (!r || !r.w) return '<p class="eqsum">아직 기록된 판이 없어요. 한 판을 끝내면 여기에 나와요.</p>';
   const lg = r.lg || [], rows = r.w.map(([id, lv, d]) => ({ n: `${WEAPONS[id].name}${lg.includes(id) ? ` <i class="gn lg">${LEG[id].name}</i>` : ` Lv${lv}`}`, d: d + (id === 'lemon' ? r.ac || 0 : 0), c: lg.includes(id) ? '#FFD23F' : '#7FE3FF' }));
-  if (r.pd) rows.push({ n: '펫', d: r.pd, c: '#FF8FB8' }); const ex = Object.values(r.dx || {}).reduce((a, b) => a + b, 0); if (ex) rows.push({ n: '장비 효과', d: ex, c: '#B08CFF' });
+  if (r.pd) rows.push({ n: '펫 (별이 등)', d: r.pd, c: '#FF8FB8' }); const ex = Object.values(r.dx || {}).reduce((a, b) => a + b, 0); if (ex) rows.push({ n: '장비 효과', d: ex, c: '#B08CFF' });
   const tot = rows.reduce((a, b) => a + b.d, 0) || 1, mx = Math.max(...rows.map(x => x.d), 1), t = Math.max(1, r.t || 1), fmt = v => v >= 1e8 ? (v / 1e8).toFixed(1) + '억' : v >= 1e4 ? (v / 1e4).toFixed(1) + '만' : Math.round(v).toLocaleString('ko-KR');
   return `<p class="eqsum">${r.fl}번 스테이지 ${r.won ? '클리어' : '실패'} · ${Math.floor(t / 60)}분 ${t % 60}초 · 적 ${(r.k || 0).toLocaleString('ko-KR')}마리 · 전체 피해 ${fmt(tot)}</p><div class="dmgbars">${rows.sort((a, b) => b.d - a.d).map(x => `<div class="dmgrow"><span class="dn">${x.n}</span><span class="dt"><i style="width:${(x.d / mx * 100).toFixed(1)}%;background:${x.c}"></i></span><span class="dv">${fmt(x.d)} · ${Math.round(x.d / tot * 100)}%<br><small>초당 ${fmt(x.d / t)}</small></span></div>`).join('')}</div>`;
 }
