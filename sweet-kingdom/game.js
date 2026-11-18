@@ -761,10 +761,13 @@ function castLeg(w) {
     at((22 + 8 * up) * 0.055 + 0.15, () => { let best = p, bn = -1; for (const f of onScreen()) { let n = 0; for (const g of B.foes) if (!g.dead && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 170 * 170) n++; if (n > bn) { bn = n; best = f; } } const x = best.x, y = best.y;
       lfxAdd({ k: 'meteor', x, y, dx: 200, dy: -440, life: 0.4, max: 0.4, cols: ['#FF9A1F', '#FFE27A', '#FFFFFF'], r: 14 }); legLater(0.4, () => { big(x, y, 250, 520, '#FFD23F'); lfxAdd({ k: 'ring', x, y, r: 20, to: 250, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'pop', x, y, r: 120, life: 0.45, max: 0.45, col: '#FFD23F' }); shake(0.8); flash('255,240,180', 0.25); }); });
   }
-  if (id === 'macaron') {      /* 마카롱 은하: 몸 주위로 소용돌이가 번지며 적을 끌어당겨 터뜨려요 */
-    const T = 1.5 + 0.3 * up; at(0, () => lfxAdd({ k: 'galaxy', life: T, max: T }));
-    legTick(W, T, 0.1, u => { const rr = 60 + u * 330; for (const f of alive()) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1; if (d < 460 && !FOES[f.type].noKb && f !== B.big) { const m = d > rr ? 24 : -24; f.x += dx / d * m; f.y += dy / d * m; }      /* 소용돌이 고리 쪽으로 모아요. 나한테 달라붙지 않고, 안쪽 적은 고리 밖으로 밀려나요 */ if (Math.abs(d - rr) < 80) hurtFoe(f, D(95), { id, noAcc: true }, -dx, -dy); } });
-    at(T, () => { big(p.x, p.y, 360 + 80 * up, 400 + 80 * up, '#FF8FB8'); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 360, life: 0.4, max: 0.4, col: '#FF8FB8', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 280, life: 0.45, max: 0.45, col: '#C77DFF', w: 10 }); shake(0.7); flash('255,200,230', 0.25); });
+  if (id === 'macaron') {      /* 마카롱 은하: 내 주변 먼 곳에 은하가 생겨서 적을 끌어당겨 터뜨려요 */
+    const T = 1.5 + 0.3 * up, near = onScreen(); let best = null, bn = -1;
+    for (const f of near) { let n = 0; for (const g of near) if ((g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 200 * 200) n++; if (n > bn) { bn = n; best = f; } }
+    const a0 = best ? Math.atan2(best.y - p.y, best.x - p.x) : Math.random() * 6.283, gd = best ? Math.min(300, Math.max(220, Math.hypot(best.x - p.x, best.y - p.y))) : 260, gx = p.x + Math.cos(a0) * gd, gy = p.y + Math.sin(a0) * gd;      /* 적이 몰린 쪽 멀리에 만들어요 */
+    at(0, () => lfxAdd({ k: 'galaxy', gx, gy, life: T, max: T }));
+    legTick(W, T, 0.1, u => { const rr = 60 + u * 270; for (const f of alive()) { const dx = gx - f.x, dy = gy - f.y, d = Math.hypot(dx, dy) || 1; if (d < 420 && d > 18 && !FOES[f.type].noKb && f !== B.big) { f.x += dx / d * Math.min(26, d); f.y += dy / d * Math.min(26, d); } if (d < rr + f.r) hurtFoe(f, D(52), { id, noAcc: true }, -dx, -dy, 0.2); } });
+    at(T, () => { big(gx, gy, 360 + 80 * up, 400 + 80 * up, '#FF8FB8'); lfxAdd({ k: 'ring', x: gx, y: gy, r: 20, to: 360, life: 0.4, max: 0.4, col: '#FF8FB8', w: 10 }); lfxAdd({ k: 'ring', x: gx, y: gy, r: 10, to: 280, life: 0.45, max: 0.45, col: '#C77DFF', w: 10 }); shake(0.5); flash('255,200,230', 0.2); });
   }
   if (id === 'honey') {      /* 꿀 폭포: 하늘에서 쏟아지는 꿀 기둥, 그 뒤로 꿀 바다 */
     at(0, () => { lfxAdd({ k: 'fall', x: p.x, y: p.y, life: 0.9, max: 0.9 }); });
@@ -858,7 +861,7 @@ function legDraw() {
       for (let i = 0; i < 20; i++) { const ang = i * 0.314, d = R0 * (0.4 + (i % 5) * 0.2) , yy = fy + Math.sin(ang) * d * 0.8 - e * (20 + (i % 4) * 14); pdisc(Math.round(fx + Math.cos(ang) * d), Math.round(yy), 2 + i % 3, i % 2 ? '#6B3A1E' : '#A0663C'); } ctx.globalAlpha = 1;
     }
     else if (f.k === 'galaxy') {      /* 마카롱 은하: 소용돌이 팔과 도는 마카롱 */
-      const cx = X(p.x), cy = Y(p.y), rr = pxw(60 + e * 330), a = Math.min(1, k * 4), cols = ['#FF8FB8', '#C77DFF', '#FFFFFF', '#8FD3FF'];
+      const cx = X(f.gx), cy = Y(f.gy), rr = pxw(60 + e * 270), a = Math.min(1, k * 4), cols = ['#FF8FB8', '#C77DFF', '#FFFFFF', '#8FD3FF'];
       ctx.globalAlpha = a; putDisc(cx, cy, Math.round(rr * 0.5) + 8, Math.round(rr * 0.4) + 6, '#3A1A6A', 8); putDisc(cx, cy, Math.round(rr * 0.22) + 4, Math.round(rr * 0.18) + 3, '#C77DFF', 8);
       for (let arm = 0; arm < 4; arm++) for (let s = 1; s <= 46; s++) { const ang = arm * 1.571 + s * 0.13 + e * 7, d = rr * s / 46, sz = s > 36 ? 3 : s > 18 ? 2 : 1; R(cols[arm], Math.round(cx + Math.cos(ang) * d), Math.round(cy + Math.sin(ang) * d * 0.85), sz, sz); }
       for (let i = 0; i < 8; i++) { const ang = i * 0.785 + e * 4.5, d = rr * (0.55 + 0.45 * ((i % 2) ? 1 : 0.7)), mx = Math.round(cx + Math.cos(ang) * d), my = Math.round(cy + Math.sin(ang) * d * 0.85), r = 6 + (i % 3);
