@@ -1382,14 +1382,14 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   else if (SPv.echo && !B.inEcho && w && Math.random() < 0.12 * SPv.echo) { B.inEcho = true; hurtFoe(f, d0 * 0.5, w, ax, ay, 0); B.inEcho = false; }
 }
 /* ───── 전설 별 강화: 몬스터를 잡다 보면 아주 낮은 확률로 '전설 별 조각'이 떨어져요 (던파 에픽처럼 빛기둥 + 느린 화면). 저절로 주워요 ───── */
-const LSTAR_N = [1, 2, 3, 4, 5], LSTAR_MAX = 5, EPIC_P = 1 / 18000;      /* 별마다 필요한 조각 수, 일반 몹 드랍 확률 */
+const LSTAR_N = [1, 2, 3, 4, 5], LSTAR_MAX = 5, EPIC_P = 1 / 6000;      /* 별마다 필요한 조각 수, 일반 몹 드랍 확률 */
 const lStar = id => ((run && run.lstar) || {})[id] || 0;
 const lStarK = id => 1 + 0.12 * lStar(id);      /* 별 하나마다 피해 +12% */
 const lStarCd = id => LEG[id].cd * (1 - 0.08 * (lStar(id) >= 3) - 0.08 * (lStar(id) >= 5));      /* ★3, ★5에서 쿨타임 8%씩 짧아져요 */
 const lStarTxt = id => lStar(id) ? ' ' + '★'.repeat(lStar(id)) : '';
 function epicRoll(f) {
   if (!run.leg) return; const ids = Object.keys(run.leg).filter(id => lStar(id) < LSTAR_MAX); if (!ids.length) return;
-  const ch = f === B.big ? 0.01 : FOES[f.type].big ? 0.005 : EPIC_P * (f.xpK || 1);      /* 보스 1%, 꼬마 대장 0.5%, 일반 몹 1/18000: 평균 30판에 1개 꼴 */ if (Math.random() >= ch) return;
+  const ch = f === B.big ? 0.03 : FOES[f.type].big ? 0.015 : EPIC_P * (f.xpK || 1);      /* 보스 3%, 꼬마 대장 1.5%, 일반 몹 1/6000: 평균 10판에 1개 꼴 */ if (Math.random() >= ch) return;
   const id = pick(ids); epicGet(id); if (headless) return;      /* 떨어지는 순간 바로 얻어요. 판이 끝나도 사라지지 않아요 */
   (B.epics || (B.epics = [])).push({ x: f.x, y: f.y, id, t: 0 }); B.hitstop = Math.max(B.hitstop, 0.25); B.slow = Math.max(B.slow, 1.6); B.shake = Math.max(B.shake, 0.5); sfx.epic();
   textAdd(f.x, f.y - 46, '전설 별 조각!', '#FF4FD8', true);
