@@ -1389,8 +1389,8 @@ const lStarCd = id => LEG[id].cd * (1 - 0.08 * (lStar(id) >= 3) - 0.08 * (lStar(
 const lStarTxt = id => lStar(id) ? ' ' + '★'.repeat(lStar(id)) : '';
 function epicRoll(f) {
   if (!run.leg) return; const ids = Object.keys(run.leg).filter(id => lStar(id) < LSTAR_MAX); if (!ids.length) return;
-  const ch = f === B.big ? 0.03 : FOES[f.type].big ? 0.015 : EPIC_P * (f.xpK || 1);      /* 보스 3%, 꼬마 대장 1.5%, 일반 몹은 아주 낮게: 평균 10판에 1개 꼴 */ if (Math.random() >= ch) return;
-  const id = pick(ids); epicGet(id); if (headless) return;      /* 떨어지는 순간 바로 얻어요. 판이 끝나도 사라지지 않아요 */
+  const ch = f === B.big ? 0.03 : FOES[f.type].big ? 0.015 : EPIC_P * (f.xpK || 1);      /* 보스 3%, 꼬마 대장 1.5%, 일반 몹은 아주 낮게: 평균 10판에 1개 꼴 */ if (B.epicN >= 1 || Math.random() >= ch) return;      /* 한 판에 최대 1개 */
+  B.epicN = (B.epicN || 0) + 1; const id = pick(ids); epicGet(id); if (headless) return;      /* 떨어지는 순간 바로 얻어요. 판이 끝나도 사라지지 않아요 */
   (B.epics || (B.epics = [])).push({ x: f.x, y: f.y, id, t: 0 }); B.hitstop = Math.max(B.hitstop, 0.25); B.slow = Math.max(B.slow, 1.6); B.shake = Math.max(B.shake, 0.5); sfx.epic();
   textAdd(f.x, f.y - 46, '전설 별 조각!', '#FF4FD8', true);
 }
