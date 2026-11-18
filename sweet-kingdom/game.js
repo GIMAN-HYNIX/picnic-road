@@ -573,6 +573,7 @@ const sfx = {
   boss() { play('boss', () => { [55, 82.4].forEach(f => brass(f, 1.6, .16, { lp: 300, lpTo: 1800 })); [98, 92.5, 87.3, 82.4].forEach((f, i) => { sub(f, .34, .34, { at: i * .24, to: f * 0.6 }); hiss(.08, { type: 'lowpass', f: 900, vol: .12, at: i * .24 }); }); hiss(1.3, { type: 'lowpass', f: 250, to: 2600, vol: .12, a: .8, rev: .3 }); }); buzz(120); },
   /* 전설 스킬: 솟구치는 소리 → 합창 같은 화음 → 큰 한 방 */
   leg() { play('leg', () => { voice(110, .4, { to: 880, type: 'sawtooth', det: 14, lp: 400, lpTo: 6000, vol: .1, rev: .35 }); hiss(.4, { f: 400, to: 9000, vol: .09, a: .3 }); [220, 277, 330, 440, 554].forEach((f, i) => brass(f, 1.3, .05, { at: .34, pan: (i - 2) * 0.2, rev: .5 })); chime([880, 1109, 1319, 1760, 2217], .05, .7, .06, { at0: .36 }); sub(82, .9, .5, { at: .34, to: 27 }); hiss(.5, { type: 'lowpass', f: 3000, to: 150, vol: .2, at: .34, rev: .3 }); }, 400); buzz([20, 40, 80]); },
+  epic() { play('epic', () => { brass(131, 1.4, .08, { at: 0 }); brass(196, 1.3, .06, { at: .08 }); chime([523, 659, 784, 1047, 1319, 1568, 2093, 2637], .07, 1.1, .09); }); buzz([30, 30, 60, 30, 120]); },
   revive() { play('revive', () => { chime([392, 523, 659, 784, 1047, 1319, 1568], .06, .7, .08); brass(196, 1.0, .06, { at: .1 }); }); buzz([40, 40, 80]); },
   flip() { play('flip', () => { hiss(.08, { f: 1200, to: 5200, vol: .08, a: .02 }); fm(1320, .06, { ratio: 2, idx: .8, vol: .09, at: .055 }); }, 60); buzz(6); },
   rare() { play('rare', () => { chime([1047, 1319, 1568, 2093, 2637, 3136], .05, .6, .1); hiss(.5, { type: 'highpass', f: 8000, vol: .035, a: .1, rev: .3 }); brass(523, .7, .04, { at: .05 }); }); buzz([10, 20, 30]); },
@@ -780,7 +781,7 @@ const lfxAdd = o => { if (!headless) B.lfx.push(o); return o; };
 const legTick = (t0, dur, step, fn) => { for (let t = 0; t <= dur + 1e-6; t += step) legLater(t0 + t, () => fn(t / dur)); };
 const LEGW = 0.32;      /* 기 모으는 시간 */
 function castLeg(w) {
-  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * LEGF[id];
+  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * LEGF[id] * lStarK(id);
   const big = (x, y, r, d, col) => blast(x, y, r, D(d), { id, noAcc: true }, col);
   const alive = () => B.foes.filter(f => !f.dead), onScreen = () => B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw * 0.58 && Math.abs(f.y - p.y) < vh * 0.58);
   const rnd = (t, a) => t.length ? t[(Math.random() * t.length) | 0] : null;
@@ -864,7 +865,7 @@ function legUpdate(dt) {
   if (B.cin) { B.cin.t += dt; if (B.cin.t > B.cin.max) B.cin = null; }
   for (const f of B.lfx) f.life -= dt; B.lfx = B.lfx.filter(f => f.life > 0);
   if (!run.leg) return;
-  for (const w of B.weapons) if (isLeg(w.id)) { w.ut = (w.ut ?? 2.5) - dt * atkNow(); if (w.ut <= 0 && B.foes.length) { w.ut = LEG[w.id].cd; castLeg(w); } }
+  for (const w of B.weapons) if (isLeg(w.id)) { w.ut = (w.ut ?? 2.5) - dt * atkNow(); if (w.ut <= 0 && B.foes.length) { w.ut = lStarCd(w.id); castLeg(w); } }
   for (const q of B.legQ) { q.t -= dt; if (q.t <= 0) q.f(); } B.legQ = B.legQ.filter(q => q.t > 0);
 }
 /* 연출 그리기: 어두워지는 화면과 위아래 검은 띠 */
@@ -1379,8 +1380,44 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (f.hp <= 0) killFoe(f, w);
   else if (SPv.echo && !B.inEcho && w && Math.random() < 0.12 * SPv.echo) { B.inEcho = true; hurtFoe(f, d0 * 0.5, w, ax, ay, 0); B.inEcho = false; }
 }
+/* ───── 전설 별 강화: 몬스터를 잡다 보면 아주 낮은 확률로 '전설 별 조각'이 떨어져요 (던파 에픽처럼 빛기둥 + 느린 화면). 저절로 주워요 ───── */
+const LSTAR_N = [1, 2, 3, 4, 5], LSTAR_MAX = 5, EPIC_P = 1 / 700;      /* 별마다 필요한 조각 수, 일반 몹 드랍 확률 */
+const lStar = id => ((run && run.lstar) || {})[id] || 0;
+const lStarK = id => 1 + 0.12 * lStar(id);      /* 별 하나마다 피해 +12% */
+const lStarCd = id => LEG[id].cd * (1 - 0.08 * (lStar(id) >= 3) - 0.08 * (lStar(id) >= 5));      /* ★3, ★5에서 쿨타임 8%씩 짧아져요 */
+const lStarTxt = id => lStar(id) ? ' ' + '★'.repeat(lStar(id)) : '';
+function epicRoll(f) {
+  if (!run.leg) return; const ids = Object.keys(run.leg).filter(id => lStar(id) < LSTAR_MAX); if (!ids.length) return;
+  const ch = f === B.big ? 1 : FOES[f.type].big ? 0.25 : EPIC_P * (f.xpK || 1); if (Math.random() >= ch) return;
+  const id = pick(ids); if (headless) { epicGet(id); return; }
+  (B.epics || (B.epics = [])).push({ x: f.x, y: f.y, id, t: 0, z: 0, vz: 260 }); B.hitstop = Math.max(B.hitstop, 0.22); B.slow = Math.max(B.slow, 1.5); B.flashScr = { col: '255,190,60', t: 0.5, max: 0.5 }; B.shake = Math.max(B.shake, 0.4); sfx.epic();
+  textAdd(f.x, f.y - 40, '전설 별 조각!', '#FFB020', true);
+}
+function epicGet(id) {
+  const L = run.lsp || (run.lsp = {}), T = run.lstar || (run.lstar = {}); L[id] = (L[id] || 0) + 1; const need = LSTAR_N[T[id] || 0];
+  if (L[id] >= need) { L[id] -= need; T[id] = (T[id] || 0) + 1; if (!headless) { toast(`${LEG[id].name} ★${T[id]} 달성! 피해 +${12 * T[id]}%${T[id] === 3 || T[id] === 5 ? ', 쿨타임 감소' : ''}`); sfx.leg(); B.flashScr = { col: '255,220,120', t: 0.4, max: 0.4 }; textAdd(B.p.x, B.p.y - 60, `${LEG[id].name} ★${T[id]}`, '#FFD23F', true); } }
+  else if (!headless) toast(`${LEG[id].name} 별 조각 ${L[id]}/${need}`);
+}
+function epicUpdate(dt) {
+  if (!B.epics || !B.epics.length) return; const p = B.p;
+  for (const e of B.epics) { e.t += dt; if (e.z > 0 || e.vz > 0) { e.z += e.vz * dt; e.vz -= 900 * dt; if (e.z <= 0) { e.z = 0; e.vz = e.vz < -120 ? -e.vz * 0.35 : 0; } }
+    if (e.t > 1.1) { const dx = p.x - e.x, dy = p.y - 20 - e.y, d = Math.hypot(dx, dy) || 1, sp = 200 + (e.t - 1.1) * 1400; e.x += dx / d * Math.min(d, sp * dt); e.y += dy / d * Math.min(d, sp * dt); if (!headless && Math.random() < 0.6) fxAdd({ k: 'flash', x: e.x, y: e.y, r: 6, life: 0.18, max: 0.18, col: '#FFD23F' });
+      if (d < 22) { e.done = true; epicGet(e.id); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: 120, life: 0.4, max: 0.4, col: '#FFD23F', w: 6 }); burst(p.x, p.y - 20, '#FFE27A', 14, 220); } } }
+  B.epics = B.epics.filter(e => !e.done);
+}
+/* 에픽 빛기둥: 하늘에서 떨어진 자리까지 금빛 기둥, 바닥에서 도는 빛살, 떠오르는 반짝이 */
+function epicDraw() {
+  if (!B.epics || !B.epics.length) return;
+  for (const e of B.epics) { const ex = X(e.x), ey = Y(e.y), zz = Math.round(e.z / WP), beam = e.t < 1.25 ? Math.min(1, e.t * 5) * (e.t > 1.0 ? (1.25 - e.t) / 0.25 : 1) : 0, pu = 1 + 0.25 * Math.sin(e.t * 18);
+    if (beam > 0) { const w = Math.max(2, Math.round(9 * pu * beam));
+      ctx.globalAlpha = 0.28 * beam; R('#FF8A1F', ex - w * 3, 0, w * 6, ey + 4); ctx.globalAlpha = 0.55 * beam; R('#FFC23D', ex - w * 2, 0, w * 4, ey + 3); ctx.globalAlpha = beam; R('#FFE27A', ex - w, 0, w * 2, ey + 2); R('#FFFFFF', ex - Math.ceil(w / 3), 0, Math.max(1, Math.round(w / 1.5)), ey + 2);
+      for (let i = 0; i < 12; i++) { const sx = ex - w * 2 + ((i * 29) % (w * 4 + 1)), sy = ey - ((i * 41 + e.t * 260) % Math.max(20, ey)); R(i % 2 ? '#FFFFFF' : '#FFE27A', sx, sy, 1, 4 + (i % 3) * 3); }
+      for (let i = 0; i < 10; i++) { const a = i * 0.628 + e.t * 2.4, L = Math.round((26 + (i % 2) * 14) * beam * pu); pline(ex, ey, Math.round(ex + Math.cos(a) * L), Math.round(ey + Math.sin(a) * L * 0.45), i % 2 ? '#FFFFFF' : '#FFC23D', 1); }
+      putDisc(ex, ey + 2, Math.round(30 * pu * beam), Math.round(11 * pu * beam), '#FFC23D', 9); ctx.globalAlpha = 1; }
+    const iy = ey - 8 - zz + Math.round(Math.sin(e.t * 7) * 2); putDisc(ex, iy, 12, 12, '#FFD23F', 8); pdisc(ex, iy, 6, '#B86A00'); pdisc(ex, iy, 5, '#FFD23F'); pdisc(ex, iy - 1, 3, '#FFF3C0'); pstar(ex, iy, 8 + (Math.floor(e.t * 10) % 2) * 2, '#FFFFFF'); }
+}
 function killFoe(f, w) {
-  f.dead = true; B.kills++;
+  f.dead = true; B.kills++; epicRoll(f);
   if (B.st.rush) { B.rushN = Math.min(B.st.rush, (B.rushN || 0) + 1); B.rushT = 3; } if (B.st.killHaste && B.kills % 30 === 0) B.khT = 3;
   if (G('split') && !B.noSplit && !f.mini && f !== B.big && f.type !== 'pop' && !FOES[f.type].big) for (let k = 0; k < 2; k++) { const m = spawnFoe(f.type, f.x + (k ? 12 : -12), f.y); m.mini = true; m.hp = m.max = f.max * 0.35; m.r = f.r * 0.7; m.sc = 0.7; m.xpK = 0.5; }
   if (f.bounty && B.bombs.length < 3) B.bombs.push({ x: f.x, y: f.y, ph: 0 });
@@ -1821,6 +1858,7 @@ function update(dt) {
   if (p.moving && !headless) { B.dustT = (B.dustT || 0) - dt; if (B.dustT <= 0) { B.dustT = 0.16; fxAdd({ k: 'dot', x: p.x + rand(-6, 6), y: p.y + 2, vx: -p.dirX * 30 + rand(-15, 15), vy: rand(-30, -10), life: 0.4, max: 0.4, col: 'rgba(200,150,90,.55)', r: rand(3, 5) }); } }
   while (B.xp >= B.need && !B.over && !B.paused && !B.lvlPending) levelUp();
   /* 연출 */
+  epicUpdate(dt);
   for (const f of B.fx) { f.life -= dt; if (f.vx != null) { f.x += f.vx * dt; f.y += f.vy * dt; if (f.g) f.vy += f.g * dt; else { f.vx *= 0.9; f.vy *= 0.9; } } } B.fx = B.fx.filter(f => f.life > 0);
   for (const t of B.texts) { t.life -= dt; t.x += t.vx * dt; t.y += t.vy * dt; t.vy += 380 * dt; } B.texts = B.texts.filter(t => t.life > 0);
   if (B.shake > 0) B.shake -= dt; if (B.hsCool > 0) B.hsCool -= dt; if (B.heartPop > 0) B.heartPop -= dt;
@@ -2097,6 +2135,7 @@ function draw() {
     else if (f.k === 'ray') { const c = Math.cos(f.a), sn = Math.sin(f.a), L = f.len / WP, x0 = X(f.x), y0 = Y(f.y), t = k > 0.5 ? 5 : 3; pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), INK, t + 2); pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), k > 0.6 ? '#FFFFFF' : f.col, t); }
     else { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, (f.w || 5) > 5 && k > 0.4 ? 2 : 1); if (k > 0.6 && r > 3) pcircle(fx, fy, r - 2, f.col); } }
   }
+  epicDraw();
   /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
   if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
     legDraw(); ctx.globalAlpha = 0.42; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
@@ -2316,7 +2355,7 @@ function charSheet() {
     + row('치명타 확률', pc(st.crit), st.crit > 0.05) + row('치명타 피해', pc(st.critMul), st.critMul > 1.8) + row('맞은 뒤 무적', `${(DF().inv * st.invK).toFixed(1)}초`, st.invK > 1)
     + row('방패', st.guard ? `${st.guard}초마다` : M('shield') ? '전투마다 1번' : '없음', !!st.guard) + row('무기 범위', pc(st.area), st.area > 1) + row('줍는 거리', pc(st.pickup / 88), st.pickup > 88) + row('경험치', pc(st.xp), st.xp > 1);
   const slots = SLOTS.map(sl => { const it = e[sl]; return it ? `<button class="opt eqi g${it.g}" type="button" data-act="eq" data-s="${sl}"><span class="ic">${eqImg(it)}</span><span class="tx"><b><i class="gn">${GRADES[it.g].name}</i> ${it.nm}</b><span>${statLine(it)}</span></span></button>` : `<button class="opt eqi empty" type="button" data-act="eq" data-s="${sl}"><span class="ic">${eqImg(null, sl)}</span><span class="tx"><b>${SLOT[sl].name}</b><span>비어 있어요. 눌러서 끼울 수 있어요.</span></span></button>`; }).join('');
-  const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설</i>` : legUnlocked() ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}</b>: ${LEG[w.id].desc} ` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
+  const wl = run.wpn.map(w => { const c = capeFor(w.id); return `<div class="opt${w.lv >= 10 ? ' r2' : w.lv >= 5 ? ' r1' : ''}"><span class="ic">${svg(ICON[w.id])}</span><span class="tx"><b>${WEAPONS[w.id].name} Lv${w.lv}${capeP(w.id) ? ` <i class="gn">+${capeP(w.id)}</i>` : ''}${isLeg(w.id) ? ` · <i class="gn lg">전설${lStarTxt(w.id)}</i>` : legUnlocked() ? ` · 조각 ${(run.shards || {})[w.id] || 0}/${LEG_N}` : ''}</b><span>${isLeg(w.id) ? `<b>${LEG[w.id].name}${lStarTxt(w.id)}</b>: ${LEG[w.id].desc} ${lStar(w.id) < LSTAR_MAX ? `<b>별 조각 ${((run.lsp || {})[w.id]) || 0}/${LSTAR_N[lStar(w.id)]}</b> (몬스터를 잡다 보면 가끔 떨어져요) ` : '<b>별 강화 완료!</b> '}` : ''}${wDescFull(w.id)}${c ? ` · 망토 효과 받는 중` : ''}</span></span></div>`; }).join('');
   sheet(`<h2 id="cardTitle">내 캐릭터</h2><div class="eqtop"><div class="eqhero"><img src="${heroUrl(4)}" alt="내 캐릭터"></div><div class="who"><b>Lv ${run.lvl}</b><span>스테이지 ${Math.min(run.stage + 1, STAGES.length)}에 도전 중</span><span>무기 ${run.wpn.length}개 · 장비 ${eqList().length}/5칸</span></div></div>
     <h3 class="sub3">능력치</h3><div class="stats">${stats}</div><h3 class="sub3">지난 판 스킬별 피해</h3>${lastDmgHtml()}<h3 class="sub3">배운 특성</h3><p class="eqsum">${learned}</p><h3 class="sub3">장착한 장비</h3><div class="opts">${slots}</div><h3 class="sub3">무기</h3><div class="opts">${wl}</div>
     <div class="row2"><button class="btn" type="button" data-act="eq">장비 바꾸기</button><button class="btn" type="button" data-act="tree">성장 트리 (별 ${S.meta.pts})</button></div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
