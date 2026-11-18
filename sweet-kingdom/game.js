@@ -58,7 +58,7 @@ let run = null;
 const PETS = {
   kong: { name: '젤리곰 콩이', desc: '몇 초마다 말랑한 젤리 방패를 씌워 줘요. 방패는 공격 한 번을 막고 주변 적을 튕겨내요.', lvDesc: lv => `${(14 - 1.6 * lv).toFixed(1)}초마다 방패${lv >= 5 ? ', 막을 때 주변 적 잠깐 기절' : ''}` },
   shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `한 판에 1번, 하트 ${lv}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
-  byul: { name: '별사탕 요정 별이', desc: '가까운 적에게 별사탕을 쏴요. 스테이지가 높아질수록 별사탕도 세져요.', lvDesc: lv => `${Math.max(0.35, 1.1 - 0.15 * lv).toFixed(2)}초마다, 기본 피해 ${8 + 4 * lv}${lv >= 5 ? ', 적 1마리 꿰뚫기' : ''}` }
+  byul: { name: '별사탕 요정 별이', desc: '내 무기를 랜덤으로 하나씩 대신 한 번 더 써 줘요. 무기가 많고 레벨이 높을수록 세져요. (전설로 각성한 무기는 빼요)', lvDesc: lv => `${Math.max(2.4, 5 - 0.4 * lv).toFixed(1)}초마다 무기 ${lv >= 5 ? 2 : 1}개를 대신 사용` }
 };
 const PMAX = 5;
 if (!S.pets || typeof S.pets !== 'object') S.pets = {};
@@ -178,10 +178,18 @@ function petUpdate1(P, dt) {
   if (P.id === 'kong' && P.cd <= 0) {      /* 젤리 방패: 방패가 없을 때만 새로 씌워요 */
     if (p.shield) P.cd = 0.5; else { P.cd = 14 - 1.6 * P.lv; p.shield = true; p.kongShield = P.lv >= 5; P.go = { x: p.x, y: p.y - 10, t: 0.25 }; if (!headless) { fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: 34, to: 8, life: 0.35, max: 0.35, col: '#FF9A3D', w: 5 }); textAdd(p.x, p.y - 46, '젤리 방패!', '#FFB560'); sfx.block(); } }
   }
-  if (P.id === 'byul' && P.cd <= 0) {
-    const t = nearestFoe(300, P); if (!t) { P.cd = 0.2; return; } P.cd = Math.max(0.35, 1.1 - 0.15 * P.lv);
-    const a = Math.atan2(t.y - P.y, t.x - P.x); B.shots.push({ k: 'star', x: P.x, y: P.y, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, r: 5, dmg: (8 + 4 * P.lv) * Math.sqrt(legK()), pierce: P.lv >= 5 ? 1 : 0, life: 1, w: { id: 'pet' }, hit: new Set() });      /* 몬스터 체력이 커지는 만큼(제곱근) 별사탕도 세져요 */
+  if (P.id === 'byul' && P.cd <= 0) {      /* 별이: 내 무기를 랜덤으로 하나씩 대신 써 줘요 */
+    const pool = B.weapons.filter(w => !isLeg(w.id)); if (!pool.length || !B.foes.some(f => !f.dead)) { P.cd = 0.4; return; }
+    P.cd = Math.max(2.4, 5 - 0.4 * P.lv);
+    const times = P.lv >= 5 ? 2 : 1; for (let k = 0; k < times; k++) { const rest = pool.filter(w => w.id !== P.last), w = pick(rest.length ? rest : pool); P.last = w.id; byulUse(P, w); }
   }
+}
+/* 별이가 무기 하나를 한 번 더 써요: 그 무기의 원래 타이머는 건드리지 않아요 */
+function byulUse(P, w) {
+  const c0 = w.cd, d0 = (w.dr || []).map(o => o && o.cd); w.cd = 0; if (w.dr) w.dr.forEach(o => { if (o && o.m === 0) o.cd = 0; });      /* 마카롱은 도는 구슬이 바로 날아가요 */
+  const A = B.weapons.find(x => x === w); const had = B.shots.length; fireOne(w, 0); w.cd = c0; if (w.dr) w.dr.forEach((o, i) => { if (o && d0[i] != null && o.m === 0 && o.cd <= 0) o.cd = 0.5; });
+  P.go = { x: B.p.x + (P.x > B.p.x ? 30 : -30), y: B.p.y - 26, t: 0.4 };
+  if (!headless) { fxAdd({ k: 'ring', x: P.x, y: P.y, r: 6, to: 40, life: 0.35, max: 0.35, col: '#FFD23F', w: 5 }); burst(P.x, P.y, '#FFE27A', 7, 180); textAdd(P.x, P.y - 28, WEAPONS[w.id].name + '!', '#FFD23F', false); sfx.pet && sfx.pet(); }
 }
 /* 천사 슈: 부활 + 적 전부 없애기 (보스는 일부만) */
 function petRevive() {
@@ -1505,10 +1513,11 @@ const ACC = {};      /* 명중률: 무기별로 공격을 낸 수와 적에게 �
 const accFire = (id, n = 1) => { const a = ACC[id] || (ACC[id] = { fire: 0, hit: 0 }); a.fire += n; };
 const accHit = (id, n = 1) => { const a = ACC[id] || (ACC[id] = { fire: 0, hit: 0 }); a.hit += n; };
 window.__acc = ACC;
-function fireWeapons(dt) {
+function fireWeapons(dt) { for (const w of B.weapons) fireOne(w, dt); }
+/* 무기 하나를 한 번 쓰는 몸통 (별이가 무기를 대신 쓸 때도 이걸 불러요) */
+function fireOne(w, dt) {
   const p = B.p;
-  for (const w of B.weapons) {
-    if (isLeg(w.id)) { if (w.id === 'honey' && !w.legClean) { w.legClean = true; B.zones = B.zones.filter(z => !(z.w === w && !z.leg)); } continue; }      /* 각성한 무기는 전설 스킬이 대신해요 */
+    if (isLeg(w.id)) { if (w.id === 'honey' && !w.legClean) { w.legClean = true; B.zones = B.zones.filter(z => !(z.w === w && !z.leg)); } return; }      /* 각성한 무기는 전설 스킬이 대신해요 */
     const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10, lw = lwOn(w.id); if (w.lcd != null && w.cd > w.lcd + 0.05) { const tk = capeSp('twin', w.id); if (tk && Math.random() < 0.18 * tk) w.cd *= 0.2; } w.cd -= dt * (atkNow() + capeC(w.id)); w.lcd = w.cd; B.wid = w.id;
     if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
       w.ang += dt * (s5 ? 4.2 : 3.2); w.pulse = ((w.pulse || 0) + dt) % 2.2;
@@ -1531,12 +1540,12 @@ function fireWeapons(dt) {
         if (s10 && w.burstT <= 0) blast(ox, oy, 52 * ar(), 30, w, '#FF8FB8');
       }
       if (s10 && w.burstT <= 0) { w.burstT = 2; sfx.swing(); B.shake = Math.max(B.shake, 0.08); }
-      continue;
+      return;
     }
-    if (w.cd > 0) continue;
+    if (w.cd > 0) return;
     if (w.id === 'pin') {
       const R = 108 * (s5 ? 1.25 : 1) * ar(), t = nearestFoe(R + 40);
-      if (!t) { w.cd = 0.15; continue; }
+      if (!t) { w.cd = 0.15; return; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), dirs = [a]; w.cd = lw ? (w.dbl ? 0.95 : 0.16) : 0.7; w.dbl = lw && !w.dbl;
       for (const g of nearFoes(R + 40, 12)) { if (dirs.length >= lv) break; const ga = Math.atan2(g.y - p.y, g.x - p.x); if (dirs.every(d => { let da = Math.abs(ga - d) % 6.283; if (da > Math.PI) da = 6.283 - da; return da > 0.9; })) dirs.push(ga); }   // 다른 적 쪽으로 먼저
       for (let i = 1; dirs.length < lv; i++) dirs.push(a + i * 6.283 / lv);
@@ -1547,7 +1556,7 @@ function fireWeapons(dt) {
       else dirs.forEach(d => fxAdd({ k: 'arc', x: p.x, y: p.y, a: d, r: R, life: 0.22, max: 0.22 }));
       B.shake = Math.max(B.shake, 0.04); sfx.swing();
     } else if (w.id === 'cream' || w.id === 'lemon') {
-      const t = nearestFoe(320); if (!t) { w.cd = 0.2; continue; }
+      const t = nearestFoe(320); if (!t) { w.cd = 0.2; return; }
       const a = Math.atan2(t.y - p.y, t.x - p.x), n = lv + (lw ? 1 : 0), cream = w.id === 'cream'; w.cd = cream ? 0.8 : 0.95;
       fxAdd({ k: 'flash', x: p.x + Math.cos(a) * 18, y: p.y - 10 + Math.sin(a) * 18, r: 11, life: 0.07, max: 0.07, col: cream ? '#FFFFFF' : '#F4E04D' });
       for (let i = 0; i < n; i++) { const aa = a + (i - (n - 1) / 2) * 0.13; B.shots.push({ k: w.id, x: p.x, y: p.y - 10, vx: Math.cos(aa) * 340, vy: Math.sin(aa) * 340, r: cream && s10 ? 11 : 7, dmg: cream ? (s10 ? 15 : 12) : 13, acid: cream ? 0 : (s5 ? 10 : 5) * (lw ? 1.5 : 1), pierce: cream && s10 ? 99 : 0, life: 1.2, w, hit: new Set(), aw: s10, puddle: cream && s5, chill: cream && lw }); }
@@ -1565,11 +1574,11 @@ function fireWeapons(dt) {
       for (let i = 0; i < lv; i++) { let x = p.x, y = p.y; if (i) { const t = pick(nearFoes(220, 8)) || null; if (t) { x = t.x; y = t.y; } else { const a = Math.random() * 6.283, d = rand(60, 150); x += Math.cos(a) * d; y += Math.sin(a) * d; } } B.zones.push({ x, y, r, life, tick: 0, dmg: 9 * hd, w }); }
       if (s10 && !B.zones.some(z => z.follow)) B.zones.push({ x: p.x, y: p.y, r: 92 * ar() * (lw ? 1.25 : 1), life: 1e9, tick: 0, dmg: 11 * hd, w, follow: true });
     } else if (w.id === 'choco') {
-      const nb = lv + (lw ? 1 : 0), ts = nearFoes(280, nb); if (!ts.length) { w.cd = 0.3; continue; } w.cd = 1.6;
+      const nb = lv + (lw ? 1 : 0), ts = nearFoes(280, nb); if (!ts.length) { w.cd = 0.3; return; } w.cd = 1.6;
       for (let i = 0; i < nb; i++) { const t = ts[i % ts.length], j = i >= ts.length ? 30 : 0; B.lobs.push({ k: 'bomb', x0: p.x, y0: p.y - 10, x: t.x + rand(-j, j), y: t.y + rand(-j, j), t: 0, dur: 0.45 + i * 0.04, r: (s5 ? 60 : 44) * ar() * (lw ? 1.15 : 1), dmg: 29, w, cluster: s10 }); }
       sfx.swing();
     } else if (w.id === 'cotton') {
-      const ts = nearFoes(260, lv); if (!ts.length) { w.cd = 0.25; continue; } w.cd = s10 ? 0.75 : 1.3;
+      const ts = nearFoes(260, lv); if (!ts.length) { w.cd = 0.25; return; } w.cd = s10 ? 0.75 : 1.3;
       const chain = (s10 ? 8 : s5 ? 4 : 2) + (lw ? 1 : 0);
       for (const t of ts) {
         const pts = [[p.x, p.y - 30]], hit = new Set(); let cur = t;
@@ -1581,7 +1590,6 @@ function fireWeapons(dt) {
       w.cd = 2; const ts = B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw / 2 && Math.abs(f.y - p.y) < vh / 2);
       for (let i = 0; i < lv + (lw ? 1 : 0); i++) { const t = ts.length ? pick(ts) : null, x = t ? t.x : p.x + rand(-150, 150), y = t ? t.y : p.y + rand(-200, 200); B.lobs.push({ k: 'cane', x, y, t: -i * 0.07, dur: 0.38, r: (s5 ? 50 : 36) * ar() * (lw ? 1.2 : 1), dmg: 22, w, shards: s10 }); }
     }
-  }
 }
 /* 던진 폭탄과 떨어지는 사탕: 정해진 시간 뒤에 터져요 */
 function updateLobs(dt) {
