@@ -1226,7 +1226,9 @@ const GIM = {
   regen: { name: '끈질긴 반죽', hint: '안 맞은 적은 다시 회복해요', desc: '잠깐 안 맞은 적은 체력을 다시 채워요. 한 번에 몰아서 잡아요.' },
   spiral: { name: '시럽 나선', hint: '빙글 도는 원을 피해요', desc: '내 자리에서 시럽 방울이 나선을 그리며 바깥으로 번져요. 원이 차례로 터지니 나선 밖으로 빠져나가요.' },
   roll: { name: '롤케이크', hint: '굴러오는 롤케이크를 피해요', desc: '굵은 줄 위로 거대한 롤케이크가 굴러가요. 나는 피하고, 줄 위의 적은 깔려서 크게 다쳐요.' },
-  coat: { name: '설탕 코팅', hint: '반짝이는 적은 단단해요', desc: '적이 설탕 껍질을 두르고 나와요. 껍질이 깨질 때까지는 피해가 덜 들어가요.' }
+  coat: { name: '설탕 코팅', hint: '반짝이는 적은 단단해요', desc: '적이 설탕 껍질을 두르고 나와요. 껍질이 깨질 때까지는 피해가 덜 들어가요.' },
+  grid: { name: '와플 격자', hint: '격자 줄 사이 칸으로 피해요', desc: '내 주변에 와플 같은 가로세로 줄이 그어지고 곧 뜨거워져요. 줄과 줄 사이 빈칸으로 들어가요.' },
+  donut: { name: '도넛 포위망', hint: '조여 오는 고리 안쪽에 있어요', desc: '내 둘레에 도넛 모양으로 빨간 원들이 둘러싸요. 고리 위에 있으면 다쳐요. 안쪽에 머물거나 빈틈으로 빠져나가요.' }
 };
 const STAGES = [
   { n: '과자 골목', g: [] }, { n: '보석 비 광장', g: ['gemrain'] }, { n: '츄러스 돌진로', g: ['charge'] }, { n: '안개 낀 뒷골목', g: ['fog'] }, { n: '도넛 기사의 문', boss: 'donut' },
@@ -1261,7 +1263,15 @@ const STAGES = [
   { n: '시럽 폭포 계단', g: ['spiral', 'ice'] }, { n: '굴러오는 거인', g: ['roll', 'giant'] }, { n: '코팅된 별빛', g: ['coat', 'sprinkle'] }, { n: '촛불 나선', g: ['spiral', 'cross'] }, { n: '초코 분수 대왕의 환영', boss: 'boss2', g: ['spiral'] },
   { n: '설탕 껍질 포탑', g: ['coat', 'turret'] }, { n: '롤케이크 차원문', g: ['roll', 'portal'] }, { n: '쪼개지는 나선', g: ['spiral', 'split'] }, { n: '단단한 설탕 폭주', g: ['coat', 'sugar'] }, { n: '탄 설탕 마왕의 분노', boss: 'boss3', g: ['roll'] },
   { n: '코팅 소용돌이', g: ['coat', 'vortex'] }, { n: '나선 지뢰밭', g: ['spiral', 'mines'] }, { n: '굴러가는 안개 숲', g: ['roll', 'fog'] }, { n: '설탕 껍질 개미 떼', g: ['coat', 'swarm'] }, { n: '마카롱 여왕의 환영', boss: 'queen', g: ['coat'] },
-  { n: '시럽 정전', g: ['spiral', 'blackout'] }, { n: '롤케이크 번개 줄', g: ['roll', 'beams'] }, { n: '코팅 그림자', g: ['coat', 'stalker'] }, { n: '마지막 나선 계단', g: ['spiral', 'roll'] }, { n: '백육십 번째 왕좌: 별빛 대마왕', boss: 'boss3', g: ['coat', 'spiral'] }
+  { n: '시럽 정전', g: ['spiral', 'blackout'] }, { n: '롤케이크 번개 줄', g: ['roll', 'beams'] }, { n: '코팅 그림자', g: ['coat', 'stalker'] }, { n: '마지막 나선 계단', g: ['spiral', 'roll'] }, { n: '백육십 번째 왕좌: 별빛 대마왕', boss: 'boss3', g: ['coat', 'spiral'] },
+  { n: '와플 광장', g: ['grid'] }, { n: '도넛 가게 앞', g: ['donut'] }, { n: '격자 위의 보석', g: ['grid', 'gemrain'] }, { n: '포위된 슈크림', g: ['donut', 'coat'] }, { n: '곰팡이 케이크의 귀환', boss: 'boss', g: ['grid'] },
+  { n: '와플 황금 젤리', g: ['grid', 'goldrush'] }, { n: '도넛 차원문', g: ['donut', 'portal'] }, { n: '굴러오는 와플', g: ['grid', 'roll'] }, { n: '도넛과 나선', g: ['donut', 'spiral'] }, { n: '마카롱 여왕의 무도회', boss: 'queen', g: ['donut'] },
+  { n: '와플 포탑', g: ['grid', 'turret'] }, { n: '설탕 폭주 도넛', g: ['donut', 'sugar'] }, { n: '격자 속 그림자', g: ['grid', 'stalker'] }, { n: '도넛 지뢰밭', g: ['donut', 'mines'] }, { n: '초코 분수 대왕의 마지막 분수', boss: 'boss2', g: ['grid'] },
+  { n: '코팅 와플', g: ['grid', 'coat'] }, { n: '쪼개지는 도넛', g: ['donut', 'split'] }, { n: '와플 현상범', g: ['grid', 'bounty'] }, { n: '거인의 도넛', g: ['donut', 'giant'] }, { n: '탄 설탕 마왕의 최후', boss: 'boss3', g: ['donut'] },
+  { n: '별빛 와플 길', g: ['grid', 'sprinkle'] }, { n: '도넛 소용돌이', g: ['donut', 'vortex'] }, { n: '와플 위 번개', g: ['grid', 'beams'] }, { n: '도넛 롤케이크', g: ['donut', 'roll'] }, { n: '여왕의 두 번째 무대', boss: 'queen', g: ['grid'] },
+  { n: '격자 시럽 나선', g: ['grid', 'spiral'] }, { n: '도넛 안개', g: ['donut', 'fog'] }, { n: '와플 십자 촛불', g: ['grid', 'cross'] }, { n: '단단한 도넛 떼', g: ['donut', 'coat'] }, { n: '초코 분수 대왕의 마지막 춤', boss: 'boss2', g: ['donut'] },
+  { n: '와플 광란', g: ['grid', 'fast'] }, { n: '도넛 그림자', g: ['donut', 'stalker'] }, { n: '마지막 와플', g: ['grid', 'roll'] }, { n: '마지막 도넛', g: ['donut', 'spiral'] }, { n: '탄 설탕 마왕, 다시 깨어나다', boss: 'boss3', g: ['grid'] },
+  { n: '왕좌로 가는 와플 다리', g: ['grid', 'coat'] }, { n: '왕좌를 두른 도넛', g: ['donut', 'sugar'] }, { n: '마지막 시험의 격자', g: ['grid', 'spiral'] }, { n: '왕좌 앞의 고요', g: ['donut'] }, { n: '이백 번째 왕좌: 디저트 여왕의 진짜 왕관', boss: 'queen', g: ['donut'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1313,6 +1323,8 @@ function gimUpdate(dt) {
   if (G('sugar')) { const ph = B.t % 12, on = ph > 9.6; if (ph > 8.6 && !T.swarn) { T.swarn = true; if (!headless) { toast('설탕 폭주가 와요!'); sfx.warn(); } } if (ph < 1) T.swarn = false; B.sugarK = on ? 1.85 : 1; B.sugarOn = on; }
   if (G('ghost')) B.ghostA = B.t % 5 < 2.6 ? 1 : 0.14;
   if (G('spiral') && every('spi', 8)) { const a0 = Math.random() * 6.283, dir = Math.random() < 0.5 ? 1 : -1, cx = p.x, cy = p.y; for (let i = 0; i < 14; i++) { const a = a0 + dir * i * 0.5, d = 30 + i * 21; hazard({ k: 'c', x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, r: 34, t: 1.0 + i * 0.09 }); } if (!headless) sfx.warn(); }      /* 시럽 나선: 안쪽부터 차례로 터져요 */
+  if (G('grid') && every('grd', 7.5)) { const ox = p.x + rand(-30, 30), oy = p.y + rand(-30, 30), gap = 120; for (const k of [-1, 1]) { hazard({ k: 'l', x: ox - 560, y: oy + k * gap / 2, a: 0, len: 1120, w: 18, t: 1.6 }); hazard({ k: 'l', x: ox + k * gap / 2, y: oy - 560, a: 1.5708, len: 1120, w: 18, t: 1.6 }); } for (const k of [-1.5, 1.5]) { hazard({ k: 'l', x: ox - 560, y: oy + k * gap, a: 0, len: 1120, w: 18, t: 1.6 }); hazard({ k: 'l', x: ox + k * gap, y: oy - 560, a: 1.5708, len: 1120, w: 18, t: 1.6 }); } if (!headless) sfx.warn(); }      /* 와플 격자: 줄 사이 칸이 안전해요 */
+  if (G('donut') && every('dnt', 9)) { const cx = p.x, cy = p.y, n = 16, gapI = Math.floor(Math.random() * n); for (let i = 0; i < n; i++) { if (i === gapI || i === (gapI + 1) % n) continue; const a = i / n * 6.283; hazard({ k: 'c', x: cx + Math.cos(a) * 170, y: cy + Math.sin(a) * 170, r: 40, t: 1.7 }); } if (!headless) sfx.warn(); }      /* 도넛 포위망: 안쪽이나 빈틈이 안전해요 */
   if (G('roll') && every('rol', 7)) { const a = Math.random() * 6.283, c = Math.cos(a), sn = Math.sin(a), off = rand(-40, 40); hazard({ k: 'l', x: p.x - c * 560 - sn * off, y: p.y - sn * 560 + c * off, a, len: 1120, w: 36, t: 1.5, roll: true }); if (!headless) sfx.warn(); }      /* 롤케이크: 굵은 줄을 따라 굴러가요 */
   if (G('regen') && every('re', 1)) for (const f of B.foes) if (!f.dead && f !== B.big && f.hp < f.max && B.t - (f.lastHit || 0) > 2) f.hp = Math.min(f.max, f.hp + f.max * 0.12);
   if (B.haz.length) {
