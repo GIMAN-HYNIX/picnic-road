@@ -429,6 +429,19 @@ const HERO_COS = {
 /* 꾸미기 종류: 머리색(dye), 머리 장식(head, 투구 대신 보여요), 얼굴(face), 등(back, 망토 대신 보여요) */
 const cosType = k => (DOLL.COS[k] && DOLL.COS[k].t) || 'dye';
 const COS_T = [['dye', '머리색'], ['head', '머리 장식'], ['face', '얼굴'], ['back', '등']];
+/* 무한의 탑 꾸미기: 층마다 하나씩, 기존 모양에 새 색을 입혀서 만들어요 (tw + 층 번호) */
+const TW_PAL = [['노을', ['#FFC9A0', '#F07A4A', '#A8402A']], ['민트', ['#C8F7E4', '#4CCFA0', '#1E7A60']], ['라벤더', ['#E6D6FF', '#A47FE8', '#5E3FA0']], ['체리', ['#FFB8C8', '#E8325A', '#8E1438']], ['레몬', ['#FFF6A8', '#F2D23C', '#A88A10']], ['하늘', ['#D2EEFF', '#5AAEF0', '#2A5EA0']], ['초코', ['#D8A878', '#8A5430', '#4A2814']], ['솜사탕', ['#FFE0F0', '#FF9ACD', '#C0508A']],
+  ['밤하늘', ['#8C9CE8', '#3A3E9A', '#1A1A50']], ['에메랄드', ['#A8F0B8', '#2EB860', '#126830']], ['루비', ['#FF9AA8', '#D0203E', '#701020']], ['황금', ['#FFF0A0', '#F0B020', '#9A6200']], ['얼음', ['#F4FCFF', '#A8E0F4', '#5A9AB8']], ['복숭아', ['#FFE2CC', '#FFA888', '#C86450']], ['포도', ['#D8B0F0', '#8A3ACA', '#4A1478']], ['말차', ['#E0F0B0', '#8AB040', '#4A6A18']]];
+const TW_SHAPE = { head: ['bigbow', 'catears', 'bunny', 'halo', 'flower'], dye: ['dye'], face: ['shades', 'specs', 'hearts'], back: ['angel', 'devil'] };
+const TW_COL = { bigbow: c => ({ q: c[1], Q: c[2] }), catears: c => ({ e: c[1], k: c[0] }), bunny: c => ({ W: c[0], k: c[1] }), halo: c => ({ G: c[0] }), flower: c => ({ k: c[1], G: c[0], L: c[2] }), shades: c => ({ e: c[2], N: c[1] }), specs: c => ({ G: c[1] }), hearts: c => ({ q: c[1], k: c[0] }), angel: c => ({ W: c[0], V: c[1] }), devil: c => ({ U: c[1], u: c[2] }) };
+function ensureTw(k) {
+  if (HERO_COS[k] || !/^tw\d+$/.test(k)) return k; const f = +k.slice(2), t = ['head', 'dye', 'face', 'back'][(f - 1) % 4], sh = TW_SHAPE[t], idx = Math.floor((f - 1) / 4), n = TW_PAL.length * sh.length, c = idx % n, round = Math.floor(idx / n);
+  const [pn, col] = TW_PAL[(c * 7 + (f % 3)) % TW_PAL.length], shape = sh[Math.floor(c / TW_PAL.length)], star = round ? ' ' + '★'.repeat(Math.min(3, round)) : '';
+  if (t === 'dye') HERO_COS[k] = { name: `${pn} 머리${star}`, ramp: col, tw: f };
+  else { const b = DOLL.COS[shape]; HERO_COS[k] = { name: `${pn} ${HERO_COS[shape].name}${star}`, tw: f }; DOLL.COS[k] = { t: b.t, L: b.L, wide: b.wide, col: TW_COL[shape](col), shades: shape === 'shades' }; }
+  return k;
+}
+for (const k of (S.cos && S.cos.hero) || []) ensureTw(k);
 if (!S.heroLook || typeof S.heroLook !== 'object') S.heroLook = {};
 const lookNow = () => ({ dye: S.heroCos, ...S.heroLook });
 /* 주인공 그림 위에 장비를 그려요. 옷·장갑·신발은 색을 바꾸고, 투구는 머리 위에, 망토는 몸 뒤에 */
@@ -1159,7 +1172,7 @@ function startBattle(kind, floor, onEnd, stg) {
   if (!headless) {
     ZOOM = 1; show('battle'); resize();
     $('#bossBar').hidden = true; $('#potHud').innerHTML = run.potion ? svg(ICON.cocoa) : '';
-    if (stg) { toast(`${B.stageN}. ${stg.n}`); const hint = stg.boss ? `45초 뒤에 ${FOES[stg.boss].name}이(가) 나타나요` : B.g.length ? B.g.map(k => GIM[k].hint).join(' · ') : '2분만 버텨요!'; const b0 = B; setTimeout(() => { if (B === b0 && !B.over) toast(hint); }, 2400); } else toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
+    if (stg) { toast(stg.tower ? stg.n : `${B.stageN}. ${stg.n}`); const hint = stg.boss ? `45초 뒤에 ${FOES[stg.boss].name}이(가) 나타나요` : B.g.length ? B.g.map(k => GIM[k].hint).join(' · ') : '2분만 버텨요!'; const b0 = B; setTimeout(() => { if (B === b0 && !B.over) toast(hint); }, 2400); } else toast(kind === 'boss' ? '3분 뒤에 보스가 나타나요' : kind === 'elite' ? '1분 30초 뒤에 엘리트가 나타나요' : '3분만 버텨요!');
     if (window.__dbg.autoAll) B.auto = true;
     last = performance.now(); requestAnimationFrame(frame);
   }
@@ -2254,14 +2267,15 @@ function renderBar() {
 function renderMap() {
   const N = STAGES.length, rowH = 84, H = N * rowH + 60, xs = [50, 74, 50, 26], pos = i => [xs[i % 4], (H - 46 - i * rowH) / H * 100]; let lines = '';
   for (let i = 0; i < N - 1; i++) { const [a, b] = pos(i), [c, d] = pos(i + 1); lines += `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"${i + 2 <= run.stage ? ' class="walked"' : ''}/>`; }
-  const m = $('#mapBox'); m.innerHTML = `<div class="map-in" style="height:${H}px"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg><p class="soon">다음 스테이지는 곧 열려요</p></div>`;
+  const m = $('#mapBox'); m.innerHTML = `<div class="map-in" style="height:${H}px"><svg class="roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>${towerOpen() ? '' : '<p class="soon">다음 스테이지는 곧 열려요</p>'}</div>`;
+  if (towerOpen()) { const b = el('button', 'node tower', `<span class="twi">🗼</span><b class="sn2">${towerNext()}층</b>`); b.type = 'button'; b.dataset.id = 'tw'; b.style.left = '50%'; b.style.top = '-10px'; b.setAttribute('aria-label', `무한의 탑 ${towerNext()}층`); m.firstElementChild.appendChild(b); }      /* 지도 맨 위: 무한의 탑 */
   STAGES.forEach((s, i) => {
     const n = i + 1, [x, y] = pos(i), dn = n <= run.stage, open = n === run.stage + 1;
     const b = el('button', `node${s.boss ? ' boss' : ''}${dn ? ' done' : ''}${open ? ' open' : ''}${!dn && !open ? ' lock' : ''}`, s.boss ? `<img src="img/${FOES[s.boss].img}.png" alt=""><b class="sn2">${n}</b>` : `<b class="sn">${n}</b>`);
     b.type = 'button'; b.dataset.id = n; b.style.left = x + '%'; b.style.top = y + '%'; b.setAttribute('aria-label', `스테이지 ${n} ${s.n}` + (dn ? ', 깬 곳' : open ? ', 지금 도전할 곳' : ', 아직 잠긴 곳'));
     m.firstElementChild.appendChild(b);
   });
-  const t = m.querySelector('.node.open') || [...m.querySelectorAll('.node.done')].pop();
+  const t = m.querySelector('.node.open') || (towerOpen() && run.stage >= STAGES.length && m.querySelector('.node.tower')) || [...m.querySelectorAll('.node.done')].pop();
   if (t) m.scrollTo({ top: t.offsetTop + 56 - m.clientHeight * 0.62, behavior: 'instant' });
 }
 function info(html, goId) { $('#info').innerHTML = `<div>${html}</div>${goId != null ? `<button class="cta" type="button" id="btnGo" data-id="${goId}">들어가기</button>` : ''}`; }
@@ -2277,8 +2291,8 @@ function pickNode(id, quiet) {
   const what = s.boss ? `보스전. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. 잡으면 이기고 장비 5개를 받아요.${dn ? '' : ` <b>처음 잡으면 꾸미기나 펫도 받아요.${legUnlocked() ? ' 전설 조각 2~3개도 받아요.' : ''}</b>`}${id === 100 && !S.pet2On ? ' <b>여기를 깨면 펫을 두 마리 데리고 다닐 수 있어요!</b>' : ''}` : s.g.length ? s.g.map(k => `<b>${GIM[k].name}</b> ${GIM[k].desc}`).join(' ') + ' 2분을 버티면 이기고 장비 3개를 받아요.' : '특별한 일 없이 2분만 버티면 이기고 장비 3개를 받아요.';
   info(`<h3>${id}. ${s.n}</h3><p>${lock ? '앞 스테이지를 먼저 깨야 열려요.' : (dn ? '이미 깬 곳이에요. 다시 하면 경험치를 더 모을 수 있어요. ' : '<b>처음 깨면 이 판에서 얻은 경험치를 한 번 더 받아요.</b> ') + what}</p>`, lock ? null : id);
 }
-$('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) pickNode(+b.dataset.id); });
-$('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) enter(+b.dataset.id); });
+$('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) { if (b.dataset.id === 'tw') pickTower(); else pickNode(+b.dataset.id); } });
+$('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) { if (b.dataset.id === 'tw') enterTower(); else enter(+b.dataset.id); } });
 $('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; sfx.tap(); if (b.dataset.synth) { synthSheet(() => { persist(); renderBar(); }); return; } eqSheet(b.dataset.slot); });
 
 /* ───── 무기 보기 ───── */
@@ -2416,7 +2430,7 @@ function synthSheet(back) {
 }
 function cosSheet(back) {
   const draw = () => { const own = S.cos.hero || [], cur = lookNow();
-    sheet(`<h2 id="cardTitle">캐릭터 꾸미기</h2><p>보스를 잡으면 가끔 꾸미기 아이템을 받아요. 머리 장식은 투구 대신, 날개는 망토 대신 보여요. 능력치는 그대로예요.</p><div class="eqhero cosme"><img src="${heroUrl(4)}" alt="내 캐릭터"></div>${COS_T.map(([t, lab]) => { const l = own.filter(k => cosType(k) === t); return `<h3 class="sub3">${lab}</h3><div class="cosrow big"><button class="cos${cur[t] ? '' : ' on'}" type="button" data-act="cos" data-t="${t}" data-id=""><img class="pxi" src="${cosPreview('', t)}" alt=""><span>${t === 'dye' ? '기본' : '없음'}</span></button>${l.map(k => `<button class="cos${cur[t] === k ? ' on' : ''}" type="button" data-act="cos" data-t="${t}" data-id="${k}"><img class="pxi" src="${cosPreview(k)}" alt=""><span>${HERO_COS[k].name}</span></button>`).join('')}</div>`; }).join('')}<button class="cta" type="button" data-act="close" data-pref>돌아가기</button>`,
+    sheet(`<h2 id="cardTitle">캐릭터 꾸미기</h2><p>보스를 잡거나 무한의 탑을 오르면 꾸미기 아이템을 받아요. 머리 장식은 투구 대신, 날개는 망토 대신 보여요. 능력치는 그대로예요.</p><div class="eqhero cosme"><img src="${heroUrl(4)}" alt="내 캐릭터"></div>${COS_T.map(([t, lab]) => { const l = own.filter(k => cosType(k) === t); return `<h3 class="sub3">${lab}</h3><div class="cosrow big"><button class="cos${cur[t] ? '' : ' on'}" type="button" data-act="cos" data-t="${t}" data-id=""><img class="pxi" src="${cosPreview('', t)}" alt=""><span>${t === 'dye' ? '기본' : '없음'}</span></button>${l.map(k => `<button class="cos${cur[t] === k ? ' on' : ''}" type="button" data-act="cos" data-t="${t}" data-id="${k}"><img class="pxi" src="${cosPreview(k)}" alt=""><span>${HERO_COS[k].name}</span></button>`).join('')}</div>`; }).join('')}<button class="cta" type="button" data-act="close" data-pref>돌아가기</button>`,
       (act, b) => { if (act === 'close') { closeSheet(); back(); return; } const t = b.dataset.t, id = b.dataset.id || null; if (t === 'dye') S.heroCos = id; else S.heroLook[t] = id; heroDirty(); persist(); sfx.tap(); const sc = cardEl.scrollTop; draw(); cardEl.scrollTop = sc; }); };
   draw();
 }
@@ -2436,9 +2450,46 @@ function afterBattle(id, r) {
   if (xpBonus) steps.push(next => noteSheet(`첫 클리어 보너스! 경험치 +${xpBonus}`, `처음 깬 스테이지라서 이번 판에서 얻은 경험치를 한 번 더 받았어요.${lvUp ? ` 레벨이 ${lvUp} 올랐어요!` : ''}`, 'star', next));
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
   steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
-  if (first && id === STAGES.length) steps.push(next => noteSheet('지금 열린 마지막 스테이지까지 깼어요!', '새 스테이지가 곧 열려요. 그동안 깬 곳을 다시 돌면서 더 강해질 수 있어요.', 'chest', next));
+  if (first && id === STAGES.length) steps.push(next => noteSheet('지금 열린 마지막 스테이지까지 깼어요!', '새 스테이지가 곧 열려요. 그동안 지도 맨 위의 무한의 탑을 올라 보세요. 층마다 꾸미기를 받아요.', 'chest', next));
   const go = () => { const st = steps.shift(); if (st) st(go); else { persist(); showMap(); } };
   go();
+}
+/* ───── 무한의 탑: 100스테이지를 깨면 열려요. 층마다 기믹이 무작위로 섞이고, 처음 깨는 층마다 꾸미기를 하나씩 받아요 ───── */
+const towerOpen = () => run && run.stage >= 100;
+const towerNext = () => ((run.tw && run.tw.best) || 0) + 1;
+const TW_BOSS = ['boss', 'golem', 'boss2', 'knight', 'boss3', 'queen'], TW_BAD = [['fog', 'blackout'], ['giant', 'swarm'], ['ice', 'wind'], ['shrink', 'vortex'], ['fog', 'ghost']];
+function towerStage(f) {
+  let sd = (f * 2654435761) >>> 0; const rr = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };      /* 층 번호로 정해지는 무작위: 같은 층은 늘 같은 구성 */
+  const pool = Object.keys(GIM), g = [], want = f % 10 === 0 ? 1 : f <= 5 ? 1 : 2;
+  while (g.length < want) { const k = pool[Math.floor(rr() * pool.length)]; if (g.includes(k) || TW_BAD.some(([a, b]) => (a === k && g.includes(b)) || (b === k && g.includes(a)))) continue; g.push(k); }
+  return { n: `무한의 탑 ${f}층`, g, boss: f % 10 === 0 ? TW_BOSS[(f / 10 - 1) % TW_BOSS.length] : undefined, tower: f };
+}
+function pickTower() {
+  picked = 'tw'; document.querySelectorAll('.node').forEach(b => b.classList.toggle('sel', b.dataset.id === 'tw')); sfx.tap();
+  const f = towerNext(), s = towerStage(f), k = ensureTw('tw' + f), best = (run.tw && run.tw.best) || 0;
+  const what = s.boss ? `보스층. 45초 뒤에 ${FOES[s.boss].name}이(가) 나타나요. ${s.g.map(x => `<b>${GIM[x].name}</b>`).join(' ')}` : s.g.map(x => `<b>${GIM[x].name}</b> ${GIM[x].desc}`).join(' ');
+  info(`<h3>무한의 탑 ${f}층</h3><p>끝없이 올라가는 탑이에요. 층마다 기믹이 바뀌고 점점 강해져요. 지금까지 ${best}층까지 올랐어요. ${what}</p><div class="twrew"><img class="pxi" src="${cosPreview(k)}" alt=""><span>깨면 받는 꾸미기<br><b>${HERO_COS[k].name}</b></span></div>`, 'tw');
+}
+function enterTower() {
+  if (!towerOpen()) return; const f = towerNext(), s = towerStage(f), n = 100 + f; sfx.tap(); stagePrep(n); persist();
+  startBattle(s.boss ? 'boss' : 'battle', stageDiff(n), r => towerAfter(f, r), s);
+}
+function towerAfter(f, r) {
+  const s = towerStage(f);
+  if (!r.won) { S.meta.pts += 1; S.meta.total += 1; recordRun(false, 1, null); persist(); showMap();
+    const steps = []; for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
+    steps.push(() => sheet(`<div class="pic"><img src="img/${s.boss ? FOES[s.boss].img : 'jelly'}.png" alt=""></div><h2 id="cardTitle">쓰러졌어요</h2><p>무한의 탑 ${f}층에서 쓰러졌어요. 적 ${r.kills}마리를 잡았어요. 얻은 경험치와 레벨은 그대로 남아요.</p><p class="pts">설탕 별 <b>+1</b>개 · 지금 ${S.meta.pts}개</p><button class="cta" type="button" data-act="retry" data-pref>다시 도전하기</button><button class="btn" type="button" data-act="close">지도로</button>`,
+      act => { closeSheet(); if (act === 'retry') enterTower(); else pickTower(); }));
+    const go = () => { const st = steps.shift(); if (st) st(go); }; go(); return; }
+  const tw = run.tw || (run.tw = { best: 0 }), first = f > tw.best; if (first) tw.best = f;
+  const stars = first ? (s.boss ? 6 : 3) + M('star') : 1; S.meta.pts += stars; S.meta.total += stars;
+  const k = ensureTw('tw' + f), got = first && !(S.cos.hero || []).includes(k); if (got) S.cos.hero.push(k);
+  recordRun(true, stars, null); persist(); showMap();
+  const steps = [next => winFx(s.boss ? '보스 격파!' : `탑 ${f}층 돌파!`, 0, 0, next, !!s.boss)];
+  { const items = Array.from({ length: s.boss ? 5 : 3 }, (_, q) => rollItem(100 + f, s.boss && q === 0 ? 1 : 0)); steps.push(next => rewardSheet(items, got ? { t: 'hero', k } : null, `탑 ${f}층 보상`, next)); }
+  for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
+  steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
+  const go = () => { const st = steps.shift(); if (st) st(go); else { persist(); showMap(); pickTower(); } }; go();
 }
 /* 막을 깼어요: 보상을 받고 다음 막의 새 지도로 */
 function noteSheet(title, text, icon, next) {

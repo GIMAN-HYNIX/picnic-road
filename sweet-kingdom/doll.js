@@ -79,8 +79,9 @@ const DOLL = (() => {
   function compose(eq, look) {
     look = typeof look === 'string' ? { dye: look } : look || {};
     const dye = look.dye, hair = dye && HERO_COS[dye] && HERO_COS[dye].ramp ? HERO_COS[dye].ramp : ['#C9794A', '#9A4E28', '#5E2A16'], px = new Array(W * H).fill(null), V = it => it ? varOf(it) : 0;
+    const cp = (c, b) => c.col ? { ...b, ...c.col } : b;      /* 무한의 탑 꾸미기는 같은 모양에 색만 바꿔요 */
     const cs = k => look[k] && COS[look[k]] && COS[look[k]].t === k ? COS[look[k]] : null, head = cs('head'), face = cs('face'), back = cs('back'), base = pal(null, hair);
-    if (back) paint(px, back.L, base, true);
+    if (back) paint(px, back.L, cp(back, base), true);
     else if (eq.cape) { const p = pal(eq.cape, hair); p.H = WCOL[fxOf(eq.cape).w] || p.A; paint(px, CAPE, p); }
     paint(px, BASE, base);
     if (!eq.helm && !head) for (const [x, y, ch] of BOW) px[(y + OFF) * W + x + MG] = base[ch];
@@ -90,9 +91,9 @@ const DOLL = (() => {
     if (eq.gloves) { const p = pal(eq.gloves, hair); if (V(eq.gloves) === 1) { p.A = '#FFFFFF'; p.B = ramp(eq.gloves.g)[0]; } paint(px, GLOVES[V(eq.gloves)], p); }
     if (eq.helm && !head) { paint(px, HELM[V(eq.helm)], pal(eq.helm, hair)); }
     extras(px, head ? { ...eq, helm: null } : eq, hair, V);
-    if (face) paint(px, face.L, base);
-    if (head) paint(px, head.L, base);
-    shadesOn = look.face === 'shades';
+    if (face) paint(px, face.L, cp(face, base));
+    if (head) paint(px, head.L, cp(head, base));
+    shadesOn = look.face === 'shades' || !!(face && face.shades);
     const c = toCanvas(px, 'sym'), q = c.getContext('2d'); c.mini = shrink(px); shadesOn = false;
     if (SLOTS.some(s => eq[s] && eq[s].g === 4)) { const cx = c.width >> 1; sparkle(q, [[cx - 5, 22 + OFF - c.top], [cx + 4, 25 + OFF - c.top], [cx - 8, 3 + OFF - c.top], [cx + 7, 1 + OFF - c.top]].filter(([, y]) => y > 0 && y < c.height - 1)); }
     return c;
