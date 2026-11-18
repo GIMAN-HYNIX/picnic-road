@@ -57,7 +57,7 @@ let run = null;
 /* ───── 펫: 모험이 끝날 때마다 하나를 얻어요. 같은 펫을 또 얻으면 레벨이 올라요 (최고 Lv5) ───── */
 const PETS = {
   kong: { name: '젤리곰 콩이', desc: '몇 초마다 말랑한 젤리 방패를 씌워 줘요. 방패는 공격 한 번을 막고 주변 적을 튕겨내요.', lvDesc: lv => `${(14 - 1.6 * lv).toFixed(1)}초마다 방패${lv >= 5 ? ', 막을 때 주변 적 잠깐 기절' : ''}` },
-  shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `모험마다 ${lv >= 5 ? 3 : lv >= 3 ? 2 : 1}번, 하트 ${1 + (lv >= 2) + (lv >= 4)}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
+  shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `한 판에 1번, 하트 ${lv}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
   byul: { name: '별사탕 요정 별이', desc: '가까운 적에게 별사탕을 쏴요. 스테이지가 높아질수록 별사탕도 세져요.', lvDesc: lv => `${Math.max(0.35, 1.1 - 0.15 * lv).toFixed(2)}초마다, 기본 피해 ${8 + 4 * lv}${lv >= 5 ? ', 적 1마리 꿰뚫기' : ''}` }
 };
 const PMAX = 5;
@@ -186,10 +186,10 @@ function petUpdate1(P, dt) {
 /* 천사 슈: 부활 + 적 전부 없애기 (보스는 일부만) */
 function petRevive() {
   const P = (B.pets || []).find(q => q.id === 'shu'); if (!P) return false;
-  const uses = P.lv >= 5 ? 3 : P.lv >= 3 ? 2 : 1; if ((run.petUsed || 0) >= uses) return false;
+  const uses = 1;      /* 부활은 한 판에 한 번만 */ if ((run.petUsed || 0) >= uses) return false;
   run.petUsed = (run.petUsed || 0) + 1; const p = B.p;
   if (!headless) { p.hp = 0; p.inv = 99; B.foeShots = []; B.telegraphs = []; B.haz = []; B.rv = { t: 0, P, lv: P.lv, hx: P.x, hy: P.y, step: 0, hit: new Set() }; return true; }      /* 쓰러지는 모습 → 슈의 거대한 빛 → 부활 연출 (rvTick) */
-  p.hp = Math.min(p.max, 1 + (P.lv >= 2) + (P.lv >= 4)); p.inv = 2.5;
+  p.hp = Math.min(p.max, P.lv); p.inv = 2.5;      /* 레벨만큼 하트를 채워요 */
   for (const f of B.foes) { if (f.dead) continue; if (f === B.big) hurtFoe(f, f.max * (0.08 + 0.02 * P.lv) / B.st.dmg, { id: 'pet' }); else { f.hp = 0; killFoe(f, { id: 'pet' }); } }
   B.foeShots = []; B.telegraphs = [];
   if (!headless) { toast('천사 슈가 다시 일으켜 줬어요!'); sfx.revive(); sfx.bigKill(); B.flashScr = { col: '255,255,255', t: 0.6, max: 0.6 }; fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.9, max: 0.9 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 420, life: 0.6, max: 0.6, col: '#FFE45C', w: 8 }); }
@@ -207,7 +207,7 @@ function rvTick(dt) {
   if (t >= 1.6 && t < 2.4) { const rr = (t - 1.6) / 0.65 * 760; for (const f of B.foes) { if (f.dead || f === B.big || r.hit.has(f)) continue; if ((f.x - P.x) ** 2 + (f.y - P.y) ** 2 < rr * rr) { r.hit.add(f); fxAdd({ k: 'beam', x: f.x, y: f.y, life: 0.5, max: 0.5 }); burst(f.x, f.y - 10, '#FFE45C', 5, 160); f.hp = 0; killFoe(f, { id: 'pet' }); } } }      /* 빛이 닿는 순서대로 적이 사라져요 */
   if (cross(2.3)) { for (const f of B.foes) if (!f.dead && f !== B.big) { f.hp = 0; killFoe(f, { id: 'pet' }); } B.foes = B.foes.filter(f => !f.dead); }
   if (cross(2.4)) { sfx.revive(); fxAdd({ k: 'beam', x: p.x, y: p.y, life: 1.0, max: 1.0 }); }
-  if (cross(2.65)) { p.hp = Math.min(p.max, 1 + (r.lv >= 2) + (r.lv >= 4)); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.6, max: 0.6, col: '#FFE45C', w: 8 }); burst(p.x, p.y - 20, '#FFFFFF', 18, 260); toast('천사 슈가 다시 일으켜 줬어요!'); B.heartPop = 0.5; }
+  if (cross(2.65)) { p.hp = Math.min(p.max, r.lv); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.6, max: 0.6, col: '#FFE45C', w: 8 }); burst(p.x, p.y - 20, '#FFFFFF', 18, 260); toast('천사 슈가 다시 일으켜 줬어요!'); B.heartPop = 0.5; }
   for (const f of B.fx) { f.life -= dt; if (f.vx != null) { f.x += f.vx * dt; f.y += f.vy * dt; if (f.g) f.vy += f.g * dt; else { f.vx *= 0.9; f.vy *= 0.9; } } } B.fx = B.fx.filter(f => f.life > 0);
   for (const q of B.texts) { q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 380 * dt; } B.texts = B.texts.filter(q => q.life > 0);
   if (B.shake > 0) B.shake -= dt;
