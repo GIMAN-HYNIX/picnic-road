@@ -763,7 +763,7 @@ function castLeg(w) {
   }
   if (id === 'macaron') {      /* 마카롱 은하: 몸 주위로 소용돌이가 번지며 적을 끌어당겨 터뜨려요 */
     const T = 1.5 + 0.3 * up; at(0, () => lfxAdd({ k: 'galaxy', life: T, max: T }));
-    legTick(W, T, 0.1, u => { const rr = 60 + u * 330; for (const f of alive()) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1; if (d < 460) { f.x += dx / d * 24; f.y += dy / d * 24; } if (Math.abs(d - rr) < 80) hurtFoe(f, D(95), { id, noAcc: true }, -dx, -dy); } });
+    legTick(W, T, 0.1, u => { const rr = 60 + u * 330; for (const f of alive()) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1; if (d < 460 && !FOES[f.type].noKb && f !== B.big) { const m = d > rr ? 24 : -24; f.x += dx / d * m; f.y += dy / d * m; }      /* 소용돌이 고리 쪽으로 모아요. 나한테 달라붙지 않고, 안쪽 적은 고리 밖으로 밀려나요 */ if (Math.abs(d - rr) < 80) hurtFoe(f, D(95), { id, noAcc: true }, -dx, -dy); } });
     at(T, () => { big(p.x, p.y, 360 + 80 * up, 400 + 80 * up, '#FF8FB8'); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 360, life: 0.4, max: 0.4, col: '#FF8FB8', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 280, life: 0.45, max: 0.45, col: '#C77DFF', w: 10 }); shake(0.7); flash('255,200,230', 0.25); });
   }
   if (id === 'honey') {      /* 꿀 폭포: 하늘에서 쏟아지는 꿀 기둥, 그 뒤로 꿀 바다 */
