@@ -1389,32 +1389,52 @@ const lStarTxt = id => lStar(id) ? ' ' + '★'.repeat(lStar(id)) : '';
 function epicRoll(f) {
   if (!run.leg) return; const ids = Object.keys(run.leg).filter(id => lStar(id) < LSTAR_MAX); if (!ids.length) return;
   const ch = f === B.big ? 0.03 : FOES[f.type].big ? 0.015 : EPIC_P * (f.xpK || 1);      /* 보스 3%, 꼬마 대장 1.5%, 일반 몹은 아주 낮게: 평균 10판에 1개 꼴 */ if (Math.random() >= ch) return;
-  const id = pick(ids); if (headless) { epicGet(id); return; }
-  (B.epics || (B.epics = [])).push({ x: f.x, y: f.y, id, t: 0, z: 0, vz: 260 }); B.hitstop = Math.max(B.hitstop, 0.22); B.slow = Math.max(B.slow, 1.5); B.flashScr = { col: '255,190,60', t: 0.5, max: 0.5 }; B.shake = Math.max(B.shake, 0.4); sfx.epic();
-  textAdd(f.x, f.y - 40, '전설 별 조각!', '#FFB020', true);
+  const id = pick(ids); epicGet(id); if (headless) return;      /* 떨어지는 순간 바로 얻어요. 판이 끝나도 사라지지 않아요 */
+  (B.epics || (B.epics = [])).push({ x: f.x, y: f.y, id, t: 0 }); B.hitstop = Math.max(B.hitstop, 0.25); B.slow = Math.max(B.slow, 1.6); B.shake = Math.max(B.shake, 0.5); sfx.epic();
+  textAdd(f.x, f.y - 46, '전설 별 조각!', '#FF4FD8', true);
 }
 function epicGet(id) {
   const L = run.lsp || (run.lsp = {}), T = run.lstar || (run.lstar = {}); L[id] = (L[id] || 0) + 1; const need = LSTAR_N[T[id] || 0];
-  if (L[id] >= need) { L[id] -= need; T[id] = (T[id] || 0) + 1; if (!headless) { toast(`${LEG[id].name} ★${T[id]} 달성! 피해 +${12 * T[id]}%${T[id] === 3 || T[id] === 5 ? ', 쿨타임 감소' : ''}`); sfx.leg(); B.flashScr = { col: '255,220,120', t: 0.4, max: 0.4 }; textAdd(B.p.x, B.p.y - 60, `${LEG[id].name} ★${T[id]}`, '#FFD23F', true); } }
-  else if (!headless) toast(`${LEG[id].name} 별 조각 ${L[id]}/${need}`);
+  if (L[id] >= need) { L[id] -= need; T[id] = (T[id] || 0) + 1; if (!headless) { toast(`${LEG[id].name} ★${T[id]} 달성! 피해 +${12 * T[id]}%${T[id] === 3 || T[id] === 5 ? ', 쿨타임 감소' : ''}`); setTimeout(() => sfx.leg(), 700); textAdd(B.p.x, B.p.y - 60, `${LEG[id].name} ★${T[id]}`, '#FF4FD8', true); } }
+  else if (!headless) toast(`${LEG[id].name} 별 조각 ${L[id]}/${need} 획득!`);
+  if (!headless) persist();
 }
+/* 별 조각 결정: 떨어진 뒤 10초 동안 바닥에 남아요. 직접 가서 닿으면 화면의 일반 몬스터가 전부 사라져요 */
+const EPIC_GATHER = 0.9, EPIC_LIFE = 11;
 function epicUpdate(dt) {
   if (!B.epics || !B.epics.length) return; const p = B.p;
-  for (const e of B.epics) { e.t += dt; if (e.z > 0 || e.vz > 0) { e.z += e.vz * dt; e.vz -= 900 * dt; if (e.z <= 0) { e.z = 0; e.vz = e.vz < -120 ? -e.vz * 0.35 : 0; } }
-    if (e.t > 1.1) { const dx = p.x - e.x, dy = p.y - 20 - e.y, d = Math.hypot(dx, dy) || 1, sp = 200 + (e.t - 1.1) * 1400; e.x += dx / d * Math.min(d, sp * dt); e.y += dy / d * Math.min(d, sp * dt); if (!headless && Math.random() < 0.6) fxAdd({ k: 'flash', x: e.x, y: e.y, r: 6, life: 0.18, max: 0.18, col: '#FFD23F' });
-      if (d < 22) { e.done = true; epicGet(e.id); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: 120, life: 0.4, max: 0.4, col: '#FFD23F', w: 6 }); burst(p.x, p.y - 20, '#FFE27A', 14, 220); } } }
+  for (const e of B.epics) { e.t += dt; if (e.t > EPIC_LIFE) { e.done = true; continue; }
+    if (e.t > EPIC_GATHER && (p.x - e.x) ** 2 + (p.y - e.y) ** 2 < 36 * 36) { e.done = true; epicBomb(e); } }
   B.epics = B.epics.filter(e => !e.done);
 }
-/* 에픽 빛기둥: 하늘에서 떨어진 자리까지 금빛 기둥, 바닥에서 도는 빛살, 떠오르는 반짝이 */
+function epicBomb(e) {
+  const p = B.p; B.noSplit = true; B.bombing = true; let n = 0;
+  for (const f of B.foes.slice()) { if (f.dead || f === B.big || f.immortal || /^boss|queen/.test(f.type)) continue; f.hp = 0; killFoe(f, null); n++; }
+  B.noSplit = false; B.bombing = false; B.foeShots = []; B.telegraphs = B.telegraphs.filter(t => !(t.f && t.f.dead));
+  if (headless) return; sfx.boom(); sfx.bigKill(); sfx.epic(); B.shake = Math.max(B.shake, 0.9); B.hitstop = Math.max(B.hitstop, 0.18); B.flashScr = { col: '200,120,255', t: 0.6, max: 0.6 };
+  for (const [r, w, c] of [[60, 10, '#FFFFFF'], [200, 9, '#4FE8FF'], [400, 8, '#FF4FD8'], [640, 7, '#9B3DFF'], [900, 6, '#FFFFFF']]) fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 10, to: r, life: 0.6, max: 0.6, col: c, w });
+  burst(p.x, p.y - 20, '#FF4FD8', 30, 480); burst(p.x, p.y - 20, '#4FE8FF', 24, 380); toast(n ? `별의 폭발! 몬스터 ${n}마리가 사라졌어요` : '별의 폭발!');
+}
+/* 연출: ① 0.9초 동안 화면 끝에서 강한 기운이 그 자리로 빨려 들어요 ② 터지면서 보라·하늘빛 기둥이 서요 ③ 바닥에 결정이 남아요. 투명하지 않게, 전설 이펙트 위에 그려요 */
+const EP_C = ['#FFFFFF', '#4FE8FF', '#FF4FD8', '#9B3DFF', '#2A0650'];
 function epicDraw() {
-  if (!B.epics || !B.epics.length) return;
-  for (const e of B.epics) { const ex = X(e.x), ey = Y(e.y), zz = Math.round(e.z / WP), beam = e.t < 1.25 ? Math.min(1, e.t * 5) * (e.t > 1.0 ? (1.25 - e.t) / 0.25 : 1) : 0, pu = 1 + 0.25 * Math.sin(e.t * 18);
-    if (beam > 0) { const w = Math.max(2, Math.round(9 * pu * beam));
-      ctx.globalAlpha = 0.28 * beam; R('#FF8A1F', ex - w * 3, 0, w * 6, ey + 4); ctx.globalAlpha = 0.55 * beam; R('#FFC23D', ex - w * 2, 0, w * 4, ey + 3); ctx.globalAlpha = beam; R('#FFE27A', ex - w, 0, w * 2, ey + 2); R('#FFFFFF', ex - Math.ceil(w / 3), 0, Math.max(1, Math.round(w / 1.5)), ey + 2);
-      for (let i = 0; i < 12; i++) { const sx = ex - w * 2 + ((i * 29) % (w * 4 + 1)), sy = ey - ((i * 41 + e.t * 260) % Math.max(20, ey)); R(i % 2 ? '#FFFFFF' : '#FFE27A', sx, sy, 1, 4 + (i % 3) * 3); }
-      for (let i = 0; i < 10; i++) { const a = i * 0.628 + e.t * 2.4, L = Math.round((26 + (i % 2) * 14) * beam * pu); pline(ex, ey, Math.round(ex + Math.cos(a) * L), Math.round(ey + Math.sin(a) * L * 0.45), i % 2 ? '#FFFFFF' : '#FFC23D', 1); }
-      putDisc(ex, ey + 2, Math.round(30 * pu * beam), Math.round(11 * pu * beam), '#FFC23D', 9); ctx.globalAlpha = 1; }
-    const iy = ey - 8 - zz + Math.round(Math.sin(e.t * 7) * 2); putDisc(ex, iy, 12, 12, '#FFD23F', 8); pdisc(ex, iy, 6, '#B86A00'); pdisc(ex, iy, 5, '#FFD23F'); pdisc(ex, iy - 1, 3, '#FFF3C0'); pstar(ex, iy, 8 + (Math.floor(e.t * 10) % 2) * 2, '#FFFFFF'); }
+  if (!B.epics || !B.epics.length) return; const C = EP_C;
+  for (const e of B.epics) { const ex = X(e.x), ey = Y(e.y), t = e.t, bl = Math.floor(t * 14) % 2, rd = Math.round;
+    if (t < EPIC_GATHER) { const u = t / EPIC_GATHER, R0 = rd((1 - u * u) * Math.max(lw, lh) * 0.6) + 8;
+      for (let i = 0; i < 30; i++) { const a = i * 0.2094 + u * 2.4, r1 = R0 * (0.55 + 0.45 * ((i * 37) % 10) / 10), r2 = Math.max(3, r1 * 0.45); pline(rd(ex + Math.cos(a) * r1), rd(ey + Math.sin(a) * r1), rd(ex + Math.cos(a + 0.3) * r2), rd(ey + Math.sin(a + 0.3) * r2), C[1 + i % 3], i % 3 ? 1 : 2); }      /* 빨려 드는 기운 줄기 */
+      for (let i = 0; i < 44; i++) { const a = i * 0.1428 - u * 6, r = (1 - ((u * 1.7 + i * 0.0613) % 1)) * R0; pstar(rd(ex + Math.cos(a) * r), rd(ey + Math.sin(a) * r * 0.85), 1 + (i % 3 === 0), C[i % 4]); }
+      pcircle(ex, ey, Math.max(4, rd(R0 * 0.42)), C[3], 3); pcircle(ex, ey, Math.max(3, rd(R0 * 0.26)), C[2], 2); pcircle(ex, ey, Math.max(2, rd(R0 * 0.14)), C[1], 2);
+      const cr = rd(4 + u * 12); pdisc(ex, ey, cr + 3, C[4]); pdisc(ex, ey, cr + 1, bl ? C[2] : C[3]); pdisc(ex, ey, Math.max(1, cr - 3), C[1]); pdisc(ex, ey, Math.max(1, cr - 6), C[0]); continue; }
+    const k = t - EPIC_GATHER, burst0 = Math.max(0, 1 - k / 1.4), end = t > EPIC_LIFE - 1 ? Math.max(0, EPIC_LIFE - t) : 1, ww = Math.max(1, rd((4 + 10 * burst0 + bl) * end));
+    if (k < 0.75) { const q = k / 0.75; for (const [m, c, th] of [[1, C[0], 3], [0.82, C[1], 3], [0.64, C[2], 3], [0.46, C[3], 3], [0.28, C[0], 2]]) pcircle(ex, ey, rd(q * m * 260) + 4, c, th); for (let i = 0; i < 16; i++) { const a = i * 0.3927, L = rd((1 - q) * 120 + 20); pline(ex, ey, rd(ex + Math.cos(a) * L * (1 + q)), rd(ey + Math.sin(a) * L * (1 + q) * 0.8), i % 2 ? C[0] : C[2], 2); } }      /* 터지는 순간 */
+    R(C[4], ex - ww * 2 - 2, 0, ww * 4 + 4, ey); R(C[3], ex - ww * 2, 0, ww * 4, ey); R(C[2], ex - rd(ww * 1.35), 0, rd(ww * 2.7), ey); R(C[1], ex - rd(ww * 0.75), 0, Math.max(2, rd(ww * 1.5)), ey); R(C[0], ex - Math.max(1, rd(ww * 0.3)), 0, Math.max(2, rd(ww * 0.6)), ey);      /* 겹겹이 빛기둥 */
+    for (const sd of [-1, 1]) { let x = ex + sd * (ww * 2 + 2), y = 0; const st = Math.max(8, rd(ey / 12)); while (y < ey) { const ny = Math.min(ey, y + st), nx = ex + sd * (ww * 2 + 2 + ((y * 7 + Math.floor(t * 24) * 3) % 7) - 3); pline(x, y, nx, ny, (y / st) % 2 ? C[1] : C[0], 1); x = nx; y = ny; } }      /* 기둥 둘레 번개 */
+    for (let i = 0; i < 18; i++) { const sx = ex - ww * 2 + ((i * 13) % (ww * 4 + 1)), sy = ey - ((i * 37 + t * 320) % Math.max(20, ey)); R(i % 2 ? C[0] : C[1], sx, sy, 1, 5 + (i % 3) * 3); }
+    const rr = rd((24 + 6 * burst0) * Math.max(0.3, end)) + bl; pcircle(ex, ey + 3, rr, C[2], 2); pcircle(ex, ey + 3, rd(rr * 0.68), C[1], 1); for (let i = 0; i < 8; i++) { const a = i * 0.785 + t * 1.6; pline(ex, ey + 3, rd(ex + Math.cos(a) * rr), rd(ey + 3 + Math.sin(a) * rr * 0.5), C[3], 1); }      /* 바닥 마법진 */
+    const iy = ey - 14 + rd(Math.sin(t * 5) * 3), sz = Math.max(3, rd(8 * Math.max(0.5, end)));      /* 결정: 먹으면 폭발 */
+    for (let y = -sz * 2 - 1; y <= sz * 2 + 1; y++) { const hw = rd((sz + 1) * (1 - Math.abs(y) / (sz * 2 + 1))); if (hw >= 0) R(INK, ex - hw - 1, iy + y, hw * 2 + 3, 1); }
+    for (let y = -sz * 2; y <= sz * 2; y++) { const hw = rd(sz * (1 - Math.abs(y) / (sz * 2))); if (hw >= 0) R(y < -sz * 0.6 ? C[1] : y < sz * 0.6 ? C[2] : C[3], ex - hw, iy + y, hw * 2 + 1, 1); }
+    R(C[0], ex - 1, iy - sz, 2, sz); pstar(ex, iy, sz + 5 + bl * 3, C[0]); }
 }
 function killFoe(f, w) {
   f.dead = true; B.kills++; epicRoll(f);
@@ -2135,10 +2155,10 @@ function draw() {
     else if (f.k === 'ray') { const c = Math.cos(f.a), sn = Math.sin(f.a), L = f.len / WP, x0 = X(f.x), y0 = Y(f.y), t = k > 0.5 ? 5 : 3; pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), INK, t + 2); pline(x0, y0, Math.round(x0 + c * L), Math.round(y0 + sn * L), k > 0.6 ? '#FFFFFF' : f.col, t); }
     else { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, (f.w || 5) > 5 && k > 0.4 ? 2 : 1); if (k > 0.6 && r > 3) pcircle(fx, fy, r - 2, f.col); } }
   }
-  epicDraw();
   /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
   if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
     legDraw(); ctx.globalAlpha = 0.42; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
+  epicDraw();      /* 별 조각은 전설 이펙트 위에 또렷하게 */
   if (B.rv) rvDraw();
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
   ctx.drawImage(vignette(), 0, 0);
@@ -2156,13 +2176,14 @@ function draw() {
     tx.fillStyle = t.col === '#4A2040' ? '#FFFFFF' : t.col; tx.fillText(t.t, sx, sy);
   }
   /* 화면 밖 자석과 폭탄: 가장자리에 방향 화살표 */
-  for (const [m, bomb] of [...B.magnets.map(o => [o, 0]), ...B.bombs.map(o => [o, 1])]) {
+  for (const [m, bomb] of [...B.magnets.map(o => [o, 0]), ...B.bombs.map(o => [o, 1]), ...(B.epics || []).filter(o => o.t > EPIC_GATHER).map(o => [o, 2])]) {
     const sx = X(m.x) * U, sy = Y(m.y) * U, W = cv2.width, H = cv2.height, top = 118 * d, pad = 26 * d;
     if (sx > 0 && sx < W && sy > top - 40 * d && sy < H) continue;
     const ax = Math.max(pad, Math.min(W - pad, sx)), ay = Math.max(top, Math.min(H - pad * 1.6, sy)), a = Math.atan2(sy - ay, sx - ax), blink = Math.floor(B.t * 5) % 2, s = 9 * d;
     tx.save(); tx.translate(Math.round(ax), Math.round(ay));
     tx.fillStyle = INK; tx.fillRect(-s - U, -s - U, (s + U) * 2, (s + U) * 2);
-    if (bomb) { tx.fillStyle = blink ? '#FFB02E' : '#E8892E'; tx.fillRect(-s, -s, s * 2, s * 2); tx.fillStyle = INK; tx.beginPath(); tx.arc(0, s * 0.2, s * 0.62, 0, 6.283); tx.fill(); tx.fillStyle = '#6A6890'; tx.fillRect(-s * 0.35, -s * 0.2, s * 0.25, s * 0.25); tx.fillStyle = INK; tx.fillRect(s * 0.15, -s * 0.85, s * 0.3, s * 0.4); tx.fillStyle = blink ? '#FFFFFF' : '#FFD23F'; tx.fillRect(s * 0.3, -s * 1.0, s * 0.35, s * 0.35); }      // 작은 폭탄 그림
+    if (bomb === 2) { tx.fillStyle = blink ? '#FF4FD8' : '#9B3DFF'; tx.fillRect(-s, -s, s * 2, s * 2); tx.fillStyle = '#4FE8FF'; tx.beginPath(); tx.moveTo(0, -s * 0.85); tx.lineTo(s * 0.55, 0); tx.lineTo(0, s * 0.85); tx.lineTo(-s * 0.55, 0); tx.closePath(); tx.fill(); tx.fillStyle = '#FFFFFF'; tx.fillRect(-s * 0.12, -s * 0.5, s * 0.24, s * 0.5); }      // 별 조각 결정
+    else if (bomb) { tx.fillStyle = blink ? '#FFB02E' : '#E8892E'; tx.fillRect(-s, -s, s * 2, s * 2); tx.fillStyle = INK; tx.beginPath(); tx.arc(0, s * 0.2, s * 0.62, 0, 6.283); tx.fill(); tx.fillStyle = '#6A6890'; tx.fillRect(-s * 0.35, -s * 0.2, s * 0.25, s * 0.25); tx.fillStyle = INK; tx.fillRect(s * 0.15, -s * 0.85, s * 0.3, s * 0.4); tx.fillStyle = blink ? '#FFFFFF' : '#FFD23F'; tx.fillRect(s * 0.3, -s * 1.0, s * 0.35, s * 0.35); }      // 작은 폭탄 그림
     else { tx.fillStyle = blink ? '#FF4F6B' : '#E8323C'; tx.fillRect(-s, -s, s * 2, s * 2);
     tx.fillStyle = INK; tx.fillRect(-s * 0.3, -s, s * 0.6, s * 1.2); tx.fillStyle = '#DDE3EA'; tx.fillRect(-s, s * 0.45, s * 0.7, s * 0.55); tx.fillRect(s * 0.3, s * 0.45, s * 0.7, s * 0.55); }      // 작은 자석 그림
     tx.rotate(a); tx.fillStyle = INK; tx.beginPath(); tx.moveTo(s * 2.9 + U, 0); tx.lineTo(s * 1.5 - U, -s - U); tx.lineTo(s * 1.5 - U, s + U); tx.closePath(); tx.fill();
