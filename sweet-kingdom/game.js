@@ -58,7 +58,7 @@ let run = null;
 const PETS = {
   kong: { name: '젤리곰 콩이', desc: '몇 초마다 말랑한 젤리 방패를 씌워 줘요. 방패는 공격 한 번을 막고 주변 적을 튕겨내요.', lvDesc: lv => `${(14 - 1.6 * lv).toFixed(1)}초마다 방패${lv >= 5 ? ', 막을 때 주변 적 잠깐 기절' : ''}` },
   shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `한 판에 1번, 하트 ${lv}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
-  byul: { name: '별사탕 요정 별이', desc: '내 무기를 랜덤으로 하나씩 대신 한 번 더 써 줘요. 무기가 많고 레벨이 높을수록 세져요. (전설로 각성한 무기는 빼요)', lvDesc: lv => `${Math.max(2.4, 5 - 0.4 * lv).toFixed(1)}초마다 무기 ${lv >= 5 ? 2 : 1}개를 대신 사용` }
+  byul: { name: '별사탕 요정 별이', desc: '내 무기를 랜덤으로 하나씩 대신 한 번 더 써 줘요. 무기가 많고 레벨이 높을수록 세져요. (전설로 각성한 무기는 기본 공격으로 써요)', lvDesc: lv => `${Math.max(2.4, 5 - 0.4 * lv).toFixed(1)}초마다 무기 ${lv >= 5 ? 2 : 1}개를 대신 사용` }
 };
 const PMAX = 5;
 if (!S.pets || typeof S.pets !== 'object') S.pets = {};
@@ -179,7 +179,7 @@ function petUpdate1(P, dt) {
     if (p.shield) P.cd = 0.5; else { P.cd = 14 - 1.6 * P.lv; p.shield = true; p.kongShield = P.lv >= 5; P.go = { x: p.x, y: p.y - 10, t: 0.25 }; if (!headless) { fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: 34, to: 8, life: 0.35, max: 0.35, col: '#FF9A3D', w: 5 }); textAdd(p.x, p.y - 46, '젤리 방패!', '#FFB560'); sfx.block(); } }
   }
   if (P.id === 'byul' && P.cd <= 0) {      /* 별이: 내 무기를 랜덤으로 하나씩 대신 써 줘요 */
-    const pool = B.weapons.filter(w => !isLeg(w.id)); if (!pool.length || !B.foes.some(f => !f.dead)) { P.cd = 0.4; return; }
+    const pool = B.weapons.slice(); if (!pool.length || !B.foes.some(f => !f.dead)) { P.cd = 0.4; return; }
     P.cd = Math.max(2.4, 5 - 0.4 * P.lv);
     const times = P.lv >= 5 ? 2 : 1; for (let k = 0; k < times; k++) { const rest = pool.filter(w => w.id !== P.last), w = pick(rest.length ? rest : pool); P.last = w.id; byulUse(P, w); }
   }
@@ -187,7 +187,7 @@ function petUpdate1(P, dt) {
 /* 별이가 무기 하나를 한 번 더 써요: 그 무기의 원래 타이머는 건드리지 않아요 */
 function byulUse(P, w) {
   const c0 = w.cd, d0 = (w.dr || []).map(o => o && o.cd); w.cd = 0; if (w.dr) w.dr.forEach(o => { if (o && o.m === 0) o.cd = 0; });      /* 마카롱은 도는 구슬이 바로 날아가요 */
-  const A = B.weapons.find(x => x === w); const had = B.shots.length; fireOne(w, 0); w.cd = c0; if (w.dr) w.dr.forEach((o, i) => { if (o && d0[i] != null && o.m === 0 && o.cd <= 0) o.cd = 0.5; });
+  const A = B.weapons.find(x => x === w); const had = B.shots.length; fireOne(w, 0, true); w.cd = c0; if (w.dr) w.dr.forEach((o, i) => { if (o && d0[i] != null && o.m === 0 && o.cd <= 0) o.cd = 0.5; });
   P.go = { x: B.p.x + (P.x > B.p.x ? 30 : -30), y: B.p.y - 26, t: 0.4 };
   if (!headless) { fxAdd({ k: 'ring', x: P.x, y: P.y, r: 6, to: 40, life: 0.35, max: 0.35, col: '#FFD23F', w: 5 }); burst(P.x, P.y, '#FFE27A', 7, 180); textAdd(P.x, P.y - 28, WEAPONS[w.id].name + '!', '#FFD23F', false); sfx.pet && sfx.pet(); }
 }
@@ -1531,9 +1531,9 @@ const accHit = (id, n = 1) => { const a = ACC[id] || (ACC[id] = { fire: 0, hit: 
 window.__acc = ACC;
 function fireWeapons(dt) { for (const w of B.weapons) fireOne(w, dt); }
 /* 무기 하나를 한 번 쓰는 몸통 (별이가 무기를 대신 쓸 때도 이걸 불러요) */
-function fireOne(w, dt) {
+function fireOne(w, dt, force) {
   const p = B.p;
-    if (isLeg(w.id)) { if (w.id === 'honey' && !w.legClean) { w.legClean = true; B.zones = B.zones.filter(z => !(z.w === w && !z.leg)); } return; }      /* 각성한 무기는 전설 스킬이 대신해요 */
+    if (isLeg(w.id) && !force) { if (w.id === 'honey' && !w.legClean) { w.legClean = true; B.zones = B.zones.filter(z => !(z.w === w && !z.leg)); } return; }      /* 각성한 무기는 전설 스킬이 대신해요 */
     const lv = w.lv, s5 = lv >= 5, s10 = lv >= 10, lw = lwOn(w.id); if (w.lcd != null && w.cd > w.lcd + 0.05) { const tk = capeSp('twin', w.id); if (tk && Math.random() < 0.18 * tk) w.cd *= 0.2; } w.cd -= dt * (atkNow() + capeC(w.id)); w.lcd = w.cd; B.wid = w.id;
     if (w.id === 'macaron') {            /* 늘 돌고 있어요 */
       w.ang += dt * (s5 ? 4.2 : 3.2); w.pulse = ((w.pulse || 0) + dt) % 2.2;
