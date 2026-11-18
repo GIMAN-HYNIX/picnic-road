@@ -698,12 +698,12 @@ const RELICS = {
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
 /* 전설 스킬: Lv10 무기의 조각을 10개 모으면 무기가 전설로 바뀌어 커다란 기술이 주기적으로 터져요 */
 const LEG = {
-  pin: { name: '천지 가르기', desc: '화면을 가로지르는 거대한 베기가 세 번 이어지고, 마지막 충격파가 주변 적을 멀리 밀쳐내요.', cd: 3.4 },
+  pin: { name: '천지 가르기', desc: '적이 몰린 쪽을 노려 거대한 베기가 세 번 이어지고, 벤 자리에 여진이 한 번 더 지나가요. 마지막 충격파가 주변 적을 밀쳐내요.', cd: 3.4 },
   cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 4.6 },
   star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 4.0 },
   macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 3.8 },
-  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 넓은 꿀 바다가 나를 따라다녀요.', cd: 5.8 },
-  lemon: { name: '레몬 폭풍', desc: '모든 적에게 산성을 쌓고, 초록 회오리 세 개가 적을 찾아 휩쓸어요.', cd: 5.0 },
+  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 꿀 바다가 나를 따라다녀요. 꿀 바다에 오래 있던 적일수록 더 아프고, 끝날 때 꿀이 한꺼번에 터져요.', cd: 5.8 },
+  lemon: { name: '레몬 폭풍', desc: '초록 회오리 세 개가 적이 뭉친 곳을 휩쓸며 산성 표식을 쌓아요. 폭풍이 끝나면 표식이 한꺼번에 터지고, 많이 쌓인 적일수록 세게 터져요.', cd: 5.0 },
   skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 두 번 꿰뚫고 지나가요.', cd: 3.6 },
   choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 운석이 떨어져 큰 폭발과 용암을 남겨요.', cd: 5.4 },
   cotton: { name: '심판의 빛', desc: '하늘이 갈라지며 화면 전체에 빛이 내려 모든 적을 태워요.', cd: 4.8 },
@@ -711,7 +711,7 @@ const LEG = {
 };
 const LEG_N = 10;
 /* 전설 피해 배율: 각성 전 무기(Lv10)가 내던 피해의 약 3배가 되게 무기마다 재서 맞춘 값이에요. 전설 스킬은 그 무기를 대신해요 */
-const LEGF = { pin: 0.303, cream: 0.396, star: 0.309, macaron: 0.254, honey: 1.35, lemon: 0.63, skewer: 0.352, choco: 0.341, cotton: 0.575, cane: 0.336 };      /* 각성 전 피해의 약 3배에서 한 번 더 1.5배 (약 4.5배) */
+const LEGF = { pin: 0.258, cream: 0.396, star: 0.309, macaron: 0.254, honey: 1.35, lemon: 0.63, skewer: 0.352, choco: 0.341, cotton: 0.575, cane: 0.336 };      /* 각성 전 피해의 약 3배에서 한 번 더 1.5배 (약 4.5배) */
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
@@ -739,10 +739,11 @@ function castLeg(w) {
   if (!headless) { sfx.leg(); lfxAdd({ k: 'charge', life: W, max: W }); }      /* 이름 배너와 화면 어둡게 하기는 없앴어요 */
   const at = (t, f) => legLater(W + t, f), shake = s => { B.shake = Math.max(B.shake, s); }, flash = (c, t) => { B.flashScr = { col: c, t, max: t }; };
   if (id === 'pin') {      /* 히어로 브랜디쉬: 화면을 가로지르는 세 번의 거대한 베기 */
-    [...[0.62, -0.62, 0.3, -0.3, 0.45, -0.45].slice(0, 2 + up).map((a, i) => [a, i * 0.16, 540, 96]), [0.03, (2 + up) * 0.16, 620, 130]].forEach(([a, t, len, T]) => at(t, () => {
-      const px = p.x, py = p.y, c = Math.cos(a), s = Math.sin(a); lfxAdd({ k: 'slash', x: px, y: py, a, len, bow: a === 0.03 ? 90 : 60, T, life: 0.42, max: 0.42 }); shake(0.35);
-      for (const f of alive()) { const rx = f.x - px, ry = f.y - py; if (Math.abs(rx * c + ry * s) < len && Math.abs(-rx * s + ry * c) < T * 0.5 + f.r) hurtFoe(f, D(a === 0.03 ? 330 : 260), { id, noAcc: true }, c, s); }
-      flash('255,240,200', 0.12);
+    const aim = () => { const near = onScreen(); let best = null, bn = -1; for (const f of near) { let n = 0; for (const g of near) if ((g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 160 * 160) n++; if (n > bn) { bn = n; best = f; } } return best ? Math.atan2(best.y - p.y, best.x - p.x) : Math.random() * 6.283; };      /* 적이 제일 많이 몰린 쪽 */
+    const cut = (px, py, a, len, T, d, vis) => { const c = Math.cos(a), s = Math.sin(a); if (vis) lfxAdd(vis); for (const f of alive()) { const rx = f.x - px, ry = f.y - py; if (Math.abs(rx * c + ry * s) < len && Math.abs(-rx * s + ry * c) < T * 0.5 + f.r) hurtFoe(f, D(d), { id, noAcc: true }, c, s); } };
+    [...[0, 0.42, -0.42, 0.21, -0.21, 0.63].slice(0, 2 + up).map((o, i) => [o, i * 0.16, 540, 140, false]), [0, (2 + up) * 0.16, 620, 170, true]].forEach(([o, t, len, T, fin]) => at(t, () => {      /* 베기마다 적이 몰린 쪽을 노려요 */
+      const px = p.x, py = p.y, a = aim() + o; cut(px, py, a, len, T, fin ? 330 : 260, { k: 'slash', x: px, y: py, a, len, bow: fin ? 90 : 60, T, life: 0.42, max: 0.42 }); shake(0.35); flash('255,240,200', 0.12);
+      legLater(0.3, () => cut(px, py, a, len, T * 0.8, fin ? 150 : 110, { k: 'slash', x: px, y: py, a, len, bow: 20, T: T * 0.5, life: 0.25, max: 0.25 }));      /* 여진: 갈라진 자리를 한 번 더 베어요 */
     }));
     at((2 + up) * 0.16 + 0.02, () => { const px = p.x, py = p.y; big(p.x, p.y, 380, 320, '#FFD86B');
       for (const f of alive()) { const dx = f.x - px, dy = f.y - py, m = Math.hypot(dx, dy) || 1; if (m > 300 || FOES[f.type].noKb) continue; const k = f === B.big ? 0.2 : 1; f.kx = dx / m * 1800 * k; f.ky = dy / m * 1800 * k; }      /* 마지막 베기와 함께 충격파가 주변 적을 밀쳐내요 (보스는 조금만) */ lfxAdd({ k: 'pop', x: p.x, y: p.y, r: 200, life: 0.35, max: 0.35, col: '#FFF1B0' }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 30, to: 420, life: 0.3, max: 0.3, col: '#FFFFFF', w: 14 });      /* 충격파가 주변 적을 멀리 밀쳐내요 (보스는 조금만). 피해를 준 뒤에 밀어야 밀림이 덮어써지지 않아요 */ lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 20, to: 380, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'ring', x: p.x, y: p.y, r: 10, to: 300, life: 0.45, max: 0.45, col: '#FFD23F', w: 10 }); shake(0.7); flash('255,255,255', 0.25); });
@@ -771,15 +772,18 @@ function castLeg(w) {
   }
   if (id === 'honey') {      /* 꿀 폭포: 하늘에서 쏟아지는 꿀 기둥, 그 뒤로 꿀 바다 */
     at(0, () => { lfxAdd({ k: 'fall', x: p.x, y: p.y, life: 0.9, max: 0.9 }); });
-    at(0.28, () => { big(p.x, p.y, 270 + 60 * up, 220, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 230 + 60 * up, life: 4 + up, tick: 0, dmg: D(45 + 15 * up), w, follow: true, leg: true }); shake(0.5); flash('255,210,100', 0.2); });
+    at(0.28, () => { big(p.x, p.y, 270 + 60 * up, 220, '#FFC23D'); B.zones.push({ x: p.x, y: p.y, r: 230 + 60 * up, life: 4 + up, tick: 0, dmg: D(30 + 10 * up), pop: D(26), w, follow: true, leg: true, sticky: true });      /* 끈적 꿀: 오래 있을수록 더 아프고, 끝날 때 터져요 */ shake(0.5); flash('255,210,100', 0.2); });
   }
-  if (id === 'lemon') {      /* 레몬 폭풍: 초록 회오리 세 개가 적을 찾아 휩쓸어요 */
-    at(0, () => { for (const f of onScreen()) { f.acid = Math.min((f.acid || 0) + 2.5, 22); f.flash = 0.1; } flash('200,240,90', 0.25);
+  if (id === 'lemon') {      /* 레몬 폭풍: 회오리가 적에게 산성 표식을 쌓고, 폭풍이 끝나면 표식이 한꺼번에 터져요 */
+    at(0, () => { for (const f of onScreen()) { f.acid = Math.min((f.acid || 0) + 2.5, 22); f.lmk = 1; f.flash = 0.1; } flash('200,240,90', 0.25);
       const T = 1.7, ts = shuffle(onScreen()).slice(0, 3 + up); while (ts.length < 3 + up) ts.push({ x: p.x + (Math.random() - 0.5) * 300, y: p.y + (Math.random() - 0.5) * 300 });
       ts.forEach((f, i) => { const tw = { k: 'twister', x: f.x, y: f.y, seed: i * 2.1, life: T, max: T }; lfxAdd(tw);
-        legTick(0, T, 0.12, u => { let b = null, bd = 1e9; for (const g of alive()) { const d = (g.x - tw.x) ** 2 + (g.y - tw.y) ** 2; if (d < bd) { bd = d; b = g; } } if (b) { const d = Math.sqrt(bd) || 1; tw.x += (b.x - tw.x) / d * 24; tw.y += (b.y - tw.y) / d * 24; }
-          for (const g of alive()) if ((g.x - tw.x) ** 2 + (g.y - tw.y) ** 2 < (130 + g.r) ** 2) { hurtFoe(g, D(55), { id, noAcc: true }, g.x - tw.x, g.y - tw.y); g.acid = Math.min((g.acid || 0) + 0.6, 22); } });
-        legLater(T, () => big(tw.x, tw.y, 150, 220, '#B9DD52')); }); });
+        legTick(0, T, 0.12, u => { let b = null, bn = -1; for (const g of alive()) { if ((g.x - tw.x) ** 2 + (g.y - tw.y) ** 2 > 420 * 420) continue; let n = 0; for (const h of B.foes) if (!h.dead && (h.x - g.x) ** 2 + (h.y - g.y) ** 2 < 120 * 120) n++; n -= Math.hypot(g.x - tw.x, g.y - tw.y) / 120; if (n > bn) { bn = n; b = g; } }      /* 가까우면서 적이 뭉친 곳으로 */
+          if (b) { const d = Math.hypot(b.x - tw.x, b.y - tw.y) || 1; tw.x += (b.x - tw.x) / d * Math.min(26, d); tw.y += (b.y - tw.y) / d * Math.min(26, d); }
+          for (const g of alive()) if ((g.x - tw.x) ** 2 + (g.y - tw.y) ** 2 < (130 + g.r) ** 2) { hurtFoe(g, D(40), { id, noAcc: true }, g.x - tw.x, g.y - tw.y); g.acid = Math.min((g.acid || 0) + 0.6, 22); g.lmk = Math.min(12, (g.lmk || 0) + 1); } });
+        legLater(T, () => big(tw.x, tw.y, 150, 200, '#B9DD52')); });
+      legLater(T + 0.15, () => { let n = 0; for (const g of alive()) if (g.lmk) { const k = g.lmk; g.lmk = 0; hurtFoe(g, D(30 + 22 * k), { id, noAcc: true }, g.x - p.x, g.y - p.y, 0.3); if (!headless && n++ < 40) lfxAdd({ k: 'pop', x: g.x, y: g.y, r: 22 + k * 3, life: 0.3, max: 0.3, col: '#B9DD52' }); } if (n) { shake(0.5); flash('210,245,110', 0.2); } });      /* 산성 대폭발: 표식이 많을수록 세게 */
+    });
   }
   if (id === 'skewer') {      /* 꼬치 소나기: 거대한 꼬치가 사방으로 두 번 꿰뚫고 지나가요 */
     Array.from({ length: 2 + up }, (_, i) => i * 0.3).forEach((t, v) => at(t, () => { const px = p.x, py = p.y; shake(0.35);
@@ -1733,7 +1737,8 @@ function update(dt) {
   }
   B.shots = B.shots.filter(s => s.life > 0);
   /* 꿀 장판 */
-  for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; if (z.w && z.w.id === 'honey') accFire('honey'); let n = 0; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; hurtFoe(f, z.dmg, z.w, 0.001, 0.001); n++; } if (n && z.w && z.w.id === 'honey') accHit('honey'); } }
+  for (const z of B.zones) { if (z.follow) { z.x = p.x; z.y = p.y; } z.life -= dt; z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; if (z.w && z.w.id === 'honey') accFire('honey'); let n = 0; for (const f of B.foes) if (!f.dead && (f.x - z.x) ** 2 + (f.y - z.y) ** 2 < (z.r + f.r) ** 2) { f.slow = 0.7; if (z.sticky) { f.hny = Math.min(8, (f.hny || 0) + 1); hurtFoe(f, z.dmg * (1 + 0.25 * (f.hny - 1)), z.w, 0.001, 0.001); } else hurtFoe(f, z.dmg, z.w, 0.001, 0.001); n++; } if (n && z.w && z.w.id === 'honey') accHit('honey'); } }
+  for (const z of B.zones) if (z.sticky && z.life <= 0) { let n = 0; for (const f of B.foes) if (!f.dead && f.hny) { const k = f.hny; f.hny = 0; hurtFoe(f, z.pop * k, z.w, f.x - z.x, f.y - z.y, 0.3); if (!headless && n++ < 40) fxAdd({ k: 'ring', x: f.x, y: f.y, r: 8, to: 24 + k * 4, life: 0.3, max: 0.3, col: '#FFC23D', w: 4 }); } if (n && !headless) { B.shake = Math.max(B.shake, 0.4); burst(z.x, z.y, '#FFC23D', 14, 260); } }      /* 꿀 폭발: 꿀이 많이 묻은 적일수록 세게 */
   B.zones = B.zones.filter(z => z.life > 0);
   /* 적의 탄 */
   for (const s of B.foeShots) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < (s.r + HERO_R * 0.85) ** 2) { hurtPlayer(s.gum ? 'gum' : 'shot'); s.life = 0; } }
