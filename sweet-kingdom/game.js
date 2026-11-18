@@ -294,7 +294,7 @@ const TREE = [
   { id: 'hunter', name: '보스 사냥꾼', desc: '보스와 엘리트에게 주는 피해 +10%', max: 3, cost: [20, 30, 45], col: 3, row: 2, req: 'star', icon: 'dough' },
   { id: 'sweep', name: '잡몹 청소부', desc: '일반 몬스터에게 주는 피해 +8%', max: 3, cost: [15, 25, 40], col: 3, row: 3, req: 'hunter', icon: 'macaron' },
   { id: 'shield2', name: '다시 부풀기', desc: '솜사탕 방패가 막은 뒤 다시 생겨요 (50초, 레벨마다 10초씩 빨라져요)', max: 3, cost: [35, 60, 90], col: 4, row: 4, req: 'dodge', icon: 'cream' },
-  { id: 'shardplus', name: '조각 수집가', desc: '보스를 처음 잡을 때 받는 전설 조각 +1개', max: 2, cost: [50, 90], col: 2, row: 5, req: 'choice', icon: 'chest' }
+  { id: 'shardplus', name: '든든한 하트', desc: '하트 +1칸', max: 1, cost: [70], col: 2, row: 5, req: 'choice', icon: 'heart' }      /* 예전 '조각 수집가' 자리 (저장 이름은 그대로) */
 ];
 if (!S.meta || typeof S.meta !== 'object' || !S.meta.n) S.meta = { pts: 0, total: 0, n: {} };
 const M = id => S.meta.n[id] || 0;
@@ -767,7 +767,7 @@ const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);    
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
 function bossShards() {
   if (!legUnlocked() || legAll()) return null; const S2 = run.shards || (run.shards = {}), got = [], done = [];
-  for (let k = 2 + (Math.random() < 0.5 ? 1 : 0) + M('shardplus'); k > 0; k--) {
+  for (let k = 2 + (Math.random() < 0.5 ? 1 : 0); k > 0; k--) {
     const left = run.wpn.filter(w => !isLeg(w.id)).map(w => w.id); if (!left.length) break;
     const top = left.reduce((a, b) => (S2[b] || 0) > (S2[a] || 0) ? b : a, left[0]), id = Math.random() < 0.5 ? top : pick(left);
     S2[id] = (S2[id] || 0) + 1; got.push(id); if (S2[id] >= LEG_N) { (run.leg || (run.leg = {}))[id] = 1; done.push(id); }
@@ -1088,7 +1088,7 @@ const capeP = id => { const c = capeFor(id); return c ? c.proj || 0 : 0; };
 const capeA = id => { const c = capeFor(id); return c ? (c.area || 0) / 100 : 0; };
 const capeC = id => { const c = capeFor(id); return c ? (c.cd || 0) / 100 : 0; };
 const has = () => false;
-const heartsMax = () => 1 + ((run && run.bonus && run.bonus.heart) || 0) + eqSum('heart');
+const heartsMax = () => 1 + ((run && run.bonus && run.bonus.heart) || 0) + eqSum('heart') + Math.min(1, M('shardplus'));
 function fxLines(it) {
   const f = fxOf(it), o = [];
   if (f.heart) o.push(`하트 +${f.heart}칸`); if (f.inv) o.push(`맞은 뒤 무적 시간 +${f.inv}%`); if (f.guard) o.push(`${f.guard}초마다 공격 한 번을 막는 방패`);
