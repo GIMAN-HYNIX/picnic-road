@@ -1276,7 +1276,7 @@ const stageMul = () => Math.min(6.5, 0.8 + 0.5 * B.floor);
 /* 100번 스테이지(층 85)를 넘으면 몬스터 체력이 느는 속도를 30%로 줄여요. 그 전까지는 그대로예요 */
 /* 무기마다 쓰임새: 잡몹을 쓸어 담는 무기와 보스를 때리는 무기가 달라요. 보스·엘리트에게 주는 피해 배율 */
 const BOSSK = { pin: 1.5, macaron: 1.5, honey: 1.5, cotton: 1.8, choco: 1.4, cream: 1.15 };
-const hpFloor = () => B.floor <= 85 ? B.floor : 85 + (B.floor - 85) * 0.3;
+const hpFloor = () => B.floor <= 85 ? B.floor : 85 + (B.floor - 85) * 0.2;      /* 85층 뒤로는 체력이 아주 천천히 늘어요 */
 const lateMul = (fl = hpFloor()) => { const k = Math.max(0, fl - 5); return 1 + LATE * k + 0.006 * k * k; };
 const LATE = 0.18;
 function spawnFoe(type, x, y, minion) {
