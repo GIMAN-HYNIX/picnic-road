@@ -58,7 +58,7 @@ let run = null;
 const PETS = {
   kong: { name: '젤리곰 콩이', desc: '몇 초마다 말랑한 젤리 방패를 씌워 줘요. 방패는 공격 한 번을 막고 주변 적을 튕겨내요.', lvDesc: lv => `${(14 - 1.6 * lv).toFixed(1)}초마다 방패${lv >= 5 ? ', 막을 때 주변 적 잠깐 기절' : ''}` },
   shu: { name: '천사 슈', desc: '하트가 다 닳는 순간 부활시켜 주고 적을 모두 없애요. 보스는 일부 피해만 받아요.', lvDesc: lv => `한 판에 1번, 하트 ${lv}칸으로 부활, 보스 체력 ${8 + 2 * lv}% 피해` },
-  byul: { name: '별사탕 요정 별이', desc: '내 무기를 랜덤으로 하나씩 대신 한 번 더 써 줘요. 무기가 많고 레벨이 높을수록 세져요. (전설로 각성한 무기는 기본 공격으로 써요)', lvDesc: lv => `${Math.max(2.4, 5 - 0.4 * lv).toFixed(1)}초마다 무기 ${lv >= 5 ? 2 : 1}개를 대신 사용` }
+  byul: { name: '별사탕 요정 별이', desc: '내 무기를 랜덤으로 대신 한 번 더 써 줘요. 전설로 각성한 스킬이 있으면 전설 스킬을 약한 위력으로 대신 써요.', lvDesc: lv => `전설 스킬이 있으면 ${Math.max(6, 12 - 1.2 * lv).toFixed(1)}초마다 위력 ${Math.round((0.4 + 0.05 * lv) * 100)}%로 대신 사용, 없으면 ${Math.max(2.4, 5 - 0.4 * lv).toFixed(1)}초마다 무기 ${lv >= 5 ? 2 : 1}개 사용` }
 };
 const PMAX = 5;
 if (!S.pets || typeof S.pets !== 'object') S.pets = {};
@@ -179,10 +179,20 @@ function petUpdate1(P, dt) {
     if (p.shield) P.cd = 0.5; else { P.cd = 14 - 1.6 * P.lv; p.shield = true; p.kongShield = P.lv >= 5; P.go = { x: p.x, y: p.y - 10, t: 0.25 }; if (!headless) { fxAdd({ k: 'ring', x: p.x, y: p.y - 12, r: 34, to: 8, life: 0.35, max: 0.35, col: '#FF9A3D', w: 5 }); textAdd(p.x, p.y - 46, '젤리 방패!', '#FFB560'); sfx.block(); } }
   }
   if (P.id === 'byul' && P.cd <= 0) {      /* 별이: 내 무기를 랜덤으로 하나씩 대신 써 줘요 */
-    const pool = B.weapons.slice(); if (!pool.length || !B.foes.some(f => !f.dead)) { P.cd = 0.4; return; }
+    if (!B.foes.some(f => !f.dead)) { P.cd = 0.4; return; }
+    const legs = B.weapons.filter(w => isLeg(w.id));
+    if (legs.length) {      /* 전설 스킬이 있으면: 가끔 전설 스킬 하나를 약한 위력으로 대신 써요 */
+      P.cd = Math.max(6, 12 - 1.2 * P.lv); const rest = legs.filter(w => w.id !== P.last), w = pick(rest.length ? rest : legs); P.last = w.id; byulLeg(P, w); return;
+    }
+    const pool = B.weapons.slice(); if (!pool.length) { P.cd = 0.4; return; }
     P.cd = Math.max(2.4, 5 - 0.4 * P.lv);
     const times = P.lv >= 5 ? 2 : 1; for (let k = 0; k < times; k++) { const rest = pool.filter(w => w.id !== P.last), w = pick(rest.length ? rest : pool); P.last = w.id; byulUse(P, w); }
   }
+}
+/* 별이가 전설 스킬을 대신 써요: 위력 0.45~0.65배 */
+function byulLeg(P, w) {
+  const K = 0.4 + 0.05 * P.lv; castLeg(w, K); P.go = { x: B.p.x + (P.x > B.p.x ? 34 : -34), y: B.p.y - 30, t: 0.7 };
+  if (!headless) { fxAdd({ k: 'ring', x: P.x, y: P.y, r: 6, to: 60, life: 0.45, max: 0.45, col: '#FFD23F', w: 6 }); burst(P.x, P.y, '#FFE27A', 10, 220); textAdd(P.x, P.y - 30, `별이: ${LEG[w.id].name}!`, '#FFD23F', true); }
 }
 /* 별이가 무기 하나를 한 번 더 써요: 그 무기의 원래 타이머는 건드리지 않아요 */
 function byulUse(P, w) {
@@ -792,8 +802,8 @@ const legK = () => Math.max(1, ((1 + 0.92 * Math.pow(hpFloor(), 0.8)) * lateMul(
 const lfxAdd = o => { if (!headless) B.lfx.push(o); return o; };
 const legTick = (t0, dur, step, fn) => { for (let t = 0; t <= dur + 1e-6; t += step) legLater(t0 + t, () => fn(t / dur)); };
 const LEGW = 0.32;      /* 기 모으는 시간 */
-function castLeg(w) {
-  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * LEGF[id] * lStarK(id);
+function castLeg(w, K = 1) {      /* K: 위력 배율 (별이가 대신 쓸 때는 절반쯤) */
+  const p = B.p, id = w.id, W = id === 'cotton' ? 0.55 : id === 'choco' ? 0.4 : LEGW, D = d => d * LEGF[id] * lStarK(id) * K;
   const big = (x, y, r, d, col) => blast(x, y, r, D(d), { id, noAcc: true }, col);
   const alive = () => B.foes.filter(f => !f.dead), onScreen = () => B.foes.filter(f => !f.dead && Math.abs(f.x - p.x) < vw * 0.58 && Math.abs(f.y - p.y) < vh * 0.58);
   const rnd = (t, a) => t.length ? t[(Math.random() * t.length) | 0] : null;
