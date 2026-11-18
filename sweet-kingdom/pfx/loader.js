@@ -1,4 +1,20 @@
 /* pixelfx(MIT, patch-gg/pixelfx)의 효과를 게임에서 쓰도록 이어 주는 파일. 라이선스는 pfx/LICENSE 참고 */
 import * as core from "./core/index.js";
-import * as resurrection from "./fx/holy/resurrection.js";
-window.PFX = { core, fx: { resurrection } };
+import * as melee_sword_slash from "./fx/melee/sword-slash.js";
+import * as melee_heavy_cleave from "./fx/melee/heavy-cleave.js";
+import * as melee_thrust from "./fx/melee/thrust.js";
+import * as impacts_ground_slam from "./fx/impacts/ground-slam.js";
+import * as impacts_hit_spark from "./fx/impacts/hit-spark.js";
+import * as water_wave_crash from "./fx/water/wave-crash.js";
+import * as water_splash from "./fx/water/splash.js";
+import * as water_geyser from "./fx/water/geyser.js";
+import * as fire_meteor from "./fx/fire/meteor.js";
+import * as explosions_implosion from "./fx/explosions/implosion.js";
+import * as explosions_plasma_explosion from "./fx/explosions/plasma-explosion.js";
+import * as shadow_black_hole from "./fx/shadow/black-hole.js";
+import * as ice_blizzard_vortex from "./fx/ice/blizzard-vortex.js";
+import * as nature_acid_splash from "./fx/nature/acid-splash.js";
+import * as lightning_lightning_strike from "./fx/lightning/lightning-strike.js";
+import * as holy_smite from "./fx/holy/smite.js";
+import * as holy_resurrection from "./fx/holy/resurrection.js";
+window.PFX = { core, fx: { "melee/sword-slash": melee_sword_slash, "melee/heavy-cleave": melee_heavy_cleave, "melee/thrust": melee_thrust, "impacts/ground-slam": impacts_ground_slam, "impacts/hit-spark": impacts_hit_spark, "water/wave-crash": water_wave_crash, "water/splash": water_splash, "water/geyser": water_geyser, "fire/meteor": fire_meteor, "explosions/implosion": explosions_implosion, "explosions/plasma-explosion": explosions_plasma_explosion, "shadow/black-hole": shadow_black_hole, "ice/blizzard-vortex": ice_blizzard_vortex, "nature/acid-splash": nature_acid_splash, "lightning/lightning-strike": lightning_lightning_strike, "holy/smite": holy_smite, "holy/resurrection": holy_resurrection } };
