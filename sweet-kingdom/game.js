@@ -187,11 +187,47 @@ function petUpdate1(P, dt) {
 function petRevive() {
   const P = (B.pets || []).find(q => q.id === 'shu'); if (!P) return false;
   const uses = P.lv >= 5 ? 3 : P.lv >= 3 ? 2 : 1; if ((run.petUsed || 0) >= uses) return false;
-  run.petUsed = (run.petUsed || 0) + 1; const p = B.p; p.hp = Math.min(p.max, 1 + (P.lv >= 2) + (P.lv >= 4)); p.inv = 2.5;
+  run.petUsed = (run.petUsed || 0) + 1; const p = B.p;
+  if (!headless) { p.hp = 0; p.inv = 99; B.foeShots = []; B.telegraphs = []; B.haz = []; B.rv = { t: 0, P, lv: P.lv, hx: P.x, hy: P.y, step: 0, hit: new Set() }; return true; }      /* 쓰러지는 모습 → 슈의 거대한 빛 → 부활 연출 (rvTick) */
+  p.hp = Math.min(p.max, 1 + (P.lv >= 2) + (P.lv >= 4)); p.inv = 2.5;
   for (const f of B.foes) { if (f.dead) continue; if (f === B.big) hurtFoe(f, f.max * (0.08 + 0.02 * P.lv) / B.st.dmg, { id: 'pet' }); else { f.hp = 0; killFoe(f, { id: 'pet' }); } }
   B.foeShots = []; B.telegraphs = [];
   if (!headless) { toast('천사 슈가 다시 일으켜 줬어요!'); sfx.revive(); sfx.bigKill(); B.flashScr = { col: '255,255,255', t: 0.6, max: 0.6 }; fxAdd({ k: 'beam', x: p.x, y: p.y, life: 0.9, max: 0.9 }); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 420, life: 0.6, max: 0.6, col: '#FFE45C', w: 8 }); }
   return true;
+}
+/* 슈 부활 연출: 0~1.1초 쓰러짐, 1.1~1.6초 슈가 빛을 모음, 1.6초 거대한 빛이 퍼지며 일반 적 전멸, 2.4초 부활 */
+const RV_END = 3.1;
+function rvTick(dt) {
+  const r = B.rv, p = B.p, P = r.P, t0 = r.t; r.t += dt; const t = r.t, cross = s => t0 < s && t >= s;
+  if (t > 0.45 && t < 1.15) { const k = Math.min(1, (t - 0.45) / 0.6), e = k * k * (3 - 2 * k); P.x = r.hx + (p.x - r.hx) * e; P.y = r.hy + (p.y - 78 - r.hy) * e; }      /* 슈가 쓰러진 나에게 날아와요 */
+  if (cross(0.05)) { sfx.hurt(); B.shake = Math.max(B.shake, 0.3); }
+  if (cross(1.1)) sfx.leg();
+  if (cross(1.6)) { sfx.boom(); sfx.bigKill(); B.flashScr = { col: '255,250,220', t: 0.7, max: 0.7 }; B.shake = 0.9;
+    if (B.big && !B.big.dead) hurtFoe(B.big, B.big.max * (0.08 + 0.02 * r.lv) / B.st.dmg, { id: 'pet' }); }
+  if (t >= 1.6 && t < 2.4) { const rr = (t - 1.6) / 0.65 * 760; for (const f of B.foes) { if (f.dead || f === B.big || r.hit.has(f)) continue; if ((f.x - P.x) ** 2 + (f.y - P.y) ** 2 < rr * rr) { r.hit.add(f); fxAdd({ k: 'beam', x: f.x, y: f.y, life: 0.5, max: 0.5 }); burst(f.x, f.y - 10, '#FFE45C', 5, 160); f.hp = 0; killFoe(f, { id: 'pet' }); } } }      /* 빛이 닿는 순서대로 적이 사라져요 */
+  if (cross(2.3)) { for (const f of B.foes) if (!f.dead && f !== B.big) { f.hp = 0; killFoe(f, { id: 'pet' }); } B.foes = B.foes.filter(f => !f.dead); }
+  if (cross(2.4)) { sfx.revive(); fxAdd({ k: 'beam', x: p.x, y: p.y, life: 1.0, max: 1.0 }); }
+  if (cross(2.65)) { p.hp = Math.min(p.max, 1 + (r.lv >= 2) + (r.lv >= 4)); fxAdd({ k: 'ring', x: p.x, y: p.y - 20, r: 20, to: 260, life: 0.6, max: 0.6, col: '#FFE45C', w: 8 }); burst(p.x, p.y - 20, '#FFFFFF', 18, 260); toast('천사 슈가 다시 일으켜 줬어요!'); B.heartPop = 0.5; }
+  for (const f of B.fx) { f.life -= dt; if (f.vx != null) { f.x += f.vx * dt; f.y += f.vy * dt; if (f.g) f.vy += f.g * dt; else { f.vx *= 0.9; f.vy *= 0.9; } } } B.fx = B.fx.filter(f => f.life > 0);
+  for (const q of B.texts) { q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 380 * dt; } B.texts = B.texts.filter(q => q.life > 0);
+  if (B.shake > 0) B.shake -= dt;
+  if (t >= RV_END) { B.rv = null; p.inv = 2.5; }
+}
+function rvDraw() {
+  const r = B.rv; if (!r) return; const t = r.t, P = r.P, sx = X(P.x), sy = Y(P.y);
+  const dim = t < 1.1 ? 0.55 * t / 1.1 : t < 2.4 ? 0.55 : Math.max(0, 0.55 * (RV_END - t) / (RV_END - 2.4));
+  ctx.fillStyle = `rgba(12,4,30,${dim.toFixed(3)})`; ctx.fillRect(0, 0, lw, lh);
+  drawHeroLayer();
+  if (t > 1.1 && t < 1.7) { const u = Math.min(1, (t - 1.1) / 0.5);      /* 빛 모으기: 빛 알갱이가 빨려 들고 날개가 펼쳐져요 */
+    putDisc(sx, sy, Math.round(12 + u * 34), Math.round(12 + u * 34), '#FFE45C', 7); putDisc(sx, sy, Math.round(6 + u * 16), Math.round(6 + u * 16), '#FFFFFF', 11);
+    for (let i = 0; i < 18; i++) { const a = i * 0.349 + t * 3, d = (1 - ((u * 2 + i * 0.13) % 1)) * 90; pstar(Math.round(sx + Math.cos(a) * d), Math.round(sy + Math.sin(a) * d * 0.8), 1 + i % 2, i % 2 ? '#FFFFFF' : '#FFE45C'); }
+    for (const side of [-1, 1]) for (let k = 0; k < 6; k++) { const a = (side < 0 ? Math.PI : 0) + side * (-0.9 + k * 0.28), L = Math.round((18 + u * 46) * (1 - Math.abs(k - 2.5) * 0.08)); pline(sx, sy, Math.round(sx + Math.cos(a) * L), Math.round(sy + Math.sin(a) * L * 0.7), k % 2 ? '#FFFFFF' : '#FFF3C0', 2); } }
+  if (t >= 1.6 && t < 2.5) { const e = (t - 1.6) / 0.9, R0 = Math.round(e * Math.max(lw, lh) * 1.2), a = Math.max(0, 1 - e);      /* 거대한 빛: 고리와 빛살이 화면 끝까지 */
+    ctx.globalAlpha = a; for (let i = 0; i < 16; i++) { const ang = i * 0.3927 + e * 0.5, L = Math.round(R0 * (i % 2 ? 1 : 0.75)); pline(sx, sy, Math.round(sx + Math.cos(ang) * L), Math.round(sy + Math.sin(ang) * L), i % 2 ? '#FFFFFF' : '#FFE45C', i % 2 ? 3 : 2); }
+    pcircle(sx, sy, R0, '#FFFFFF', 3); pcircle(sx, sy, Math.max(1, R0 - 8), '#FFE45C', 2); pcircle(sx, sy, Math.max(1, Math.round(R0 * 0.6)), '#FFF3C0', 2);
+    putDisc(sx, sy, Math.round(40 + e * 30), Math.round(40 + e * 30), '#FFF3C0', 10); ctx.globalAlpha = 1; }
+  const sp = petSpr('shu'), sc = t > 1.1 && t < 2.6 ? 1.7 : t > 0.45 ? 1 + 0.7 * Math.min(1, (t - 0.45) / 0.65) : 1, pw = sp.width / (sp.k || 1) * sc, ph = sp.height / (sp.k || 1) * sc, bob = Math.round(Math.sin(t * 6) * 2);      /* 슈를 크게 다시 그려요 */
+  if (t < RV_END - 0.3) { putDisc(sx, sy + bob, Math.round(pw * 0.7), Math.round(ph * 0.6), '#FFE45C', 6); ctx.drawImage(sp, sx - pw / 2, sy - ph / 2 + bob, pw, ph); }
 }
 /* ───── 플레이 기록: 기기마다 저장하고, 코드로 바꿔 리포트 페이지에 붙여 넣어요 ───── */
 if (!Array.isArray(S.hist)) S.hist = [];
@@ -1910,7 +1946,9 @@ function drawHeroLayer() {
       const px = X(p.x), py = Y(p.y);
       if (IMG.hero && IMG.hero.aura) { const pu = 1 + 0.12 * Math.sin(B.t * 5); putDisc(px, py + 1, Math.round(17 * pu), Math.round(7 * pu), IMG.hero.aura, 9); if (IMG.hero.auraG >= 4 && Math.floor(B.t * 8) % 2) pstar(px + Math.round(Math.sin(B.t * 3) * 14), py - 14 - Math.round((B.t * 18) % 22), 1, '#FFFFFF'); }
       putDisc(px, py + 1, 10, 4, '#8A5A7A', 6); R('rgba(14,6,20,.55)', px - 4, py, 8, 2); R('rgba(14,6,20,.55)', px - 3, py + 2, 6, 1);
-      if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 6, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
+      if (B.rv) { const t = B.rv.t, fall = t < 0.6 ? (t / 0.6) ** 2 : t < 2.45 ? 1 : Math.max(0, 1 - (t - 2.45) / 0.45), a = fall * 1.5708 * (p.face || 1);      /* 쓰러졌다가 빛 속에서 일어나요 */
+        ctx.save(); ctx.translate(px, py + 6); ctx.rotate(a); ctx.translate(-px, -py - 6); spr('hero', p.x, p.y + 6, p.face, t < 0.12 || (t > 2.4 && t < 2.7 && Math.floor(t * 20) % 2), 0, 3); ctx.restore(); }
+      else if (!(p.inv > 0 && Math.floor(p.inv * 14) % 2)) spr('hero', p.x, p.y + 6, p.face, false, 0, p.moving ? Math.floor(p.bob / 1.6) % 4 : (Math.floor(B.t * 1.6) % 2 ? 4 : 3));
       if (p.shield) pcircle(px, py - 7, 12, Math.floor(B.t * 6) % 2 ? '#7FE3FF' : '#FFFFFF');
 }
 function drawFoeShots() {
@@ -2049,6 +2087,7 @@ function draw() {
   /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
   if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
     legDraw(); ctx.globalAlpha = 0.42; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
+  if (B.rv) rvDraw();
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
   ctx.drawImage(vignette(), 0, 0);
   gimOver();
@@ -2095,7 +2134,7 @@ function frame(now) {
   if (B.hitstop > 0) B.hitstop -= raw;      // 타격 순간 아주 잠깐 멈춰요
   else {
     let dt = raw; if (B.slow > 0) { B.slow -= raw; dt *= 0.35 + 0.65 * Math.max(0, 1 - B.slow / 0.35); }
-    for (let i = 0; i < (window.__dbg.speed || 1); i++) if (B && !B.paused && !B.over) update(dt);
+    if (B.rv) { if (!B.paused) rvTick(raw); } else for (let i = 0; i < (window.__dbg.speed || 1); i++) if (B && !B.paused && !B.over) update(dt);
   }
   if (B) { draw(); requestAnimationFrame(frame); }
 }
