@@ -498,7 +498,9 @@ function play(name, fn, gap = 0) {
   const now = performance.now(); if (gap && now - (lastPlayed[name] || 0) < gap) return; lastPlayed[name] = now;
   try { fn(); } catch (e) { if (window.__soundDebug) throw e; }
 }
-function buzz(p) { if (headless || !S.vib || !navigator.vibrate) return; try { navigator.vibrate(p); } catch (e) {} }
+const LVN = ['끔', '줄임', '보통'], LVK = [0, 0.5, 1], lvOf = (v, legacy) => v == null ? (legacy === false ? 0 : 2) : v;      /* 진동·화면 흔들림: 보통 → 줄임 → 끔 */
+const vibLv = () => lvOf(S.vibK, S.vib), shkLv = () => lvOf(S.shkK);
+function buzz(p) { const k = LVK[vibLv()]; if (headless || !k || !navigator.vibrate) return; try { navigator.vibrate(Array.isArray(p) ? p.map(v => Math.max(1, Math.round(v * k))) : Math.max(1, Math.round(p * k))); } catch (e) {} }
 const PENT = [0, 2, 4, 7, 9];      /* 보석 소리가 올라가는 음계 (어느 음이 겹쳐도 듣기 좋아요) */
 const sfx = {
   /* 타격: 딱 하는 앞소리 + 묵직한 몸통 */
@@ -1909,7 +1911,7 @@ function drawFoeShots() {
 function draw() {
   const p = B.p;
   ctx.setTransform(Q, 0, 0, Q, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
-  const sk = B.shake > 0 ? Math.min(1, B.shake * 3) * 4 : 0;
+  const sk = B.shake > 0 ? Math.min(1, B.shake * 3) * 4 * LVK[shkLv()] : 0;
   pcx = Math.round(((p.x - vw / 2) / WP + rand(-sk, sk)) * Q) / Q; pcy = Math.round(((p.y - vh * 0.48) / WP + rand(-sk, sk)) * Q) / Q;
   /* 바닥 */
   for (let y = -(((pcy % 64) + 64) % 64); y < lh; y += 64) for (let x = -(((pcx % 64) + 64) % 64); x < lw; x += 64) ctx.drawImage(FLOORS[B.act] || FLOORS[1], x, y, 64, 64);
@@ -2517,10 +2519,11 @@ $('#btnNew').addEventListener('click', () => { sfx.tap(); if (S.run) { run = S.r
 function menuSheet(home) {
   const row = (act, t, d) => `<button class="opt" type="button" data-act="${act}"><span class="tx"><b>${t}</b><span>${d}</span></span></button>`;
   const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
-    + (navigator.vibrate ? row('vib', S.vib ? '진동 끄기' : '진동 켜기', `지금은 진동이 ${S.vib ? '켜져' : '꺼져'} 있어요.`) : '')
+    + (navigator.vibrate ? row('vib', `진동: ${LVN[vibLv()]}`, '누를 때마다 보통 → 줄임 → 끔 순서로 바뀌어요.') : '')
+    + row('shk', `화면 흔들림: ${LVN[shkLv()]}`, '누를 때마다 보통 → 줄임 → 끔 순서로 바뀌어요. 흔들림이 어지러우면 줄여요.')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
     + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>${home ? '' : '<button class="dlink" type="button" data-act="reset">기록 초기화…</button>'}`,      /* 초기화는 처음 화면 설정의 맨 아래, 닫기와 멀리 떨어진 작은 글씨로만 */
-    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vib = !S.vib; persist(); buzz(20); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
+    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vibK = (vibLv() + 2) % 3; persist(); buzz(20); draw(); } else if (act === 'shk') { S.shkK = (shkLv() + 2) % 3; persist(); sfx.tap(); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
 $('#btnMenu').addEventListener('click', () => menuSheet(true));
