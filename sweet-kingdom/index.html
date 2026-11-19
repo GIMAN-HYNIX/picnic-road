@@ -104,11 +104,19 @@ img,canvas,.pxi{image-rendering:pixelated}
 .twrew img{width:56px; height:auto; image-rendering:pixelated}
 .node.done{opacity:.7}
 .soon{position:absolute; left:0; right:0; top:-40px; margin:0; text-align:center; font-family:var(--font-sm); font-size:16px; color:var(--ink-2)}
-.info{min-height:104px; padding:12px 14px; display:flex; gap:14px; align-items:center}
-.info div{flex:1; min-width:0}
+.info{padding:10px 14px 12px; display:flex; flex-direction:column; gap:10px; align-items:stretch}
+.info div{min-width:0; max-height:15vh; overflow-y:auto; scrollbar-width:none}
 .info h3{margin:0; font-family:var(--font-sign); font-weight:400; font-size:20px; line-height:1.25; color:var(--gold)}
 .info p{margin:4px 0 0; font-size:16px; color:var(--ink-2)}
-.info .cta{min-height:48px; font-size:20px; flex:none}
+.info .cta{min-height:50px; font-size:20px; flex:none; width:auto}
+/* 지도 아래 메뉴: 캐릭터·장비·펫·성장·탑 */
+.dock{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:8px; padding:0 3px 2px}
+.dock button{position:relative; min-height:58px; padding:6px 2px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-family:var(--font-sm); font-size:15px; color:var(--ink); background:var(--panel); box-shadow:var(--box), var(--drop)}
+.dock button:active{transform:translateY(4px); box-shadow:var(--box), 0 2px 0 0 var(--dark)}
+.dock svg{width:26px; height:26px; display:block}
+.dock .tw{background:#2A1A5A}
+.dock .dot{position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; padding:0 4px; font-size:13px; line-height:18px; color:#FFFFFF; background:var(--bad); box-shadow:0 0 0 2px var(--dark)}
+.mini-btn.gear{width:48px; padding:0; font-size:24px}
 
 /* 전투 */
 #battle{padding:0; background:#3A2030}
@@ -324,10 +332,11 @@ textarea.code{display:block; width:calc(100% - 6px); margin:16px 3px 0; height:8
 
 <section class="screen" id="map" hidden>
   <div class="col">
-    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn" id="btnDeck" type="button">캐릭터</button><button class="mini-btn" id="btnEq" type="button">장비</button><button class="mini-btn" id="btnMenu" type="button">메뉴</button></div></div>
+    <div class="bar"><div class="l"><span class="chip" id="hpChip"></span><span class="chip" id="goldChip"></span><span class="chip" id="potChip"></span></div><div class="r"><button class="mini-btn gear" id="btnMenu" type="button" aria-label="설정과 메뉴">⚙</button></div></div>
     <div class="relics" id="relics"></div>
     <div class="map" id="mapBox"></div>
     <div class="info" id="info"></div>
+    <nav class="dock" id="dock" aria-label="메뉴"></nav>
   </div>
 </section>
 

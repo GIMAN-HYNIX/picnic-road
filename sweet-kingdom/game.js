@@ -2426,7 +2426,15 @@ function renderBar() {
   $('#hpChip').innerHTML = heartsHtml(run.hp, run.maxHp);
   $('#goldChip').innerHTML = `Lv ${run.lvl}`;
   $('#potChip').innerHTML = '';
-  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${eqImg(it, s)}</button>`; }).join('') + `<button class="relic synb" type="button" data-synth="1">합성</button>`;
+  $('#relics').innerHTML = SLOTS.map(s => { const it = eqOf()[s]; return `<button class="relic eqs${it ? ' g' + it.g : ' none'}" type="button" data-slot="${s}" aria-label="${SLOT[s].name}${it ? ': ' + it.nm : ' 없음'}">${eqImg(it, s)}</button>`; }).join('');
+  renderDock();
+}
+/* 지도 아래 메뉴. 빨간 점: 배울 수 있는 특성, 지금보다 좋은 장비 */
+function renderDock() {
+  const d = $('#dock'); if (!d || !run) return;
+  const tree = TREE.filter(t => canLearn(t) && S.meta.pts >= t.cost[M(t.id)]).length, better = (run.inv || []).filter(it => betterThanWorn(it)).length, pets = Object.keys(PETS).filter(id => petLv(id)).length;
+  const btn = (act, icon, lab, dot, cls) => `<button type="button" data-dock="${act}"${cls ? ` class="${cls}"` : ''}>${dot ? `<i class="dot">${dot > 9 ? '9+' : dot}</i>` : ''}${svg(ICON[icon] || ICON.star)}<span>${lab}</span></button>`;
+  d.innerHTML = btn('char', 'heart', '캐릭터') + btn('eq', 'pin', '장비', better) + (pets ? btn('pet', 'star', '펫') : '') + btn('tree', 'ench', '성장', tree) + (towerOpen() ? btn('tower', 'chest', `탑 ${towerNext()}층`, 0, 'tw') : '');
 }
 function renderMap() {
   const N = STAGES.length, rowH = 84, H = N * rowH + 60, xs = [50, 74, 50, 26], pos = i => [xs[i % 4], (H - 46 - i * rowH) / H * 100]; let lines = '';
@@ -2439,14 +2447,18 @@ function renderMap() {
     b.type = 'button'; b.dataset.id = n; b.style.left = x + '%'; b.style.top = y + '%'; b.setAttribute('aria-label', `스테이지 ${n} ${s.n}` + (dn ? ', 깬 곳' : open ? ', 지금 도전할 곳' : ', 아직 잠긴 곳'));
     m.firstElementChild.appendChild(b);
   });
-  const t = m.querySelector('.node.open') || (towerOpen() && run.stage >= STAGES.length && m.querySelector('.node.tower')) || [...m.querySelectorAll('.node.done')].pop();
-  if (t) m.scrollTo({ top: t.offsetTop + 56 - m.clientHeight * 0.62, behavior: 'instant' });
+  mapFocus();
+}
+/* 지금 도전할 칸이 지도 가운데쯤 오게 (아래 안내창 크기가 정해진 뒤에 한 번 더 맞춰요) */
+function mapFocus() {
+  const m = $('#mapBox'), t = m.querySelector('.node.open') || (towerOpen() && run.stage >= STAGES.length && m.querySelector('.node.tower')) || [...m.querySelectorAll('.node.done')].pop();
+  if (t) m.scrollTo({ top: t.offsetTop + 56 - m.clientHeight * 0.55, behavior: 'instant' });
 }
 function info(html, goId) { $('#info').innerHTML = `<div>${html}</div>${goId != null ? `<button class="cta" type="button" id="btnGo" data-id="${goId}">들어가기</button>` : ''}`; }
 function showMap() {
   show('map'); run.cur = null; renderBar(); picked = null; renderMap();
   if (!run.wpn.length && overlay.hidden) { starterPick(); return; }     // 첫 무기를 고르기 전에 앱을 껐다 켠 경우
-  pickNode(Math.min(run.stage + 1, STAGES.length), true);
+  pickNode(Math.min(run.stage + 1, STAGES.length), true); requestAnimationFrame(mapFocus);
   setTimeout(() => { if (overlay.hidden && document.querySelector('#map:not([hidden])')) tipCheck(); }, 350);
 }
 /* ───── 다음 단계 안내: 한 단계를 다 끝내면 지도에서 한 번씩 알려줘요 ───── */
@@ -2474,7 +2486,7 @@ function pickNode(id, quiet) {
 }
 $('#mapBox').addEventListener('click', e => { const b = e.target.closest('.node'); if (b) { if (b.dataset.id === 'tw') pickTower(); else pickNode(+b.dataset.id); } });
 $('#info').addEventListener('click', e => { const b = e.target.closest('#btnGo'); if (b) { if (b.dataset.id === 'tw') enterTower(); else enter(+b.dataset.id); } });
-$('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; sfx.tap(); if (b.dataset.synth) { synthSheet(() => { persist(); renderBar(); }); return; } eqSheet(b.dataset.slot); });
+$('#relics').addEventListener('click', e => { const b = e.target.closest('.relic'); if (!b) return; sfx.tap(); eqSheet(b.dataset.slot); });
 
 /* ───── 무기 보기 ───── */
 function weaponSheet() {
@@ -2503,8 +2515,9 @@ function charSheet() {
     <div class="row2"><button class="btn" type="button" data-act="eq">장비 바꾸기</button><button class="btn" type="button" data-act="tree">성장 트리 (별 ${S.meta.pts})</button></div><button class="cta" type="button" data-act="close" data-pref>닫기</button>`,
     (act, b) => { if (act === 'close') { closeSheet(); return; } if (act === 'tree') { treeSheet(() => charSheet()); return; } if (act === 'eq') eqSheet(b.dataset.s, () => charSheet()); });
 }
-$('#btnDeck').addEventListener('click', () => { sfx.tap(); charSheet(); });
-$('#btnEq').addEventListener('click', () => { sfx.tap(); eqSheet(); });
+$('#dock').addEventListener('click', e => { const b = e.target.closest('[data-dock]'); if (!b) return; const a = b.dataset.dock; sfx.tap();
+  if (a === 'char') charSheet(); else if (a === 'eq') eqSheet(); else if (a === 'pet') petSheet(() => renderBar()); else if (a === 'tree') treeSheet(() => { closeSheet(); renderBar(); });
+  else if (a === 'tower') { pickTower(); const n = $('#mapBox .node.tower'); if (n) $('#mapBox').scrollTo({ top: n.offsetTop - 40, behavior: 'smooth' }); } });
 
 /* ───── 칸에 들어가기 ───── */
 /* 스테이지에 들어갈 때: 하트를 가득 채우고, 이번 판 기록을 새로 시작해요 */
@@ -2798,12 +2811,12 @@ $('#btnRec').addEventListener('click', () => { sfx.tap(); exportSheet(); });
 $('#btnNew').addEventListener('click', () => { sfx.tap(); if (S.run) { run = S.run; showMap(); } else newRun(); });
 function menuSheet(home) {
   const row = (act, t, d) => `<button class="opt" type="button" data-act="${act}"><span class="tx"><b>${t}</b><span>${d}</span></span></button>`;
-  const draw = () => sheet(`<h2 id="cardTitle">메뉴</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
+  const draw = () => sheet(`<h2 id="cardTitle">${home ? '메뉴' : '설정'}</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', `진동: ${LVN[vibLv()]}`, '누를 때마다 보통 → 줄임 → 끔 순서로 바뀌어요.') : '')
     + row('shk', `화면 흔들림: ${LVN[shkLv()]}`, '누를 때마다 보통 → 줄임 → 끔 순서로 바뀌어요. 흔들림이 어지러우면 줄여요.')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
-    + (home ? row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>${home ? '' : '<button class="dlink" type="button" data-act="reset">기록 초기화…</button>'}`,      /* 초기화는 처음 화면 설정의 맨 아래, 닫기와 멀리 떨어진 작은 글씨로만 */
-    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vibK = (vibLv() + 2) % 3; persist(); buzz(20); draw(); } else if (act === 'shk') { S.shkK = (shkLv() + 2) % 3; persist(); sfx.tap(); draw(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
+    + (home ? row('rec', '기록 보내기', '플레이 기록을 코드로 만들어 보내요.') + row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>${home ? '' : '<button class="dlink" type="button" data-act="reset">기록 초기화…</button>'}`,      /* 초기화는 처음 화면 설정의 맨 아래, 닫기와 멀리 떨어진 작은 글씨로만 */
+    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vibK = (vibLv() + 2) % 3; persist(); buzz(20); draw(); } else if (act === 'shk') { S.shkK = (shkLv() + 2) % 3; persist(); sfx.tap(); draw(); } else if (act === 'rec') { exportSheet(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
 $('#btnMenu').addEventListener('click', () => menuSheet(true));
