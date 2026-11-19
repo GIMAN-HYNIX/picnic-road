@@ -570,6 +570,7 @@ function play(name, fn, gap = 0) {
 }
 const LVN = ['끔', '줄임', '보통'], LVK = [0, 0.5, 1], lvOf = (v, legacy) => v == null ? (legacy === false ? 0 : 2) : v;      /* 진동·화면 흔들림: 보통 → 줄임 → 끔 */
 const vibLv = () => lvOf(S.vibK, S.vib), shkLv = () => lvOf(S.shkK);
+const LEG_AS = [20, 40, 60, 80, 100], legAlpha = () => (LEG_AS.includes(S.legA) ? S.legA : 60) / 100;      /* 전설 이펙트 진하기: 설정에서 골라요 */
 function buzz(p) { const k = LVK[vibLv()]; if (headless || !k || !navigator.vibrate) return; try { navigator.vibrate(Array.isArray(p) ? p.map(v => Math.max(1, Math.round(v * k))) : Math.max(1, Math.round(p * k))); } catch (e) {} }
 const PENT = [0, 2, 4, 7, 9];      /* 보석 소리가 올라가는 음계 (어느 음이 겹쳐도 듣기 좋아요) */
 const sfx = {
@@ -2261,7 +2262,7 @@ function draw() {
   }
   /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
   if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
-    legDraw(); ctx.globalAlpha = 0.6; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
+    legDraw(); ctx.globalAlpha = legAlpha(); ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
   epicDraw();      /* 별 조각은 전설 이펙트 위에 또렷하게 */
   if (B.rv) rvDraw();
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
@@ -2813,10 +2814,11 @@ function menuSheet(home) {
   const row = (act, t, d) => `<button class="opt" type="button" data-act="${act}"><span class="tx"><b>${t}</b><span>${d}</span></span></button>`;
   const draw = () => sheet(`<h2 id="cardTitle">${home ? '메뉴' : '설정'}</h2><div class="opts">` + row('sound', S.muted ? '소리 켜기' : '소리 끄기', `지금은 소리가 ${S.muted ? '꺼져' : '켜져'} 있어요.`)
     + (navigator.vibrate ? row('vib', `진동: ${LVN[vibLv()]}`, '누를 때마다 보통 → 줄임 → 끔 순서로 바뀌어요.') : '')
+    + row('lega', `전설 이펙트 진하기: ${Math.round(legAlpha() * 100)}%`, '누를 때마다 20 → 40 → 60 → 80 → 100% 순서로 바뀌어요. 낮을수록 캐릭터와 적이 잘 보여요.')
     + row('shk', `화면 흔들림: ${LVN[shkLv()]}`, '누를 때마다 보통 → 줄임 → 끔 순서로 바뀌어요. 흔들림이 어지러우면 줄여요.')
     + row('music', S.music === false ? '배경음악 켜기' : '배경음악 끄기', `지금은 배경음악이 ${S.music === false ? '꺼져' : '켜져'} 있어요.`)
     + (home ? row('rec', '기록 보내기', '플레이 기록을 코드로 만들어 보내요.') + row('home', '처음 화면으로 가기', '모험은 저장돼 있어서 이어서 할 수 있어요.') : '') + `</div><button class="cta" type="button" data-act="close" data-pref>닫기</button>${home ? '' : '<button class="dlink" type="button" data-act="reset">기록 초기화…</button>'}`,      /* 초기화는 처음 화면 설정의 맨 아래, 닫기와 멀리 떨어진 작은 글씨로만 */
-    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vibK = (vibLv() + 2) % 3; persist(); buzz(20); draw(); } else if (act === 'shk') { S.shkK = (shkLv() + 2) % 3; persist(); sfx.tap(); draw(); } else if (act === 'rec') { exportSheet(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
+    act => { if (act === 'reset') { resetSheet(); return; } if (act === 'music') { S.music = S.music === false; persist(); setMusicVol(); sfx.tap(); draw(); return; } if (act === 'diff') { const k = Object.keys(DIFF); S.diff = k[(k.indexOf(S.diff) + 1) % k.length]; persist(); sfx.tap(); draw(); } else if (act === 'sound') { S.muted = !S.muted; persist(); setMusicVol(); sfx.tap(); draw(); } else if (act === 'vib') { S.vibK = (vibLv() + 2) % 3; persist(); buzz(20); draw(); } else if (act === 'lega') { const c = Math.round(legAlpha() * 100); S.legA = LEG_AS[(LEG_AS.indexOf(c) + 1) % LEG_AS.length]; persist(); sfx.tap(); draw(); } else if (act === 'shk') { S.shkK = (shkLv() + 2) % 3; persist(); sfx.tap(); draw(); } else if (act === 'rec') { exportSheet(); } else if (act === 'home') { closeSheet(); show('title'); renderTitle(); } else closeSheet(); });
   draw();
 }
 $('#btnMenu').addEventListener('click', () => menuSheet(true));
