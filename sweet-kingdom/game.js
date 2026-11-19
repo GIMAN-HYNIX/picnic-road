@@ -769,20 +769,20 @@ const RELICS = {
 const HERO_R = 6.5;              // 주인공이 맞는 범위 (몸 크기보다 작게)
 /* 전설 스킬: Lv10 무기의 조각을 10개 모으면 무기가 전설로 바뀌어 커다란 기술이 주기적으로 터져요 */
 const LEG = {
-  pin: { name: '천지 가르기', desc: '적이 몰린 쪽을 노려 거대한 베기가 세 번 이어지고, 벤 자리에 여진이 한 번 더 지나가요. 마지막 충격파가 주변 적을 밀쳐내요.', cd: 3.4 },
-  cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 4.6 },
-  star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 4.0 },
-  macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 3.8 },
-  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 꿀 바다가 나를 따라다녀요. 꿀 바다에 오래 있던 적일수록 더 아프고, 끝날 때 꿀이 한꺼번에 터져요.', cd: 5.8 },
-  lemon: { name: '레몬 폭풍', desc: '초록 회오리 세 개가 적이 뭉친 곳을 휩쓸며 산성 표식을 쌓아요. 폭풍이 끝나면 표식이 한꺼번에 터지고, 많이 쌓인 적일수록 세게 터져요.', cd: 5.0 },
-  skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 두 번 꿰뚫고 지나가요.', cd: 3.6 },
-  choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 운석이 떨어져 큰 폭발과 용암을 남겨요.', cd: 5.4 },
-  cotton: { name: '심판의 빛', desc: '하늘이 갈라지며 화면 전체에 빛이 내려 모든 적을 태워요.', cd: 4.8 },
-  cane: { name: '지팡이 대폭격', desc: '거대한 지팡이 사탕이 두 겹으로 내리꽂히고, 마지막에 초대형 한 방이 떨어져요.', cd: 4.3 }
+  pin: { name: '천지 가르기', desc: '적이 몰린 쪽을 노려 거대한 베기가 세 번 이어지고, 벤 자리에 여진이 한 번 더 지나가요. 마지막 충격파가 주변 적을 밀쳐내요.', cd: 6.8 },
+  cream: { name: '휘핑 해일', desc: '화면 끝에서 끝까지 크림 파도가 두 번 쓸고 가며 적을 느리게 해요.', cd: 9.2 },
+  star: { name: '별똥별 소나기', desc: '별똥별 22개가 쏟아지고, 마지막에 거대한 별이 떨어져요.', cd: 8.0 },
+  macaron: { name: '마카롱 은하', desc: '몸 주위에 은하가 펼쳐져 적을 끌어당겨 갈아버리고, 마지막에 폭발해요.', cd: 7.6 },
+  honey: { name: '꿀 폭포', desc: '하늘에서 꿀 폭포가 쏟아지고, 꿀 바다가 나를 따라다녀요. 꿀 바다에 오래 있던 적일수록 더 아프고, 끝날 때 꿀이 한꺼번에 터져요.', cd: 11.6 },
+  lemon: { name: '레몬 폭풍', desc: '초록 회오리 세 개가 적이 뭉친 곳을 휩쓸며 산성 표식을 쌓아요. 폭풍이 끝나면 표식이 한꺼번에 터지고, 많이 쌓인 적일수록 세게 터져요.', cd: 10.0 },
+  skewer: { name: '꼬치 소나기', desc: '사방 16방향으로 거대한 꼬치가 두 번 꿰뚫고 지나가요.', cd: 7.2 },
+  choco: { name: '초코 메테오', desc: '적이 가장 많은 곳에 거대한 운석이 떨어져 큰 폭발과 용암을 남겨요.', cd: 10.8 },
+  cotton: { name: '심판의 빛', desc: '하늘이 갈라지며 화면 전체에 빛이 내려 모든 적을 태워요.', cd: 9.6 },
+  cane: { name: '지팡이 대폭격', desc: '거대한 지팡이 사탕이 두 겹으로 내리꽂히고, 마지막에 초대형 한 방이 떨어져요.', cd: 8.6 }
 };
 const LEG_N = 10;
 /* 전설 피해 배율: 각성 전 무기(Lv10)가 내던 피해의 약 3배가 되게 무기마다 재서 맞춘 값이에요. 전설 스킬은 그 무기를 대신해요 */
-const LEGF = { pin: 0.258, cream: 0.396, star: 0.309, macaron: 0.254, honey: 1.35, lemon: 0.63, skewer: 0.352, choco: 0.341, cotton: 0.575, cane: 0.336 };      /* 각성 전 피해의 약 3배에서 한 번 더 1.5배 (약 4.5배) */
+const LEGF = { pin: 0.516, cream: 0.792, star: 0.618, macaron: 0.508, honey: 2.7, lemon: 1.26, skewer: 0.704, choco: 0.682, cotton: 1.15, cane: 0.672 };      /* 각성 전 피해의 약 4.5배. 쿨타임을 2배로 늘린 만큼 한 방 피해도 2배 */
 const legAll = () => run && Object.keys(WEAPONS).every(id => isLeg(id));      /* 전설 스킬을 전부 얻었는지 */
 const legUnlocked = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX);      /* 기본 스킬 10개를 모두 Lv10으로 마스터해야 전설 조각이 나와요 */
 /* 보스를 처음 잡으면 전설 조각 2~3개 (기본 무기를 모두 Lv10으로 만든 뒤부터). 절반은 가장 많이 모은 무기로 가서 하나씩 완성돼요 */
@@ -829,10 +829,10 @@ function castLeg(w, K = 1) {      /* K: 위력 배율 (별이가 대신 쓸 때�
   if (id === 'star') {      /* 별똥별 소나기 → 마지막에 거대한 별 */
     for (let i = 0; i < 22 + 8 * up; i++) at(i * 0.055, () => {
       const f = rnd(onScreen()), a = Math.random() * 6.283, x = f ? f.x + (Math.random() - 0.5) * 30 : p.x + Math.cos(a) * 200, y = f ? f.y : p.y + Math.sin(a) * 200;
-      lfxAdd({ k: 'meteor', x, y, dx: 150, dy: -320, life: 0.3, max: 0.3, cols: ['#FFB020', '#FFE27A', '#FFFFFF'], r: 3 }); legLater(0.3, () => { big(x, y, 82, 240, '#FFD23F'); lfxAdd({ k: 'pop', x, y, r: 50, life: 0.3, max: 0.3, col: '#FFD23F' }); });
+      lfxAdd({ k: 'meteor', x, y, dx: 150, dy: -320, life: 0.3, max: 0.3, cols: ['#FFB020', '#FFE27A', '#FFFFFF'], r: 3, sk: 'star', hue: i }); legLater(0.3, () => { big(x, y, 82, 240, '#FFD23F'); lfxAdd({ k: 'pop', x, y, r: 50, life: 0.3, max: 0.3, col: '#FFD23F' }); });
     });
     at((22 + 8 * up) * 0.055 + 0.15, () => { let best = p, bn = -1; for (const f of onScreen()) { let n = 0; for (const g of B.foes) if (!g.dead && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 170 * 170) n++; if (n > bn) { bn = n; best = f; } } const x = best.x, y = best.y;
-      lfxAdd({ k: 'meteor', x, y, dx: 200, dy: -440, life: 0.4, max: 0.4, cols: ['#FF9A1F', '#FFE27A', '#FFFFFF'], r: 14 }); legLater(0.4, () => { big(x, y, 250, 520, '#FFD23F'); lfxAdd({ k: 'ring', x, y, r: 20, to: 250, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'pop', x, y, r: 120, life: 0.45, max: 0.45, col: '#FFD23F' }); shake(0.8); flash('255,240,180', 0.25); }); });
+      lfxAdd({ k: 'meteor', x, y, dx: 200, dy: -440, life: 0.4, max: 0.4, cols: ['#FF9A1F', '#FFE27A', '#FFFFFF'], r: 14, sk: 'big' }); legLater(0.4, () => { big(x, y, 250, 520, '#FFD23F'); lfxAdd({ k: 'ring', x, y, r: 20, to: 250, life: 0.4, max: 0.4, col: '#FFFFFF', w: 10 }); lfxAdd({ k: 'pop', x, y, r: 120, life: 0.45, max: 0.45, col: '#FFD23F' }); shake(0.8); flash('255,240,180', 0.25); }); });
   }
   if (id === 'macaron') {      /* 마카롱 은하: 내 주변 먼 곳에 은하가 생겨서 적을 끌어당겨 터뜨려요 */
     const T = 1.5 + 0.3 * up, near = onScreen(); let best = null, bn = -1;
@@ -865,7 +865,7 @@ function castLeg(w, K = 1) {      /* K: 위력 배율 (별이가 대신 쓸 때�
   }
   if (id === 'choco') {      /* 초코 메테오: 경고 표시 → 거대한 운석 → 큰 폭발과 용암 */
     let best = null, bn = -1; at(0, () => { for (const f of onScreen()) { let n = 0; for (const g of B.foes) if (!g.dead && (g.x - f.x) ** 2 + (g.y - f.y) ** 2 < 170 * 170) n++; if (n > bn) { bn = n; best = f; } }
-      const x = best ? best.x : p.x, y = best ? best.y : p.y - 120; lfxAdd({ k: 'warn', x, y, r: 230, life: 0.85, max: 0.85 }); lfxAdd({ k: 'meteor', x, y, dx: 260, dy: -560, life: 0.85, max: 0.85, cols: ['#7A2E10', '#FF7A1F', '#FFE27A'], r: 26, slow: true });
+      const x = best ? best.x : p.x, y = best ? best.y : p.y - 120; lfxAdd({ k: 'warn', x, y, r: 230, life: 0.85, max: 0.85 }); lfxAdd({ k: 'meteor', x, y, dx: 260, dy: -560, life: 0.85, max: 0.85, cols: ['#7A2E10', '#FF7A1F', '#FFE27A'], r: 26, slow: true, sk: 'choco' });
       legLater(0.85, () => { big(x, y, 240 + 40 * up, 760, '#6B3A1E'); for (let k = 0; k < 8 + 4 * up; k++) { const a = k * 6.283 / (8 + 4 * up); big(x + Math.cos(a) * 170, y + Math.sin(a) * 170, 90, 220, '#A0663C'); }
         lfxAdd({ k: 'quake', x, y, life: 0.9, max: 0.9 }); lfxAdd({ k: 'ring', x, y, r: 20, to: 330, life: 0.5, max: 0.5, col: '#FFFFFF', w: 12 }); lfxAdd({ k: 'ring', x, y, r: 10, to: 250, life: 0.55, max: 0.55, col: '#FF7A1F', w: 12 });
         B.zones.push({ x, y, r: 200, life: 3.5, tick: 0, dmg: D(30), w, fire: true, leg: true, pet: !!B.legPet }); shake(1); flash('255,210,150', 0.4); }); });
@@ -897,6 +897,27 @@ function legDim() {
   const bh = Math.round(13 * env); R('#0A0014', 0, 0, lw, bh); R('#0A0014', 0, lh - bh, lw, bh);
 }
 const LEGCOL = { cotton: '#FFF6C0', pin: '#FFD23F', cream: '#FFFFFF', star: '#FFD23F', macaron: '#FF8FB8', honey: '#FFC23D', lemon: '#B9DD52', skewer: '#FF9A1F', choco: '#FF7A1F', cane: '#FF5A7A' };
+/* ───── 전설 스킬 소품 그림: 작은 디테일들 ───── */
+const PASTEL = ['#FF8FB8', '#8FD3FF', '#FFE27A', '#B6F08A', '#C9A4FF', '#FFB38A'];
+function starPx(cx, cy, r, col, rot, ink) {      /* 다섯 꼭지 별 (한 칸씩 찍어요) */
+  const rr = r + (ink ? 1 : 0), S5 = 1.2566, inner = 0.48;
+  for (let y = -rr; y <= rr; y++) for (let x = -rr; x <= rr; x++) { const d = Math.hypot(x, y); if (d > rr) continue; let t = (Math.atan2(y, x) - rot + Math.PI / 2) % S5; if (t < 0) t += S5; t = Math.abs(t - S5 / 2) / (S5 / 2); const b = rr * (inner + (1 - inner) * (1 - t)); if (d <= b) R(ink ? INK : col, cx + x, cy + y, 1, 1); }
+}
+function cuteFace(x, y, s, mood) {      /* 눈 두 개, 볼터치, 웃는 입 */
+  const g = Math.max(1, Math.round(s * 0.35)); R(INK, x - g - 1, y - 1, 1, 2); R(INK, x + g, y - 1, 1, 2);
+  if (s >= 4) { R('#FF8FB8', x - g - 2, y + 1, 2, 1); R('#FF8FB8', x + g + 1, y + 1, 2, 1); }
+  if (mood === 'o') R(INK, x, y + 1, 1, 1); else { R(INK, x - 1, y + 1, 1, 1); R(INK, x + 1, y + 1, 1, 1); R(INK, x, y + 2, 1, 1); }
+}
+function bee(x, y, t, face) {      /* 꿀벌: 노랑·까망 줄무늬, 파닥이는 날개 */
+  const fl = Math.floor(t * 30) % 2; x = Math.round(x); y = Math.round(y);
+  R('#FFFFFF', x - 2, y - 4 - fl, 3, 2 + fl); R('#FFFFFF', x + 1, y - 4 - fl, 3, 2 + fl); R('#BFE6FF', x - 1, y - 3, 1, 1); R('#BFE6FF', x + 2, y - 3, 1, 1);
+  R(INK, x - 4, y - 2, 9, 5); R('#FFD23F', x - 3, y - 1, 7, 3); R(INK, x - 1, y - 1, 1, 3); R(INK, x + 1, y - 1, 1, 3);
+  R(INK, x + (face > 0 ? 4 : -5), y, 1, 1); R(INK, x + (face > 0 ? -5 : 4), y, 1, 1);
+}
+function cherry(x, y) { x = Math.round(x); y = Math.round(y); pline(x, y - 2, x + 2, y - 6, '#3F8F2A'); R('#5CC04A', x + 2, y - 7, 2, 1); pdisc(x, y, 3, INK); pdisc(x, y, 2, '#E8323C'); R('#FFFFFF', x - 1, y - 1, 1, 1); }
+function mint(x, y, s) { x = Math.round(x); y = Math.round(y); pdisc(x, y, s + 1, INK); pdisc(x, y, s, '#FFFFFF'); for (let i = 0; i < 3; i++) { const a = i * 2.094 + B.t * 4; pline(x, y, Math.round(x + Math.cos(a) * s), Math.round(y + Math.sin(a) * s), '#E8323C'); } }
+function cloudPuff(x, y, w, cols) { x = Math.round(x); y = Math.round(y); for (const [dx, dy, r] of [[-w, 1, 0.55], [w, 1, 0.55], [-w * 0.45, -2, 0.75], [w * 0.45, -2, 0.75], [0, -4, 0.9]]) pdisc(Math.round(x + dx), Math.round(y + dy), Math.round(w * r) + 1, INK); for (const [dx, dy, r, c] of [[-w, 1, 0.55, 1], [w, 1, 0.55, 1], [-w * 0.45, -2, 0.75, 0], [w * 0.45, -2, 0.75, 0], [0, -4, 0.9, 2]]) pdisc(Math.round(x + dx), Math.round(y + dy), Math.round(w * r), cols[c]); R('#FFFFFF', x - 2, y - 7, 3, 1); }
+const FRUIT = [['#E8323C', '#FFB0B8', 'straw'], ['#7BD15A', '#D8FFB8', 'grape'], ['#FF9A1F', '#FFE0A8', 'orange'], ['#8A4FD0', '#E0C8FF', 'grape'], ['#E8323C', '#FFB0B8', 'straw']];
 function legDraw() {
   const p = B.p;
   for (const f of B.lfx) {
@@ -908,20 +929,37 @@ function legDraw() {
     }
     else if (f.k === 'slash') {      /* 화면을 가르는 초승달 베기 */
       const h = Math.min(1, e * 2.6), fade = k > 0.5 ? 1 : k / 0.5, c = Math.cos(f.a), s = Math.sin(f.a), L = pxw(f.len), nx = -s, ny = c, bow = pxw(f.bow), T = pxw(f.T) * fade, pts = [];
-      for (let i = 0, n = Math.ceil(L * 2); i <= n; i++) { const u = i / n; if (u > h) break; const t = (u * 2 - 1) * L, b = Math.sin(Math.PI * u) * bow; pts.push([fx + c * t + nx * b, fy + s * t + ny * b, Math.max(1, T * Math.pow(Math.sin(Math.PI * u), 0.55))]); }
+      for (let i = 0, n = Math.ceil(L * 2); i <= n; i++) { const u = i / n; if (u > h) break; const t = (u * 2 - 1) * L, b = Math.sin(Math.PI * u) * bow; pts.push([fx + c * t + nx * b, fy + s * t + ny * b, Math.max(1, T * Math.pow(Math.sin(Math.PI * u), 0.55) * Math.min(1, (h - u) * 9 + 0.12))]); }
       for (const [col, m, add] of [[INK, 1, 4], ['#FFB020', 1, 1], ['#FFF3C0', 0.7, 0], ['#FFFFFF', 0.38, 0]]) { ctx.fillStyle = col; for (const [x, y, th] of pts) { const r = Math.max(1, Math.round(th * m) + add); ctx.fillRect(Math.round(x - r / 2), Math.round(y - r / 2), r, r); } }
-      if (pts.length) { const [hx, hy] = pts[pts.length - 1]; pstar(Math.round(hx), Math.round(hy), 7, '#FFFFFF'); pstar(Math.round(hx), Math.round(hy), 3, '#FFD23F'); }
+      for (let i = 6; i < pts.length; i += 9) { const [x, y] = pts[i], u = i / Math.max(1, pts.length - 1), age = Math.max(0, h - u) + e * 0.5, rr = Math.min(6, 2 + age * 9), dy = age * 26;      /* 밀가루 구름: 지나간 자리에서 몽글몽글 내려앉아요 */
+        if (rr > 1.5 && k > 0.12) { pdisc(Math.round(x + nx * 6), Math.round(y + ny * 6 + dy), Math.round(rr), '#EDE3D2'); pdisc(Math.round(x + nx * 6 - 1), Math.round(y + ny * 6 + dy - 1), Math.max(1, Math.round(rr - 2)), '#FFFFFF'); if (i % 18 === 6) R('#D9C7A8', Math.round(x - nx * 4), Math.round(y - ny * 4 + dy * 1.4), 1, 1); } }
+      if (pts.length > 2 && h < 1.0 + 1e-6 && k > 0.25) { const [hx, hy] = pts[pts.length - 1], [px0, py0] = pts[pts.length - 2], ta = Math.atan2(hy - py0, hx - px0) + Math.PI / 2, tc = Math.cos(ta) * 11, ts = Math.sin(ta) * 11, spin = Math.floor(B.t * 24) % 3;      /* 굴러가는 나무 밀대 */
+        for (let q = -1.55; q <= 1.551; q += 0.2) { const ax = Math.round(hx + tc * q), ay = Math.round(hy + ts * q), hd = Math.abs(q) > 1.05; pdisc(ax, ay, hd ? 3 : 5, INK); }
+        for (let q = -1.55; q <= 1.551; q += 0.2) { const ax = Math.round(hx + tc * q), ay = Math.round(hy + ts * q), hd = Math.abs(q) > 1.05; pdisc(ax, ay, hd ? 2 : 4, hd ? '#8A5230' : '#D9A066'); if (!hd) R('#F4D2A0', ax - 1, ay - 3, 2, 1); }      /* 손잡이 달린 둥근 나무 밀대 */
+        for (let g = -1; g <= 1; g++) { const q = (g + spin * 0.33) * 0.45; R('#B9783F', Math.round(hx + tc * q), Math.round(hy + ts * q), 1, 1); R('#B9783F', Math.round(hx + tc * q + 1), Math.round(hy + ts * q + 1), 1, 1); } }
     }
     else if (f.k === 'wave') {      /* 크림 파도 */
       const xw = f.x0 + f.dir * f.sp * e * f.max, fe0 = X(xw), d = f.dir, a = Math.min(1, k * 3);
       ctx.globalAlpha = 0.5 * a; for (let y = 0; y < lh; y++) { const fe = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + Math.sin(y * 0.11) * 4); R('#FFD9EA', d > 0 ? fe - 92 : fe, y, 92, 1); } ctx.globalAlpha = 0.85 * a;
       for (let y = 0; y < lh; y++) { const fe = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + Math.sin(y * 0.11) * 4); R('#FFF3E6', d > 0 ? fe - 40 : fe, y, 40, 1); } ctx.globalAlpha = a;
       for (let y = -6; y < lh + 10; y += 11) { const bx = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + 6); pdisc(bx, y, 9, INK); pdisc(bx, y, 8, '#FFFFFF'); pdisc(bx - d * 2, y + 2, 4, '#FFD9EA'); pdisc(bx + d, y - 3, 2, '#FFFFFF'); }
-      for (let i = 0; i < 26; i++) { const yy = (i * 47 + Math.floor(B.t * 40) * 13) % lh, xx = fe0 + d * (10 + (i * 29 + B.t * 220) % 50); pstar(xx, yy, 1 + i % 2, '#FFFFFF'); } ctx.globalAlpha = 1;
+      for (let i = 0; i < 34; i++) { const yy = (i * 47 + Math.floor(B.t * 30) * 7) % lh, xx = fe0 - d * (8 + (i * 29) % 70), c = PASTEL[i % PASTEL.length], o = (i + Math.floor(B.t * 6)) % 4; if (o < 2) R(c, xx, yy, 3, 1); else R(c, xx, yy, 1, 3); }      /* 크림에 박힌 무지개 스프링클 */
+      for (let y = 4, n = 0; y < lh; y += 11, n++) { const bx = fe0 + d * Math.round(Math.sin(y * 0.28 + B.t * 14) * 3 + 6); if (n % 3 === 1) cherry(bx + d * 2, y - 8 + Math.round(Math.sin(B.t * 8 + n) * 1.5)); else if (n % 3 === 2) { R('#FFFFFF', bx + d * 4, y - 5, 2, 2); R('#FFFFFF', bx + d * 6, y - 7, 1, 2); } }      /* 파도 꼭대기에 탄 체리와 크림 뿔 */
+      for (let i = 0; i < 10; i++) { const yy = (i * 71 + Math.floor(B.t * 12) * 5) % lh, xx = fe0 - d * (30 + (i * 17) % 50), dr = ((B.t * 2 + i * 0.37) % 1) * 8; R('#FFF3E6', xx, yy + Math.round(dr), 2, 3); R('#FFD9EA', xx, yy + Math.round(dr) + 3, 2, 1); }      /* 흘러내리는 크림 방울 */
+      ctx.globalAlpha = 1;
     }
     else if (f.k === 'meteor') {      /* 떨어지는 별똥별 / 운석 */
       const h = f.slow ? e * e : e, hx = fx + pxw(f.dx) * (1 - h), hy = fy + pxw(f.dy) * (1 - h), tl = f.r > 8 ? 70 : 34, ux = f.dx / Math.hypot(f.dx, f.dy), uy = f.dy / Math.hypot(f.dx, f.dy), r = f.r;
       f.cols.forEach((col, i) => { const t = Math.max(1, Math.round((r + 3 - i * (r * 0.3 + 1)) * 0.9)); pline(Math.round(hx), Math.round(hy), Math.round(hx + ux * tl * (1 - i * 0.18)), Math.round(hy + uy * tl * (1 - i * 0.18)), col, t); });
+      if (f.sk === 'star' || f.sk === 'big') { const big = f.sk === 'big', c = big ? '#FFD23F' : PASTEL[(f.hue || 0) % PASTEL.length], rr = big ? r + 2 : r + 3, rot = B.t * (big ? 3 : 8) + (f.hue || 0);
+        for (let i = 1; i <= (big ? 8 : 4); i++) { const q = i * (big ? 7 : 6), tw = Math.floor(B.t * 16 + i) % 2; pstar(Math.round(hx + ux * q + Math.sin(B.t * 20 + i) * 2), Math.round(hy + uy * q), tw ? 2 : 1, i % 2 ? '#FFFFFF' : c); }      /* 반짝이 꼬리 */
+        starPx(Math.round(hx), Math.round(hy), rr, null, rot, true); starPx(Math.round(hx), Math.round(hy), rr, c, rot); starPx(Math.round(hx - 1), Math.round(hy - 1), Math.max(1, Math.round(rr * 0.45)), '#FFFFFF', rot);
+        if (big) cuteFace(Math.round(hx), Math.round(hy) + 1, rr, Math.floor(B.t * 3) % 2 ? 'o' : 'u'); continue; }
+      if (f.sk === 'choco') { const X0 = Math.round(hx), Y0 = Math.round(hy);      /* 초코볼 운석: 갈라진 금, 박힌 초코칩, 녹아 떨어지는 방울 */
+        pdisc(X0, Y0, r + 1, INK); pdisc(X0, Y0, r, '#6B3A1E'); pdisc(X0 - 4, Y0 - 4, Math.round(r * 0.7), '#8A5230'); pdisc(X0 - 7, Y0 - 7, Math.round(r * 0.25), '#C08A5A');
+        for (let i = 0; i < 9; i++) { const a = i * 0.7 + 0.4, d = r * (0.3 + (i % 3) * 0.22); R('#3A1E0E', Math.round(X0 + Math.cos(a) * d), Math.round(Y0 + Math.sin(a) * d), 3, 2); }
+        pline(X0 - 6, Y0 + 3, X0 + 2, Y0 - 2, '#3A1E0E'); pline(X0 + 2, Y0 - 2, X0 + 9, Y0 + 1, '#3A1E0E');
+        for (let i = 0; i < 6; i++) { const q = (i * 13 + B.t * 90) % 60; pdisc(Math.round(X0 + ux * (r + q)), Math.round(Y0 + uy * (r + q) + q * 0.3), Math.max(1, 3 - (i % 3)), i % 2 ? '#8A5230' : '#FF9A3D'); } continue; }
       pdisc(Math.round(hx), Math.round(hy), r + 1, INK); pdisc(Math.round(hx), Math.round(hy), r, f.cols[0]); pdisc(Math.round(hx - r * 0.2), Math.round(hy - r * 0.2), Math.max(1, Math.round(r * 0.6)), f.cols[1]); pdisc(Math.round(hx - r * 0.3), Math.round(hy - r * 0.3), Math.max(1, Math.round(r * 0.28)), '#FFFFFF');
       if (r > 8) for (let i = 0; i < 10; i++) pstar(Math.round(hx + ux * (8 + i * 6) + Math.sin(B.t * 30 + i) * 4), Math.round(hy + uy * (8 + i * 6)), 1 + i % 2, i % 2 ? '#FFB020' : '#FFFFFF');
     }
@@ -941,14 +979,19 @@ function legDraw() {
       ctx.globalAlpha = a; putDisc(cx, cy, Math.round(rr * 0.5) + 8, Math.round(rr * 0.4) + 6, '#3A1A6A', 8); putDisc(cx, cy, Math.round(rr * 0.22) + 4, Math.round(rr * 0.18) + 3, '#C77DFF', 8);
       for (let arm = 0; arm < 4; arm++) for (let s = 1; s <= 46; s++) { const ang = arm * 1.571 + s * 0.13 + e * 7, d = rr * s / 46, sz = s > 36 ? 3 : s > 18 ? 2 : 1; R(cols[arm], Math.round(cx + Math.cos(ang) * d), Math.round(cy + Math.sin(ang) * d * 0.85), sz, sz); }
       for (let i = 0; i < 8; i++) { const ang = i * 0.785 + e * 4.5, d = rr * (0.55 + 0.45 * ((i % 2) ? 1 : 0.7)), mx = Math.round(cx + Math.cos(ang) * d), my = Math.round(cy + Math.sin(ang) * d * 0.85), r = 6 + (i % 3);
-        pdisc(mx, my + 1, r + 1, INK); pdisc(mx, my - 2, r, i % 2 ? '#FF8FB8' : '#C9A4FF'); pdisc(mx, my + 2, r, i % 2 ? '#FF8FB8' : '#C9A4FF'); R('#FFF3E6', mx - r + 1, my - 1, r * 2 - 1, 3); pstar(mx - 2, my - 4, 1, '#FFFFFF'); } ctx.globalAlpha = 1;
+        pdisc(mx, my + 1, r + 1, INK); const mc = ['#FF8FB8', '#C9A4FF', '#B6F08A', '#8FD3FF'][i % 4]; pdisc(mx, my - 2, r, mc); pdisc(mx, my + 2, r, mc); R('#FFF3E6', mx - r + 1, my - 1, r * 2 - 1, 3); R(INK, mx - r + 2, my + 2, r * 2 - 3, 1); pstar(mx - 3, my - 5, 1, '#FFFFFF'); cuteFace(mx, my - 3, r, (i + Math.floor(B.t * 2)) % 3 ? 'u' : 'o'); }      /* 웃는 마카롱 */
+      for (let i = 0; i < 3; i++) { const ang = -e * 3 + i * 2.094, d = rr * 0.33, dx = Math.round(cx + Math.cos(ang) * d), dy = Math.round(cy + Math.sin(ang) * d * 0.85); pdisc(dx, dy, 6, INK); pdisc(dx, dy, 5, '#FFB38A'); pdisc(dx, dy - 1, 4, ['#FF8FB8', '#FFFFFF', '#6B3A1E'][i]); pdisc(dx, dy, 2, '#3A1A6A'); R(PASTEL[(i * 2 + 1) % 6], dx - 3, dy - 3, 1, 1); R(PASTEL[i * 2 % 6], dx + 2, dy - 2, 1, 1); }      /* 도넛 행성 */
+      for (let i = 0; i < 22; i++) { const ang = i * 2.4 + i * i * 0.01, d = rr * (0.15 + ((i * 37) % 85) / 100), tw = Math.floor(B.t * 6 + i) % 3; if (tw) pstar(Math.round(cx + Math.cos(ang) * d), Math.round(cy + Math.sin(ang) * d * 0.85), tw - 1, '#FFFFFF'); }      /* 반짝이는 설탕 별 */
+      ctx.globalAlpha = 1;
     }
     else if (f.k === 'fall') {      /* 꿀 폭포 */
       const env = Math.min(1, e * 6, k * 2.5), w = Math.round(pxw(130) * env), bx = fx, by = fy + 4;
       ctx.globalAlpha = 0.5 * env; R('#FFE9A8', bx - w - 5, 0, w * 2 + 10, by); ctx.globalAlpha = 1; R(INK, bx - w - 1, 0, 2, by); R(INK, bx + w - 1, 0, 2, by); R('#F7A81B', bx - w + 1, 0, w * 2 - 2, by); R('#FFC23D', bx - w + 4, 0, w * 2 - 8, by);
       for (let i = 0; i < 20; i++) { const sx = bx - w + 4 + ((i * 17) % Math.max(1, w * 2 - 10)), sy = ((i * 41 + B.t * 520) % (by + 30)) - 20; R('#FFF3C0', sx, sy, 2, 12 + i % 3 * 6); }
       putDisc(bx, by, w + 18, Math.round(w * 0.45) + 6, '#FFC23D', 10); pcircle(bx, by, w + 12 + Math.round(e * 10), '#FFE9A8', 2); pcircle(bx, by, Math.round((w + 6) * 0.75) + Math.round(e * 10), '#FFD23F', 1);
-      for (let i = 0; i < 16; i++) { const ang = i * 0.393 + 0.1, d = (w + 6) * (0.6 + e * 1.1), yy = by - Math.abs(Math.sin(ang)) * (14 + (i % 4) * 8) * (1 - e * 0.6); pdisc(Math.round(bx + Math.cos(ang) * d), Math.round(yy), 2 + i % 2, i % 2 ? '#FFE9A8' : '#F7A81B'); }
+      for (let i = 0; i < 16; i++) { const ang = i * 0.393 + 0.1, d = (w + 6) * (0.6 + e * 1.1), yy = by - Math.abs(Math.sin(ang)) * (14 + (i % 4) * 8) * (1 - e * 0.6), xx = Math.round(bx + Math.cos(ang) * d); pdisc(xx, Math.round(yy), 2 + i % 2, i % 2 ? '#FFE9A8' : '#F7A81B'); R('#F7A81B', xx, Math.round(yy) - 3 - i % 2, 1, 2); }      /* 꿀방울 (물방울 모양) */
+      if (env > 0.3) { const dy0 = 10 + Math.round(Math.sin(B.t * 3) * 2); R(INK, bx - 3, 0, 7, dy0 + 2); R('#B9783F', bx - 2, 0, 5, dy0); for (let r0 = 0; r0 < 3; r0++) { R(INK, bx - 7, dy0 + r0 * 4, 15, 4); R(r0 % 2 ? '#D9A066' : '#B9783F', bx - 6, dy0 + 1 + r0 * 4, 13, 2); } }      /* 하늘에서 내려온 나무 꿀 국자 */
+      for (let i = 0; i < 4; i++) { const a = B.t * (2 + i * 0.3) + i * 1.57, bxx = bx + Math.cos(a) * (w + 22 + i * 6), byy = by - 22 - i * 9 + Math.sin(a * 2) * 6; bee(bxx, byy, B.t + i, Math.sin(a + 1.57) > 0 ? 1 : -1); }      /* 꿀 냄새에 날아온 꿀벌들 */
     }
     else if (f.k === 'twister') {      /* 레몬 회오리 */
       const a = Math.min(1, e * 6, k * 3); ctx.globalAlpha = a;
@@ -956,13 +999,16 @@ function legDraw() {
         R(INK, fx + wob - w - 1, yy, w * 2 + 3, 5); R(col, fx + wob - w, yy, w * 2 + 1, 4); R('#FFFFFF', fx + wob - w + ((i * 7 + Math.floor(B.t * 20)) % (w * 2)), yy + 1, 3, 1); }
       for (let i = 0; i < 9; i++) { const ang = B.t * 6 + i * 0.7 + f.seed, hh = (i * 11 + B.t * 30) % 100, w = 12 + hh * 0.5, sx = Math.round(fx + Math.cos(ang) * w), sy = Math.round(fy - hh - 4 + Math.sin(ang) * 5);
         pdisc(sx, sy, 5, INK); pdisc(sx, sy, 4, '#FFE84A'); pdisc(sx, sy, 2, '#FFFBD0'); R('#E0C81E', sx - 4, sy, 9, 1); R('#E0C81E', sx, sy - 4, 1, 9); }
+      for (let i = 0; i < 8; i++) { const ang = B.t * 4 + i * 0.785 + f.seed, q = ((B.t * 1.5 + i * 0.13) % 1), dd = 18 + q * 40, sx = Math.round(fx + Math.cos(ang) * dd), sy = Math.round(fy - 30 + Math.sin(ang) * dd * 0.5 + q * q * 30); if (i % 3 === 0) { R('#3F8F2A', sx - 2, sy, 5, 2); R('#7BD15A', sx - 1, sy, 3, 1); R('#2E6A1E', sx + 2, sy + 1, 1, 1); } else if (i % 3 === 1) { pdisc(sx, sy, 2, '#FFFBD0'); R('#FFFBD0', sx, sy - 3, 1, 2); } else { R('#F4ECC0', sx, sy, 2, 1); R(INK, sx - 1, sy, 1, 1); } }      /* 잎사귀, 레몬즙 방울, 씨앗 */
       putDisc(fx, fy + 2, 40, 12, '#B9DD52', 6); ctx.globalAlpha = 1;
     }
     else if (f.k === 'spear') {      /* 거대한 꼬치 */
       const h = Math.min(1, e * 2.8), L = pxw(f.len), c = Math.cos(f.a), s = Math.sin(f.a), hd = L * h, tl = Math.min(hd, pxw(260)), x1 = Math.round(fx + c * hd), y1 = Math.round(fy + s * hd), x0 = Math.round(fx + c * (hd - tl)), y0 = Math.round(fy + s * (hd - tl)), fade = k > 0.45 ? 1 : k / 0.45, t = Math.max(1, Math.round(5 * fade)), nx = -s, ny = c;
-      pline(x0, y0, x1, y1, INK, t + 2); pline(x0, y0, x1, y1, f.col, t); pline(x0, y0, x1, y1, '#FFF3C0', Math.max(1, t - 3));
-      const ax = Math.round(x1 + c * 12 * fade), ay = Math.round(y1 + s * 12 * fade), bx1 = Math.round(x1 + nx * 7 * fade), by1 = Math.round(y1 + ny * 7 * fade), bx2 = Math.round(x1 - nx * 7 * fade), by2 = Math.round(y1 - ny * 7 * fade);
-      pline(bx1, by1, ax, ay, INK, 3); pline(bx2, by2, ax, ay, INK, 3); pline(bx1, by1, ax, ay, '#FFFFFF', 1); pline(bx2, by2, ax, ay, '#FFFFFF', 1); pline(bx1, by1, bx2, by2, f.col, 2);
+      pline(x0, y0, x1, y1, INK, t + 1); pline(x0, y0, x1, y1, '#C99A5E', Math.max(1, t - 1)); pline(x0, y0, x1, y1, '#E8C48A', 1);      /* 나무 꼬치 막대 */
+      if (fade > 0.3) { for (let q = 0; q < 5; q++) { const dd = 8 + q * 11, fxp = Math.round(x1 - c * dd), fyp = Math.round(y1 - s * dd), [fc, fh, ft] = FRUIT[q], fr = ft === 'grape' ? 4 : 5;      /* 꼬치에 꿰인 과일 */
+          pdisc(fxp, fyp, fr + 1, INK); pdisc(fxp, fyp, fr, fc); if (ft === 'straw') { R('#FFE27A', fxp - 2, fyp, 1, 1); R('#FFE27A', fxp + 1, fyp + 2, 1, 1); R('#FFE27A', fxp + 2, fyp - 1, 1, 1); R('#3F8F2A', Math.round(fxp - c * fr) - 1, Math.round(fyp - s * fr) - 1, 3, 2); } if (ft === 'orange') { R('#FFC864', fxp - 1, fyp + 1, 1, 1); R('#FFC864', fxp + 2, fyp, 1, 1); } R(fh, fxp - 2, fyp - 3, 2, 1); R('#FFFFFF', fxp - 2, fyp - 2, 1, 1); }      /* 설탕 코팅 반짝임 */
+        pline(Math.round(x1), Math.round(y1), Math.round(x1 + c * 7), Math.round(y1 + s * 7), '#C99A5E', 2);
+        for (let q = 0; q < 4; q++) { const tt = (q * 0.27 + B.t * 3) % 1, sx = Math.round(x0 + (x1 - x0) * tt + nx * ((q % 2) * 2 - 1) * 5), sy = Math.round(y0 + (y1 - y0) * tt + ny * ((q % 2) * 2 - 1) * 5); pstar(sx, sy, Math.floor(B.t * 14 + q) % 2 ? 1 : 2, '#FFFFFF'); } }      /* 흩날리는 설탕 조각 */
     }
     else if (f.k === 'pillar') {      /* 제네시스: 하늘에서 내리는 거대한 빛기둥 */
       const env = Math.pow(Math.sin(Math.PI * Math.min(1, e * 1.05)), 0.45), w = Math.round(pxw(f.w) * env), bx = fx, by = fy + 6;
@@ -979,7 +1025,11 @@ function legDraw() {
       ctx.globalAlpha = a; for (let y = 0; y < len; y++) { const yy = top + y; R(Math.floor((y + 3) / seg) % 2 ? '#FFFFFF' : '#E8323C', fx - w, yy, w * 2 + 1, 1); } R(INK, fx - w - 1, top, 1, len); R(INK, fx + w + 1, top, 1, len); R(INK, fx - w - 1, top + len, w * 2 + 3, 1);
       for (let i = -3; i <= 10; i++) { const ang = Math.PI + i * 0.3, hx = Math.round(fx + w + Math.cos(ang) * (w + 3 * sc) + 2 * sc), hy = Math.round(top + Math.sin(ang) * (w + 3 * sc)); R(INK, hx - w - 1, hy - 1, w * 2 + 3, w * 2 + 3); } 
       for (let i = -3; i <= 10; i++) { const ang = Math.PI + i * 0.3, hx = Math.round(fx + w + Math.cos(ang) * (w + 3 * sc) + 2 * sc), hy = Math.round(top + Math.sin(ang) * (w + 3 * sc)); R(i % 2 ? '#FFFFFF' : '#E8323C', hx - w, hy, w * 2 + 1, w * 2 + 1); }
-      if (h >= 1) { pcircle(fx, fy, Math.round(14 * sc * (e - fl) / (1 - fl) * 2) + 4, '#FFFFFF', 2); } ctx.globalAlpha = 1;
+      R('#FFFFFF', fx - w + 1, top + 2, 1, len - 4);      /* 사탕 표면의 반짝 줄 */
+      if (f.huge) { const ry = top + 4, rx = fx; pdisc(rx - 6, ry, 5, INK); pdisc(rx + 6, ry, 5, INK); pdisc(rx - 6, ry, 4, '#3FAF5A'); pdisc(rx + 6, ry, 4, '#3FAF5A'); R(INK, rx - 3, ry - 3, 7, 7); R('#2E8A44', rx - 2, ry - 2, 5, 5); pline(rx - 1, ry + 3, rx - 6, ry + 12, INK, 3); pline(rx + 1, ry + 3, rx + 6, ry + 12, INK, 3); pline(rx - 1, ry + 3, rx - 6, ry + 12, '#3FAF5A', 1); pline(rx + 1, ry + 3, rx + 6, ry + 12, '#3FAF5A', 1); R('#B6F08A', rx - 8, ry - 2, 2, 1); }      /* 초록 리본 */
+      if (h >= 1) { const q = (e - fl) / (1 - fl); pcircle(fx, fy, Math.round(14 * sc * q * 2) + 4, '#FFFFFF', 2);
+        for (let i = 0; i < (f.huge ? 8 : 3); i++) { const a = -Math.PI / 2 + (i - (f.huge ? 3.5 : 1)) * 0.5, sp = (f.huge ? 46 : 22) * q, hy2 = Math.sin(Math.PI * Math.min(1, q * 1.2)) * (f.huge ? 30 : 14); mint(fx + Math.cos(a) * sp * 1.4, fy - hy2 + (1 - Math.abs(Math.sin(a))) * 4, f.huge ? 4 : 2); } }      /* 튀어 오르는 박하사탕 */
+      ctx.globalAlpha = 1;
     }
     else if (f.k === 'ring') { const r = Math.round((f.r + (f.to - f.r) * (1 - k * k)) / WP); if (r > 0) { pcircle(fx, fy, r, f.col, 3); pcircle(fx, fy, Math.max(1, r - 3), f.col, 2); if (k > 0.5) pcircle(fx, fy, Math.max(1, r - 6), '#FFFFFF', 1); } }
     else if (f.k === 'rise') {      /* 몸에서 하늘로 솟구치는 빛 */
@@ -987,8 +1037,10 @@ function legDraw() {
       ctx.globalAlpha = 0.3 * env; R('#FFD86B', fx - w * 2, top, w * 4, hh + 2); ctx.globalAlpha = 1; R('#FFE27A', fx - w, top, w * 2, hh); R('#FFFFFF', fx - Math.ceil(w / 2), top, w, hh);
       for (let i = 0; i < 20; i++) { const sx = fx - w * 2 + ((i * 31) % (w * 4 + 1)), sy = fy - ((i * 47 + e * 520) % Math.max(12, hh)); R(i % 2 ? '#FFFFFF' : '#FFE27A', sx, sy, 1 + i % 2, 6 + (i % 3) * 6); }
       putDisc(fx, fy + 4, 36 + Math.round(e * 22), 14, '#FFF3C0', 10); pstar(fx, top, 3, '#FFFFFF');
+      for (let i = 0; i < 5; i++) { const q = (e * 1.4 + i * 0.2) % 1, yy = fy - q * (fy - 10), xx = fx + Math.sin(i * 2.1 + e * 6) * 14; const cc = i % 2 ? '#FFB8DC' : '#B8E4FF', X1 = Math.round(xx), Y1 = Math.round(yy); pdisc(X1, Y1, 3, INK); pdisc(X1, Y1, 2, cc); R('#FFFFFF', X1 - 1, Y1 - 1, 1, 1); }      /* 동글동글 솜사탕 조각이 함께 떠올라요 */
     }
-    else if (f.k === 'beam') { const w = Math.max(2, Math.round(11 * Math.min(1, k * 1.6))), hd = Math.min(1, e / 0.3), y1 = Math.round((fy + 2) * hd), y0 = hd < 1 ? Math.max(0, y1 - 150) : 0; ctx.globalAlpha = 0.5; R('#FFD86B', fx - w, y0, w * 2, y1 - y0); ctx.globalAlpha = 1; R('#FFF3C0', fx - Math.ceil(w / 2), y0, w, y1 - y0); R('#FFFFFF', fx - 1, y0, 2, y1 - y0); putDisc(fx, fy + 1, 18 + Math.round(e * 14), 7 + Math.round(e * 5), '#FFF3C0', 10); }
+    else if (f.k === 'beam') { { const cy0 = 16 + Math.round(Math.sin(B.t * 3 + f.x) * 2), pc = (Math.round(f.x) >> 3) % 2; cloudPuff(fx, cy0, 9 + Math.round(e * 3), pc ? ['#FFC9E4', '#FF9ACD', '#FFFFFF'] : ['#C9ECFF', '#8FD3FF', '#FFFFFF']); }      /* 솜사탕 구름에서 빛이 내려요 */
+      const w = Math.max(2, Math.round(11 * Math.min(1, k * 1.6))), hd = Math.min(1, e / 0.3), y1 = Math.round((fy + 2) * hd), y0 = hd < 1 ? Math.max(0, y1 - 150) : 0; ctx.globalAlpha = 0.5; R('#FFD86B', fx - w, y0, w * 2, y1 - y0); ctx.globalAlpha = 1; R('#FFF3C0', fx - Math.ceil(w / 2), y0, w, y1 - y0); R('#FFFFFF', fx - 1, y0, 2, y1 - y0); putDisc(fx, fy + 1, 18 + Math.round(e * 14), 7 + Math.round(e * 5), '#FFF3C0', 10); }
     else if (f.k === 'pop') { const r0 = Math.round(f.r / WP * e * 1.2), r1 = r0 + Math.max(2, Math.round(7 * k)); for (let i = 0; i < 10; i++) { const b = i * 0.628, c = Math.cos(b), s2 = Math.sin(b); pline(Math.round(fx + c * r0), Math.round(fy + s2 * r0), Math.round(fx + c * r1), Math.round(fy + s2 * r1), i % 2 ? f.col : '#FFFFFF', k > 0.5 ? 3 : 1); } if (k > 0.6) pdisc(fx, fy, 4, '#FFFFFF'); }
   }
 }
@@ -2082,7 +2134,13 @@ function draw() {
   for (const z of B.zones) { const r = Math.round(z.r / WP), honey = !z.fire && !z.cream, col = z.fire ? (Math.floor(B.t * 4) % 2 ? '#FF7A3D' : '#F09030') : z.cream ? '#FFF3E6' : '#D9962A'; if (z.life < 0.5 && Math.floor(B.t * 14) % 2) continue;
     /* 꿀은 눈이 아프지 않게: 어두운 호박색을 성기게 찍고 테두리로 범위를 알려 줘요 */
     const zx = honey ? Math.round(z.x / WP / 4) * 4 - pcx : X(z.x), zy = honey ? Math.round(z.y / WP / 4) * 4 - pcy : Y(z.y);      /* 무늬를 바닥에 맞춰서 겹쳐도 진해지지 않아요 */
-    putDisc(zx, zy, r, Math.round(r * 0.8), col, honey ? 3 : z.fire ? 5 : 9); if (honey && z.follow) pcircle(zx, zy, r, '#E8B84A'); }
+    putDisc(zx, zy, r, Math.round(r * 0.8), col, honey ? 3 : z.fire ? 5 : 9); if (honey && z.follow) pcircle(zx, zy, r, '#E8B84A');
+    if (z.leg && honey) { const hs = 12, rr2 = r * 0.82;      /* 전설 꿀 바다: 벌집 무늬, 보글거리는 꿀, 꿀벌 */
+      for (let gy = -rr2; gy <= rr2; gy += hs * 0.87) for (let gx = -rr2; gx <= rr2; gx += hs * 1.5) { const ox = gx + ((Math.round(gy / (hs * 0.87)) & 1) ? hs * 0.75 : 0), oy = gy; if ((ox / r) ** 2 + (oy / (r * 0.8)) ** 2 > 0.62) continue; const cx2 = Math.round(zx + ox), cy2 = Math.round(zy + oy * 0.8), hw = hs >> 1; pline(cx2 - hw, cy2, cx2 - (hw >> 1), cy2 - 4, '#E8B84A'); pline(cx2 - (hw >> 1), cy2 - 4, cx2 + (hw >> 1), cy2 - 4, '#E8B84A'); pline(cx2 + (hw >> 1), cy2 - 4, cx2 + hw, cy2, '#E8B84A'); pline(cx2 - hw, cy2, cx2 - (hw >> 1), cy2 + 4, '#E8B84A'); pline(cx2 - (hw >> 1), cy2 + 4, cx2 + (hw >> 1), cy2 + 4, '#E8B84A'); pline(cx2 + (hw >> 1), cy2 + 4, cx2 + hw, cy2, '#E8B84A'); }
+      for (let i = 0; i < 6; i++) { const q = (B.t * 0.9 + i * 0.37) % 1, a = i * 1.7, d = r * 0.5 * ((i * 0.31) % 1 + 0.2); if (q < 0.8) pcircle(Math.round(zx + Math.cos(a) * d), Math.round(zy + Math.sin(a) * d * 0.7), Math.max(1, Math.round(q * 4)), '#FFE9A8'); else pstar(Math.round(zx + Math.cos(a) * d), Math.round(zy + Math.sin(a) * d * 0.7), 2, '#FFF3C0'); }
+      for (let i = 0; i < 4; i++) { const a = B.t * (1.2 + i * 0.25) + i * 1.6; bee(zx + Math.cos(a) * r * 0.7, zy - 8 + Math.sin(a * 1.6) * r * 0.45, B.t + i, Math.sin(a + 1.57) > 0 ? -1 : 1); } }
+    if (z.leg && z.fire) { for (let i = 0; i < 7; i++) { const q = (B.t * 1.1 + i * 0.29) % 1, a = i * 0.9, d = r * 0.55 * ((i * 0.43) % 1 + 0.15), bx3 = Math.round(zx + Math.cos(a) * d), by3 = Math.round(zy + Math.sin(a) * d * 0.7); if (q < 0.75) { pdisc(bx3, by3, Math.max(1, Math.round(q * 4)) + 1, '#3A1E0E'); pdisc(bx3, by3 - 1, Math.max(1, Math.round(q * 4)), '#8A5230'); R('#C08A5A', bx3 - 1, by3 - 2, 1, 1); } else R('#C08A5A', bx3, by3 - 4, 1, 1); }      /* 녹은 초코가 보글보글 */
+      for (let i = 0; i < 3; i++) { const a = i * 2.1 + B.t * 0.4, mx2 = Math.round(zx + Math.cos(a) * r * 0.35), my2 = Math.round(zy + Math.sin(a) * r * 0.25 + Math.sin(B.t * 3 + i) * 1.5); R(INK, mx2 - 4, my2 - 4, 9, 8); R('#FFFFFF', mx2 - 3, my2 - 3, 7, 6); R(i === 1 ? '#FFC9E4' : '#FFF3E6', mx2 - 3, my2 - 3, 7, 2); R('#E0D6C8', mx2 - 3, my2 + 2, 7, 1); } } }      /* 둥둥 뜬 마시멜로 */
   gimGround();
   /* 위험 예고 */
   for (const t of B.telegraphs) {
@@ -2203,7 +2261,7 @@ function draw() {
   }
   /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
   if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
-    legDraw(); ctx.globalAlpha = 0.42; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
+    legDraw(); ctx.globalAlpha = 0.6; ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
   epicDraw();      /* 별 조각은 전설 이펙트 위에 또렷하게 */
   if (B.rv) rvDraw();
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
