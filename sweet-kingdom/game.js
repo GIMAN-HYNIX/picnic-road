@@ -366,6 +366,10 @@ function squashFrame(im) {
   x.drawImage(im, 0, 0, w, cut, 0, 1, w, cut); x.drawImage(im, 0, cut + 1, w, h - cut - 1, 0, cut + 1, w, h - cut - 1); return c;
 }
 const FOE_ART = {
+  jumper: { pal: { k: '#1A0E22', p: '#FF8FB8', P: '#E0507A', w: '#FFFFFF', b: '#FF4F8A', c: '#FFF3E6', f: '#C98A4E' }, rows: [
+    '....kkkkkk....', '..kkppppppkk..', '.kppwwpppppPk.', '.kppkppppkpPk.', '.kpbppppppbPk.', 'kkkkkkkkkkkkkk', 'kcccwcccccwcck', 'kkkkkkkkkkkkkk', '.kPppppppppPk.', '..kkkkkkkkkk..', '...kfk..kfk...', '...kk....kk...'] },
+  pudding: { pal: { k: '#1A0E22', D: '#7A3E16', d: '#B8682A', y: '#FFD86B', Y: '#F2B73C', o: '#D9962A', w: '#FFFFFF', c: '#E8323C', g: '#3F8F2A' }, rows: [
+    '......gc......', '.....kcck.....', '...kkDDDDkk...', '..kDdDDDdDDk..', '..kyyyyyyyyk..', '.kywyyyyyyyok.', '.kyykyyyykyok.', '.kyyyyyyyyyok.', 'kyyyyyyyyyyyok', 'kYYYYYYYYYYYok', 'kkkkkkkkkkkkkk', 'kwwwwwwwwwwwwk', '.kkkkkkkkkkkk.'] },
   puff: { pal: { k: '#1A0E22', w: '#F6D9A8', l: '#FFF3DA', y: '#C98A4E', m: '#8B3A2E', c: '#FFFFFF', p: '#FFB3D3' }, rows: [
     '.....cccc.....', '...kkccccckk..', '..kwlcccwwwyk.', '.kwlwwwwwwwwyk', 'kwlwwwwwwwwwyk', 'kwwwkwwwwkwwyk', 'kwwwkwwwwkwwyk', 'kwpwwwwwwwwpyk', 'kywwwwmmwwwyyk', '.kyyyyyyyyyyk.', '..kkkkkkkkkk..'] },
   bee: { pal: { k: '#1A0E22', c: '#BFE6FF', w: '#FFFFFF', y: '#FFD23F', o: '#FF9A1F', b: '#3A2030', p: '#FF8FB8' }, rows: [
@@ -1209,6 +1213,8 @@ function tidyItems() { const inv = run.inv || [], before = inv.length; run.inv =
 /* ───── 적 ───── */
 const FOES = {
   queen: { img: 'queen', big: true, hp: 2600, spd: 44, dmg: 20, r: 52, h: 150, xp: 0, name: '마카롱 여왕' },      // 100스테이지 뒤 새 보스
+  jumper: { img: 'jumper', hp: 34, spd: 58, dmg: 1, r: 14, h: 30, xp: 3, ai: 'jump' },      // 점프 마카롱: 웅크렸다가 내 자리로 폴짝 뛰어와 쿵 떨어져요 (공중에선 안 맞고 안 밀려요)
+  pudding: { img: 'pudding', hp: 90, spd: 36, dmg: 1, r: 17, h: 34, xp: 4, noKb: true },      // 묵직한 푸딩: 무거워서 밀쳐내도 거의 안 밀리고 꾸준히 걸어와요
   puff: { img: 'puff', hp: 40, spd: 54, dmg: 1, r: 15, h: 30, xp: 3, ai: 'puff' },      // 슈크림 퍼프: 터지면 크림 방울이 사방으로 튀어요
   bee: { img: 'bee', hp: 16, spd: 125, dmg: 1, r: 11, h: 26, xp: 2, ai: 'orbit' },      // 꿀벌 마카롱: 내 주위를 돌다가 쏜살같이 찔러 와요
   jelly: { img: 'jelly', hp: 14, spd: 68, dmg: 7, r: 15, h: 48, xp: 1 },
@@ -1470,7 +1476,7 @@ function hitStop(t) { if (!headless && B.hsCool <= 0) { B.hitstop = Math.max(B.h
 
 function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   f.lastHit = B.t;
-  if (f.dead || f.immortal) return;
+  if (f.dead || f.immortal || f.air) return;
   const SPv = B.st.sp, d0 = d, crit = Math.random() < B.st.crit; if (crit) d *= B.st.critMul;
   if (SPv.grit && B.p.hp <= 1) d *= 1 + 0.2 * SPv.grit; if (f.markT > B.t) d *= 1 + 0.15 * (SPv.mark || 0); if (crit && SPv.mark) f.markT = B.t + 3;
   if (w && w.id) { const gk = capeSp('giant', w.id), ck = capeSp('chill', w.id); if (gk && FOES[f.type].big) d *= 1 + 0.3 * gk; if (ck) f.slow = Math.max(f.slow || 0, 1.5 * ck); }
@@ -1765,6 +1771,13 @@ function foeAI(f, dt, ai) {
   const p = B.p, dx = p.x - f.x, dy = p.y - f.y, m = Math.hypot(dx, dy) || 1;
   if (f.stun > 0) return true;
   if (ai === 'puff') return false;      /* 그냥 걸어와요. 터질 때가 무서워요 (killFoe) */
+  if (ai === 'jump') {      /* 점프 마카롱: 걸어오다가 → 웅크리고(예고 원) → 공중으로 폴짝 → 쿵 */
+    f.stT = (f.stT ?? 1 + Math.random() * 1.5) - dt; f.st = f.st || 0;
+    if (f.st === 0) { if (m < 270 && f.stT <= 0) { const wt = 0.55 * DF().warn; f.st = 1; f.stT = wt; f.jx0 = f.x; f.jy0 = f.y; f.jx = p.x + (p.moving ? p.dirX * 40 : 0); f.jy = p.y + (p.moving ? p.dirY * 40 : 0); B.telegraphs.push({ k: 'circle', x: f.jx, y: f.jy, r: 50, life: wt + 0.62, max: wt + 0.62 }); f.sq = 0.4; } return false; }
+    if (f.st === 1) { f.flash = Math.floor(f.stT * 14) % 2 ? 0.05 : 0; f.sq = 0.35; if (f.stT <= 0) { f.st = 2; f.stT = 0.62; f.air = true; } return true; }
+    if (f.st === 2) { const u = 1 - Math.max(0, f.stT) / 0.62; f.x = f.jx0 + (f.jx - f.jx0) * u; f.y = f.jy0 + (f.jy - f.jy0) * u; f.zh = Math.sin(Math.PI * u) * 70; f.kx = f.ky = 0;
+      if (f.stT <= 0) { f.air = false; f.zh = 0; f.st = 0; f.stT = 3.2 + Math.random(); f.sq = 0.6; if ((p.x - f.x) ** 2 + (p.y - f.y) ** 2 < (50 + HERO_R) ** 2) hurtPlayer('jumper'); if (!headless) { fxAdd({ k: 'ring', x: f.x, y: f.y, r: 10, to: 60, life: 0.3, max: 0.3, col: '#FF8FB8', w: 6 }); burst(f.x, f.y, '#FFF3E6', 8, 160); B.shake = Math.max(B.shake, 0.1); } } return true; }
+  }
   if (ai === 'orbit') {      /* 꿀벌: 내 주위를 돌다가 예고선을 긋고 찔러 와요 */
     f.stT = (f.stT ?? 1.6 + Math.random()) - dt; f.ob = f.ob ?? (Math.random() < 0.5 ? 1 : -1);
     if (!f.st) { if (m > 175) return false; const tx = -dy / m * f.ob, ty = dx / m * f.ob, pull = (m - 150) / m; f.x += (tx + dx / m * pull) * f.spd * 0.9 * dt; f.y += (ty + dy / m * pull) * f.spd * 0.9 * dt;
@@ -1912,7 +1925,8 @@ function update(dt) {
   if (!B.rush && B.t >= Math.min(120, B.dur * 0.67)) { B.rush = true; if (!headless) { toast('몰려와요! 적이 더 많아져요'); sfx.warn(); } }
   if (B.rush && !headless && ZOOM > 0.78) { ZOOM = Math.max(0.78, ZOOM - dt * 0.15); resize(); }     // 화면을 천천히 넓혀서 더 많이 보여요
   B.spawnAcc += rate * (B.rush ? 1.3 : 1) * dt;
-  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(80, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.2 && Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'ginger'), 0) < 4 + Math.floor(B.floor / 2)) pool.push('ginger'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); if (B.floor >= 3 && Math.random() < 0.35 && B.foes.reduce((n, f) => n + (f.type === 'zip'), 0) < 3 + Math.floor(B.floor / 6)) pool.push('zip'); if (B.stageN > 100) { if (Math.random() < 0.3) pool.push('puff'); if (Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'bee'), 0) < 4 + Math.floor((B.stageN - 100) / 6)) pool.push('bee'); } const mi = ACTS[B.act].minion; if (mi && Math.random() < 0.07 && B.foes.reduce((n, f) => n + (f.minion ? 1 : 0), 0) < 2 + B.act) spawnRing(mi, true); else spawnRing(pick(pool)); }
+  while (B.spawnAcc >= 1 && B.foes.length < (B.rush ? 220 : 168)) { B.spawnAcc -= 1; const pool = ['jelly', 'jelly']; const ramp = Math.min(80, B.dur); if (B.floor >= 1 || B.t > ramp * 0.5) pool.push('ice'); if (B.floor >= 2 || B.t > ramp * 0.75) pool.push('cookie'); if (B.floor >= 1.4) pool.push('pop'); if (B.floor >= 2.2 && Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'ginger'), 0) < 4 + Math.floor(B.floor / 2)) pool.push('ginger'); if (B.floor >= 3.8 && Math.random() < 0.6) pool.push('churro'); if (B.floor >= 3 && Math.random() < 0.35 && B.foes.reduce((n, f) => n + (f.type === 'zip'), 0) < 3 + Math.floor(B.floor / 6)) pool.push('zip'); if (B.stageN >= 200) { if (Math.random() < 0.28 && B.foes.reduce((n, f) => n + (f.type === 'jumper'), 0) < 6) pool.push('jumper'); if (Math.random() < 0.28 && B.foes.reduce((n, f) => n + (f.type === 'pudding'), 0) < 8) pool.push('pudding'); }      /* 200스테이지부터 새 몬스터 */
+    if (B.stageN > 100) { if (Math.random() < 0.3) pool.push('puff'); if (Math.random() < 0.3 && B.foes.reduce((n, f) => n + (f.type === 'bee'), 0) < 4 + Math.floor((B.stageN - 100) / 6)) pool.push('bee'); } const mi = ACTS[B.act].minion; if (mi && Math.random() < 0.07 && B.foes.reduce((n, f) => n + (f.minion ? 1 : 0), 0) < 2 + B.act) spawnRing(mi, true); else spawnRing(pick(pool)); }
   if (B.spawnAcc > 3) B.spawnAcc = 3;
   gimUpdate(dt);
   if (B.eliteAt > 0 && B.t >= B.eliteAt && !B.big) { B.big = spawnRing(ACTS[B.act].elite); bigIntro(); }
@@ -1930,7 +1944,7 @@ function update(dt) {
     if (f.kx || f.ky) { f.x += f.kx * dt; f.y += f.ky * dt; const dec = Math.exp(-dt * 11); f.kx *= dec; f.ky *= dec; if (Math.abs(f.kx) + Math.abs(f.ky) < 8) f.kx = f.ky = 0; }
     if (!busy && !(f.stun > 0)) { const sp = f.spd * (f.slow > 0 ? 0.55 : 1) * (f.kx || f.ky ? 0.25 : 1) * (f === B.big ? 1 : (B.fspK || 1) * (B.pulseK || 1) * (B.sugarK || 1)), dir = f.flee ? -1 : 1; f.x += dx / m * sp * dt * dir; f.y += dy / m * sp * dt * dir; }
     f.ph += dt * 7;
-    if (m < f.r + HERO_R && !f.flee) hurtPlayer(f.type);
+    if (m < f.r + HERO_R && !f.flee && !f.air) hurtPlayer(f.type);
     if (m > 900) { const a = Math.random() * 6.283, R = Math.hypot(vw, vh) / 2 + 40; f.x = p.x + Math.cos(a) * R; f.y = p.y + Math.sin(a) * R; }   // 너무 멀어지면 다시 근처로
   }
   /* 서로 겹치지 않게 살짝 밀어내요 */
@@ -2196,7 +2210,7 @@ function draw() {
       if (o.gold) putDisc(ox, oy - 6, 13, 13, '#FFD23F', Math.floor(B.t * 6) % 2 ? 7 : 5);
       if (o.coat > 0) putDisc(ox, oy - 6, 12, 12, '#EAF6FF', Math.floor(B.t * 5 + o.x) % 2 ? 8 : 5);      /* 설탕 코팅: 하얗게 반짝여요 */
       if (B.ghostA != null && o !== B.big) ctx.globalAlpha = B.ghostA;
-      if (o.sc) { const gx = X(o.x), gy = Y(o.y + o.r * 0.7); ctx.save(); ctx.translate(gx, gy); ctx.scale(o.sc, o.sc); ctx.translate(-gx, -gy); spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1); ctx.restore(); } else spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7, o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1);
+      if (o.sc) { const gx = X(o.x), gy = Y(o.y + o.r * 0.7 - (o.zh || 0)); ctx.save(); ctx.translate(gx, gy); ctx.scale(o.sc, o.sc); ctx.translate(-gx, -gy); spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7 - (o.zh || 0), o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1); ctx.restore(); } else spr(d.img, o.x + (o.sq > 0.2 ? rand(-2, 2) : 0), o.y + o.r * 0.7 - (o.zh || 0), o.x > p.x ? -1 : 1, o.flash > 0 || age < 0.08, hop, up || o.sq > 0.2 ? 0 : 1);
       ctx.globalAlpha = 1;
       if (o.acid > 0) { R(INK, ox + rr - 1, oy - Math.round(d.h * 0.3) - 1, 4, 4); R('#B9F03E', ox + rr, oy - Math.round(d.h * 0.3), 2, 2); }
     }
