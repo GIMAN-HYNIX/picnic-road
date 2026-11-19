@@ -2262,7 +2262,7 @@ function draw() {
   }
   /* 전설 이펙트는 반투명으로 겹치고, 그 위에 나와 적의 탄을 다시 그려서 피할 수 있게 해요 */
   if (B.lfx.length) { LSNAP.width !== cv.width && (LSNAP.width = cv.width, LSNAP.height = cv.height); const sq = LSNAP.getContext('2d'); sq.clearRect(0, 0, LSNAP.width, LSNAP.height); sq.drawImage(cv, 0, 0);
-    legDraw(); ctx.globalAlpha = legAlpha(); ctx.drawImage(LSNAP, 0, 0, lw, lh); ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
+    legDraw(); ctx.globalAlpha = 1 - legAlpha(); if (ctx.globalAlpha > 0.01) ctx.drawImage(LSNAP, 0, 0, lw, lh);      /* 이펙트 위에 원래 화면을 (1-진하기)만큼 덮어서 옅게 해요. 100%면 덮지 않아요 */ ctx.globalAlpha = 1; drawFoeShots(); drawHeroLayer(); }
   epicDraw();      /* 별 조각은 전설 이펙트 위에 또렷하게 */
   if (B.rv) rvDraw();
   /* 가장자리 그늘, 떠다니는 설탕 가루 */
