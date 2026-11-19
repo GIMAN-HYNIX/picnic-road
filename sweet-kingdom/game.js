@@ -2389,6 +2389,23 @@ function showMap() {
   show('map'); run.cur = null; renderBar(); picked = null; renderMap();
   if (!run.wpn.length && overlay.hidden) { starterPick(); return; }     // 첫 무기를 고르기 전에 앱을 껐다 켠 경우
   pickNode(Math.min(run.stage + 1, STAGES.length), true);
+  setTimeout(() => { if (overlay.hidden && document.querySelector('#map:not([hidden])')) tipCheck(); }, 350);
+}
+/* ───── 다음 단계 안내: 한 단계를 다 끝내면 지도에서 한 번씩 알려줘요 ───── */
+const cardsDone = () => Object.keys(WEAPONS).every(id => wLv(id) >= WMAX) && legAll() && (run.bonus.spd || 0) >= 6 && (run.bonus.dmg || 0) >= 10 && (run.bonus.crit || 0) >= 10 && (run.bonus.heart || 0) >= 1;
+const TIPS = [
+  { id: 'leg', when: () => legUnlocked(), title: '전설 스킬이 열렸어요!', icon: 'star',
+    text: () => `기본 스킬 10개를 모두 Lv10으로 만들었어요. 이제 <b>전설 스킬</b>을 모을 수 있어요.<br><br><b>얻는 법</b><br>· 레벨업 카드에 '전설 조각'이 나와요. 같은 무기 조각을 ${LEG_N}개 모으면 각성해요.<br>· 보스를 처음 잡으면 조각을 2~3개 더 받아요.<br><br><b>각성하면</b><br>· 그 무기의 기본 공격이 화려한 전설 스킬로 바뀌어요. 몇 초마다 저절로 터지고 훨씬 세요.<br><br><b>더 세게</b><br>· 전설 등급 장비에는 스킬 강화가 붙어요. 같은 무기 강화 장비를 여러 개 끼면 더 세져요.` },
+  { id: 'legAll', when: () => legAll(), title: '전설 스킬을 모두 모았어요!', icon: 'star',
+    text: () => `이제 <b>전설 별 강화</b>로 더 키울 수 있어요.<br><br><b>얻는 법</b><br>· 몬스터를 잡다 보면 아주 가끔 <b>전설 별 조각</b>이 떨어져요. 보랏빛 기운이 모이고 빛기둥이 서요. 떨어지는 순간 바로 얻어요.<br>· 바닥에 남은 결정에 직접 닿으면 화면의 몬스터가 모두 사라져요.<br><br><b>강화하면</b><br>· 조각을 모으면 전설 스킬에 별이 붙어요 (★1~★5, 조각 1·2·3·4·5개).<br>· 별 하나마다 그 스킬 피해 +12%, ★3과 ★5에서는 쿨타임이 짧아져요.<br>· 진행도는 캐릭터 창 무기 목록에서 볼 수 있어요.${run.stage >= 100 ? '<br><br>지도 맨 위 <b>무한의 탑</b>도 올라 보세요. 층마다 꾸미기를 받아요.' : ''}` },
+  { id: 'cards', when: () => cardsDone(), title: '레벨업 카드를 모두 채웠어요!', icon: 'chest',
+    text: () => `더 고를 카드가 없어서, 이제부터는 <b>레벨업할 때마다 무기 장비</b>를 바로 받아요.<br><br>· 새 장비 칸 <b>무기</b>에 끼워요. 모든 공격 피해가 올라가요.<br>· 일반 85%, 희귀 15%로 나와요. 일반 5개를 합성하면 희귀가 돼요.<br>· 지금은 희귀까지 있어요.` },
+  { id: 'star5', when: () => legAll() && Object.keys(WEAPONS).every(id => lStar(id) >= LSTAR_MAX), title: '전설 별 강화를 모두 끝냈어요!', icon: 'star',
+    text: () => `모든 전설 스킬이 ★5가 됐어요. 정말 대단해요!<br><br><b>남은 성장</b><br>· 레벨업마다 받는 무기 장비를 모아 합성해요.<br>· 무한의 탑을 올라 층마다 새 꾸미기를 모아요.<br>· 성장 트리에서 남은 특성을 배워요.` }
+];
+function tipCheck() {
+  if (!run || !overlay.hidden) return; const T = run.tips || (run.tips = {}); const t = TIPS.find(x => !T[x.id] && x.when()); if (!t) return;
+  T[t.id] = 1; persist(); sfx.rare(); noteSheet(t.title, t.text(), t.icon, () => setTimeout(tipCheck, 250));
 }
 function pickNode(id, quiet) {
   picked = id; const s = STAGES[id - 1], dn = id <= run.stage, lock = id > run.stage + 1;
