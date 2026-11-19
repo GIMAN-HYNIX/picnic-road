@@ -752,8 +752,8 @@ const WEAPONS = {
   cane: { name: '지팡이 사탕', desc: '하늘에서 지팡이 사탕이 떨어져 주변 적을 내리쳐요.', more: '사탕이 1개 더 떨어져요.', s5: '내리치는 범위가 넓어져요.', s10: '떨어진 자리에서 별 파편이 사방으로 튀어요.' }
 };
 const STATS = {
-  spd: { name: '이동 속도 +5%', icon: 'honey' },
-  dmg: { name: '공격력 +10%', icon: 'star' },
+  spd: { name: '이동 속도 +5% (최대 6장)', icon: 'honey' },
+  dmg: { name: '공격력 +10% (최대 10장)', icon: 'star' },
   crit: { name: '치명타 확률 +5%', icon: 'ench' },
   heart: { name: '하트 +1', icon: 'heart' }
 };
@@ -1012,13 +1012,14 @@ function wOpt(id, i, o = {}) {      // 무기 선택 줄
 const HEART_EMPTY = `<path d="M50 86C20 64 10 48 10 34C10 20 21 12 32 12C41 12 47 17 50 23C53 17 59 12 68 12C79 12 90 20 90 34C90 48 80 64 50 86Z" fill="#4A2A4A"/>`;
 const heartsHtml = (hp, max) => Array.from({ length: max }, (_, i) => `<i class="hrt${i < hp ? '' : ' off'}">${svg(i < hp ? ICON.heart : HEART_EMPTY)}</i>`).join('');
 /* ═════ 장비: 옷, 신발, 장갑, 투구, 망토. 등급은 일반 < 희귀 < 유물 < 영웅 < 전설 ═════ */
-const SLOTS = ['armor', 'shoes', 'gloves', 'helm', 'cape'];
+const SLOTS = ['armor', 'shoes', 'gloves', 'helm', 'cape', 'weapon'], DROP_SLOTS = SLOTS.slice(0, 5), WEP_MAXG = 1;      /* 무기 칸: 레벨업 카드를 다 채운 뒤에만 얻어요. 지금은 희귀까지 */
 const SLOT = {
   armor: { name: '옷', nouns: ['제빵 앞치마', '레이스 원피스', '설탕 갑옷'] },
   shoes: { name: '신발', nouns: ['버터 장화', '초코 운동화', '솜사탕 구두'] },
   gloves: { name: '장갑', nouns: ['오븐 장갑', '크림 장갑', '쿠키 건틀릿'] },
   helm: { name: '투구', nouns: ['쿠키 투구', '머랭 모자', '도넛 헬멧'] },
-  cape: { name: '망토', nouns: ['망토'] }
+  cape: { name: '망토', nouns: ['망토'] },
+  weapon: { name: '무기', nouns: ['밀대', '거품기', '케이크 칼'] }
 };
 const GRADES = [
   { name: '일반', pre: '평범한', ramp: ['#E8DCCB', '#B9A68C', '#7A6650'] },
@@ -1087,18 +1088,20 @@ function rollSp(it) { if (it.g !== 3) return; const c = Object.keys(SP).filter(k
 const capeSp = (k, id) => { const c = eqOf().cape; return c && c.sp === k && fxOf(c).w === id ? spK(c) : 0; };
 let itemSeq = 0;
 function rollItem(n, minG = 0, slot) {
-  const s = slot || pick(SLOTS), g = Math.max(minG, rollGrade(n)), lk = 1 + 0.01 * (n - 1), r1 = v => Math.round(v * lk * 10) / 10, fx = {};
+  const s = slot || pick(DROP_SLOTS), g = s === 'weapon' ? Math.min(minG, WEP_MAXG) : Math.max(minG, rollGrade(n)), lk = 1 + 0.01 * (n - 1), r1 = v => Math.round(v * lk * 10) / 10, fx = {};
   if (s === 'armor') armorFx(fx, g, lk);
   if (s === 'shoes') { fx.spd = r1([3, 4.5, 6, 8, 10][g]); if (g >= 2) { const k = pick(['hitHaste', 'killHaste', 'lowHaste']), i = g - 2; fx[k] = { hitHaste: [25, 35, 45], killHaste: [20, 28, 36], lowHaste: [10, 14, 18] }[k][i]; } }
   if (s === 'gloves') { fx.atk = r1([3, 4.5, 6, 8, 10][g]); if (g >= 2) { const k = pick(['open', 'rush']), i = g - 2; fx[k] = { open: [15, 22, 30], rush: [8, 12, 16] }[k][i]; } }
   if (s === 'helm') { fx.crit = r1([1.5, 2.2, 3, 4, 5][g]); if (g >= 2) fx.critd = [15, 22, 30][g - 2]; }
   if (s === 'cape') { const own = run && run.wpn && run.wpn.length && Math.random() < 0.65 ? pick(run.wpn).id : pick(Object.keys(WEAPONS)); fx.w = own; fx.wd = [8, 12, 16, 22, 30][g]; fx.critd = [6, 10, 15, 22, 30][g]; if (g >= 2) { const [k, , v] = CAPE_FX[own]; fx[k] = v[g - 2]; } if (g === 4) fx.proj = (fx.proj || 0) + 1; }
+  if (s === 'weapon') { fx.wdmg = r1([4, 6][g]); if (g >= 1) fx.critd = [0, 8][g]; }      /* 무기: 모든 공격 피해 */
   const v = rnd(SLOT[s].nouns.length), nm = s === 'cape' ? `${GRADES[g].pre} ${WEAPONS[fx.w].name} 망토` : `${GRADES[g].pre} ${SLOT[s].nouns[v]}`;
   const it = { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm, fx, v }; rollSp(it); rollLw(it); return it;
 }
 const varOf = it => it.v != null ? it.v : Math.max(0, SLOT[it.s].nouns.findIndex(n => it.nm.endsWith(n)));
 const eqIcon = (it, s) => !it ? `eq_${s === 'cape' ? 'cape_pin' : s + '0'}_0` : it.s === 'cape' ? `eq_cape_${fxOf(it).w}_${it.g}` : `eq_${it.s}${varOf(it)}_${it.g}`;
-const eqImg = (it, s) => `<img class="pxi" src="${it ? DOLL.icon(it.s, it.s === 'cape' ? 0 : varOf(it), it.g, fxOf(it).w) : DOLL.icon(s, 0, 0, 'pin')}" alt="">`;
+const WEP_IC = ['pin', 'cream', 'skewer'];
+const eqImg = (it, s) => (it ? it.s : s) === 'weapon' ? `<span class="pxi wico">${svg(ICON[WEP_IC[it ? varOf(it) : 0] || 'pin'])}</span>` : `<img class="pxi" src="${it ? DOLL.icon(it.s, it.s === 'cape' ? 0 : varOf(it), it.g, fxOf(it).w) : DOLL.icon(s, 0, 0, 'pin')}" alt="">`;
 const fxOf = it => (it && it.fx) || {};
 const eqSum = k => eqList().reduce((n, it) => n + (typeof fxOf(it)[k] === 'number' ? fxOf(it)[k] : 0), 0);
 const eqMax = k => eqList().reduce((n, it) => Math.max(n, fxOf(it)[k] || 0), 0);
@@ -1115,6 +1118,7 @@ function fxLines(it) {
   if (f.heart) o.push(`하트 +${f.heart}칸`); if (f.inv) o.push(`맞은 뒤 무적 시간 +${f.inv}%`); if (f.guard) o.push(`${f.guard}초마다 공격 한 번을 막는 방패`);
   if (f.spd) o.push(`이동 속도 +${f.spd}%`); if (f.hitHaste) o.push(`맞으면 3초 동안 이동 속도 +${f.hitHaste}%`); if (f.killHaste) o.push(`적 30마리마다 3초 동안 이동 속도 +${f.killHaste}%`); if (f.lowHaste) o.push(`하트가 1칸 남으면 이동 속도 +${f.lowHaste}%`);
   if (f.atk) o.push(`공격 속도 +${f.atk}%`); if (f.open) o.push(`전투 처음 30초 동안 공격 속도 +${f.open}%`); if (f.rush) o.push(`적을 잡을 때마다 3초 동안 공격 속도 +1% (최대 +${f.rush}%)`);
+  if (f.wdmg) o.push(`모든 공격 피해 +${f.wdmg}%`);
   if (f.crit) o.push(`치명타 확률 +${f.crit}%`); if (f.critd) o.push(`치명타 피해 +${f.critd}%`);
   if (f.w) { const n = WEAPONS[f.w].name, [, lab] = CAPE_FX[f.w]; o.push(`${n} 피해 +${f.wd}%`); if (f.area) o.push(`${n} ${lab} +${f.area}%`); if (f.cd) o.push(`${n} ${lab} +${f.cd}%`); if (f.proj) o.push(`${n} ${f.proj > 1 || CAPE_FX[f.w][0] !== 'proj' ? '발사 수' : lab} +${f.proj}`); if (!wLv(f.w)) o.push(`(${n}이 없으면 효과가 없어요)`); }
   if (spK(it)) o.push(`<b>[${SP[it.sp].name}]</b> ${SP[it.sp].d(spK(it))}`);
@@ -1124,7 +1128,7 @@ function fxLines(it) {
 const statLine = it => fxLines(it).join(' · ');
 const itemScore = it => itemScore0(it) + (it && it.lw ? (wLv(it.lw) ? 3 : 0.5) : 0);
 const itemScore0 = it => { if (!it) return -1; const f = fxOf(it); if (it.s === 'cape') return (wLv(f.w) ? 1 + it.g * 1.2 : 0.05 * it.g) + (f.critd || 0) / 15 + (it.sp ? 2 : 0);
-  return (f.heart || 0) * 4 + (f.inv || 0) / 10 + (f.guard ? 40 / f.guard : 0) + (f.spd || 0) / 3 + ((f.hitHaste || 0) + (f.killHaste || 0)) / 25 + (f.lowHaste || 0) / 10 + (f.atk || 0) / 3 + ((f.open || 0) + (f.rush || 0) * 1.5) / 15 + (f.crit || 0) / 1.5 + (f.critd || 0) / 15 + (it.sp ? 2.5 : 0); };
+  return (f.heart || 0) * 4 + (f.inv || 0) / 10 + (f.guard ? 40 / f.guard : 0) + (f.spd || 0) / 3 + ((f.hitHaste || 0) + (f.killHaste || 0)) / 25 + (f.lowHaste || 0) / 10 + (f.atk || 0) / 3 + ((f.open || 0) + (f.rush || 0) * 1.5) / 15 + (f.crit || 0) / 1.5 + (f.critd || 0) / 15 + (f.wdmg || 0) / 2 + (it.sp ? 2.5 : 0); };
 const betterThanWorn = it => itemScore(it) > itemScore(eqOf()[it.s]) + 0.01;
 function equip(it) { const e = run.eq || (run.eq = {}), inv = run.inv || (run.inv = []), k = inv.indexOf(it); if (k >= 0) inv.splice(k, 1); if (e[it.s]) inv.push(e[it.s]); e[it.s] = it; heroDirty(); }
 function unequip(s) { const e = run.eq || {}; if (!e[s]) return; (run.inv || (run.inv = [])).push(e[s]); e[s] = null; heroDirty(); }
@@ -1171,7 +1175,7 @@ addEventListener('resize', resize);
 function battleStats() {
   const b = run.bonus || { spd: 0, dmg: 0, crit: 0 }, sp = Object.fromEntries(eqList().filter(it => spK(it)).map(it => [it.sp, spK(it)]));
   return {
-    dmg: (1 + 0.1 * b.dmg) * (1 + 0.04 * M('atk')) * (1 + 0.06 * M('veteran')) * (1 + 0.08 * M('master')),
+    dmg: (1 + 0.1 * b.dmg) * (1 + eqSum('wdmg') / 100) * (1 + 0.04 * M('atk')) * (1 + 0.06 * M('veteran')) * (1 + 0.08 * M('master')),
     crit: 0.05 + 0.05 * b.crit + 0.03 * M('crit') + eqSum('crit') / 100, critMul: 1.8 + 0.2 * M('critd') + eqSum('critd') / 100,
     spd: (1 + 0.05 * b.spd) * (1 + 0.03 * M('spd')) * (1 + eqSum('spd') / 100),
     lw: eqList().filter(it => it.g === 4 && it.lw).reduce((o, it) => (o[it.lw] = (o[it.lw] || 0) + 1, o), {}),
@@ -1648,11 +1652,13 @@ function levelUp() {
 }
 /* 선택지: 아직 Lv10이 아닌 무기 10가지 + 능력 3가지가 모두 같은 확률 */
 function rollLevelOpts() {
-  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(legUnlocked() ? run.wpn.filter(w => !isLeg(w.id)).map(w => ({ t: 'leg', id: w.id })) : []).concat(Object.keys(STATS).filter(id => id === 'heart' ? ((run.bonus.heart || 0) < 1 && Math.random() < 0.2) : id === 'spd' ? (run.bonus.spd || 0) < 8 : id === 'crit' ? (run.bonus.crit || 0) < 10 : true).map(id => ({ t: 's', id })));
+  const pool = Object.keys(WEAPONS).filter(id => wLv(id) < WMAX).map(id => ({ t: 'w', id })).concat(legUnlocked() ? run.wpn.filter(w => !isLeg(w.id)).map(w => ({ t: 'leg', id: w.id })) : []).concat(Object.keys(STATS).filter(id => id === 'heart' ? ((run.bonus.heart || 0) < 1 && Math.random() < 0.2) : id === 'spd' ? (run.bonus.spd || 0) < 6 : id === 'crit' ? (run.bonus.crit || 0) < 10 : id === 'dmg' ? (run.bonus.dmg || 0) < 10 : true).map(id => ({ t: 's', id })));
+  if (!pool.length) return [{ t: 'eqw' }];      /* 카드를 다 채웠으면: 무기 장비 상자 */
   return shuffle(pool).slice(0, M('choice') ? 4 : 3);
 }
 function applyLevel(o) {
   if (o.t === 'leg') { const S2 = run.shards || (run.shards = {}); S2[o.id] = (S2[o.id] || 0) + 1; if (S2[o.id] >= LEG_N) { (run.leg || (run.leg = {}))[o.id] = 1; if (B && !headless) { toast(`전설 스킬: ${LEG[o.id].name}!`); B.flashScr = { col: '255,216,107', t: 0.6, max: 0.6 }; confetti(60); } } return; }
+  if (o.t === 'eqw') { const it = rollItem(Math.max(1, run.stage || 1), Math.random() < 0.15 ? 1 : 0, 'weapon'); addItems([it]); if (!headless) toast(`무기 장비: ${it.nm} (${GRADES[it.g].name})`); return; }
   if (o.t === 's') { run.bonus[o.id] = (run.bonus[o.id] || 0) + 1; if (o.id === 'heart') { run.maxHp++; run.hp++; if (B) { B.p.max++; B.p.hp++; } } if (B) B.st = battleStats(); return; }
   let w = run.wpn.find(x => x.id === o.id);
   if (w) { w.lv++; const bw = B && B.weapons.find(x => x.src === w); if (bw) bw.lv = w.lv + capeP(w.id); if (B && (w.lv === 5 || w.lv === 10)) specialFx(w); }
@@ -1662,6 +1668,7 @@ function levelSheet(opts, after, shown) {
   /* 짧게: 무기는 레벨만, 능력은 한 줄. Lv5·Lv10이 되는 카드는 색으로 구분 */
   const optHtml = (o, i) => {
     if (o.t === 'leg') { const n = ((run.shards || {})[o.id] || 0) + 1; return `<button class="opt lvc lv10 leg" type="button" data-act="pick" data-i="${i}"><i class="shine"></i><em class="tag">${n >= LEG_N ? '★ 전설 각성!' : '★ 전설 조각'}</em><span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${LEG[o.id].name} ${n}/${LEG_N}</b><span>${n >= LEG_N ? LEG[o.id].desc : `${WEAPONS[o.id].name}의 전설 조각. 10개를 모으면 전설 스킬이 돼요.`}</span></span></button>`; }
+    if (o.t === 'eqw') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON.pin)}</span><span class="tx"><b>무기 장비 상자</b><span>무기 칸 장비를 하나 받아요. 일반 85%, 희귀 15%. 가방에 들어가요.</span></span></button>`;
     if (o.t === 's') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[STATS[o.id].icon])}</span><span class="tx"><b>${STATS[o.id].name}</b></span></button>`;
     const lv = wLv(o.id), nx = lv + 1, W = WEAPONS[o.id];
     const sp = nx === 5 || nx === 10;
@@ -2495,7 +2502,7 @@ function synthItem(mats) {
 function autoSynth() {
   const k = S.autoSynth || 0; if (!k || !run) return 0; let made = 0; autoEquip();
   for (let g = 0; g < Math.min(k, 4); g++) for (let guard = 0; guard < 400; guard++) {
-    const pool = (run.inv || []).filter(it => it.g === g && !betterThanWorn(it)); if (pool.length < SYN) break;
+    const pool = (run.inv || []).filter(it => it.g === g && !betterThanWorn(it) && !(it.s === 'weapon' && it.g >= WEP_MAXG)); if (pool.length < SYN) break;
     const by = {}; for (const it of pool) (by[it.s] = by[it.s] || []).push(it);
     const grp = Object.values(by).find(l => l.length >= SYN); synthItem((grp || pool).sort((a, b) => itemScore(a) - itemScore(b)).slice(0, SYN)); made++;
   }
@@ -2504,7 +2511,7 @@ function autoSynth() {
 function synthSheet(back) {
   let sel = [];
   const draw = () => {
-    const inv = (run.inv || []).filter(it => it.g < 4).sort((a, b) => a.g - b.g || itemScore(a) - itemScore(b)), g = sel.length ? sel[0].g : -1, cnt = [0, 1, 2, 3].map(k => inv.filter(it => it.g === k).length);
+    const inv = (run.inv || []).filter(it => it.g < 4 && !(it.s === 'weapon' && it.g >= WEP_MAXG)).sort((a, b) => a.g - b.g || itemScore(a) - itemScore(b)), g = sel.length ? sel[0].g : -1, cnt = [0, 1, 2, 3].map(k => inv.filter(it => it.g === k).length);
     const same = sel.length === SYN && sel.every(m => m.s === sel[0].s);
     sheet(`<h2 id="cardTitle">장비 합성</h2><p>가방에서 <b>같은 등급 5개</b>를 고르면 한 등급 위 장비 1개가 돼요. 다섯 개가 같은 칸이면 그 칸 장비가 나오고, 섞으면 아무 칸이나 나와요. 낀 장비는 재료로 못 써요.</p>
       <p class="eqsum">${[0, 1, 2, 3].map(k => `<i class="gn g${k}">${GRADES[k].name}</i> ${cnt[k]}개`).join(' · ')}</p>
