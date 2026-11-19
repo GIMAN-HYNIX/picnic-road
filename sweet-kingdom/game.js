@@ -120,7 +120,13 @@ const PET_COS = {
   glass: { name: '동그란 안경', face: 1, paint(P, a) { glassesP(P, a, '#2B3A67', '#BFE6FF', 'round'); } },
   sun: { name: '선글라스', face: 1, paint(P, a) { glassesP(P, a, '#1A0E22', '#3A3550', 'sun'); } },
   heartg: { name: '분홍 안경', face: 1, paint(P, a) { glassesP(P, a, '#E0457B', '#FFD0E4', 'heart'); } },
-  goldg: { name: '금테 안경', face: 1, paint(P, a) { glassesP(P, a, '#C98A00', '#FFF6C0', 'round'); } }
+  goldg: { name: '금테 안경', face: 1, paint(P, a) { glassesP(P, a, '#C98A00', '#FFF6C0', 'round'); } },
+  greeng: { name: '초록 안경', face: 1, paint(P, a) { glassesP(P, a, '#2E8A44', '#D8FFB8', 'round'); } },
+  chef: { name: '요리사 모자', paint(P, a) { const { cx, top } = a; P.ell(cx, top - 4, 5.5, 3.5, ['#FFFFFF', '#F4ECE0', '#D9CCBA'], { base: 0 }); P.ell(cx - 3, top - 6, 2.6, 2.4, ['#FFFFFF', '#F4ECE0'], { base: 0 }); P.ell(cx + 3, top - 6, 2.6, 2.4, ['#FFFFFF', '#F4ECE0'], { base: 0 }); for (let x = cx - 5; x <= cx + 5; x++) { P.set(x, top, '#E6D9C4'); P.set(x, top - 1, '#F4ECE0'); } } },
+  witch: { name: '마녀 모자', paint(P, a) { const { cx, top } = a; P.poly([[cx + 1, top - 12], [cx - 5, top], [cx + 5, top]], () => '#8A4FD0'); for (let x = cx - 8; x <= cx + 8; x++) { P.set(x, top + 1, '#6A3FB0'); P.set(x, top, '#8A4FD0'); } for (let x = cx - 4; x <= cx + 4; x++) P.set(x, top - 2, '#FFD23F'); } },
+  cherry: { name: '체리 머리핀', paint(P, a) { const x0 = a.cx + 6, y0 = a.top + 1; P.ell(x0 - 1.5, y0 + 1, 1.8, 1.8, ['#FF8A9A', '#E8323C', '#8E1430'], { base: 0 }); P.ell(x0 + 2, y0 + 1.5, 1.8, 1.8, ['#FF8A9A', '#E8323C', '#8E1430'], { base: 0 }); P.set(x0 - 1, y0 - 1, '#3F8F2A'); P.set(x0, y0 - 2, '#3F8F2A'); P.set(x0 + 1, y0 - 1, '#3F8F2A'); P.set(x0 + 1, y0 - 2, '#5CC04A'); } },
+  bear: { name: '곰돌이 귀', paint(P, a) { const { cx, top } = a; for (const sx of [-5, 5]) { P.ell(cx + sx, top - 1, 2.8, 2.6, ['#C08A5A', '#8A5230', '#5A3418'], { base: 0 }); P.ell(cx + sx, top - 1, 1.3, 1.2, ['#FFC9A8', '#E8A080'], { base: 0 }); } } },
+  heartc: { name: '하트 머리핀', paint(P, a) { const x0 = a.cx + 6, y0 = a.top + 1; P.ell(x0 - 1.2, y0, 1.6, 1.6, ['#FFB0C8', '#FF6FA5'], { base: 0 }); P.ell(x0 + 1.2, y0, 1.6, 1.6, ['#FFB0C8', '#FF6FA5'], { base: 0 }); P.poly([[x0 - 2.6, y0 + 0.5], [x0 + 2.6, y0 + 0.5], [x0, y0 + 3.4]], () => '#FF6FA5'); } }
 };
 function glassesP(P, a, frame, lens, kind) {
   for (const ex of a.eyes) { const cx = Math.round(ex) - 0.5, cy = a.ey;
@@ -445,7 +451,13 @@ const HERO_COS = {
   mint: { name: '민트 머리', ramp: ['#A8F0D8', '#3FBF9A', '#1E7A60'] }, lilac: { name: '보라 머리', ramp: ['#D9B8FF', '#9A6AE0', '#5A3A9A'] },
   sky: { name: '하늘 머리', ramp: ['#BFE6FF', '#4A9AE0', '#2A5A9A'] }, silver: { name: '은발', ramp: ['#F4F4F8', '#BFC3CF', '#7A7F8E'] },
   bigbow: { name: '왕리본' }, catears: { name: '고양이 귀 머리띠' }, bunny: { name: '토끼 귀' }, halo: { name: '천사 링' }, flower: { name: '꽃 화관' },
-  shades: { name: '선글라스' }, specs: { name: '금테 안경' }, hearts: { name: '하트 볼터치' }, angel: { name: '천사 날개' }, devil: { name: '악마 날개' }
+  shades: { name: '선글라스' }, specs: { name: '금테 안경' }, hearts: { name: '하트 볼터치' }, angel: { name: '천사 날개' }, devil: { name: '악마 날개' },
+  cherryd: { name: '체리 머리', ramp: ['#FF8A9A', '#E0324A', '#8E1430'] }, chocod: { name: '초코 머리', ramp: ['#C08A5A', '#7A4A28', '#3E2414'] }, peachd: { name: '복숭아 머리', ramp: ['#FFD2BA', '#FF9A7A', '#C0604A'] },
+  lemond: { name: '레몬 머리', ramp: ['#FFF6A0', '#F2D23C', '#A8880F'] }, graped: { name: '포도 머리', ramp: ['#D8B0F0', '#8A3ACA', '#4A1478'] }, matchad: { name: '말차 머리', ramp: ['#D8F0A8', '#8AB040', '#4A6A18'] },
+  nightd: { name: '밤하늘 머리', ramp: ['#8C9CE8', '#3A3E9A', '#1A1A50'] }, snowd: { name: '눈꽃 머리', ramp: ['#FFFFFF', '#DDE6F0', '#9AA8BA'] }, rosed: { name: '로즈골드 머리', ramp: ['#FFD9C8', '#E8A090', '#9A5A50'] },
+  crown: { name: '작은 왕관' }, chef: { name: '요리사 모자' }, witch: { name: '마녀 모자' }, bear: { name: '곰돌이 귀' }, beret: { name: '빨간 베레모' }, horns: { name: '아기 뿔' }, cherry: { name: '체리 머리핀' }, phones: { name: '하늘 헤드폰' }, starclip: { name: '별 머리핀' },
+  roundp: { name: '분홍 동그란 안경' }, sticker: { name: '별 스티커' }, mask: { name: '하얀 마스크' }, freckle: { name: '주근깨' },
+  butterfly: { name: '나비 날개' }, fairy: { name: '요정 날개' }, leafw: { name: '나뭇잎 날개' }
 };
 /* 꾸미기 종류: 머리색(dye), 머리 장식(head, 투구 대신 보여요), 얼굴(face), 등(back, 망토 대신 보여요) */
 const cosType = k => (DOLL.COS[k] && DOLL.COS[k].t) || 'dye';
@@ -1065,7 +1077,7 @@ function wOpt(id, i, o = {}) {      // 무기 선택 줄
 const HEART_EMPTY = `<path d="M50 86C20 64 10 48 10 34C10 20 21 12 32 12C41 12 47 17 50 23C53 17 59 12 68 12C79 12 90 20 90 34C90 48 80 64 50 86Z" fill="#4A2A4A"/>`;
 const heartsHtml = (hp, max) => Array.from({ length: max }, (_, i) => `<i class="hrt${i < hp ? '' : ' off'}">${svg(i < hp ? ICON.heart : HEART_EMPTY)}</i>`).join('');
 /* ═════ 장비: 옷, 신발, 장갑, 투구, 망토. 등급은 일반 < 희귀 < 유물 < 영웅 < 전설 ═════ */
-const SLOTS = ['armor', 'shoes', 'gloves', 'helm', 'cape', 'weapon'], DROP_SLOTS = SLOTS.slice(0, 5), WEP_MAXG = 1;      /* 무기 칸: 레벨업 카드를 다 채운 뒤에만 얻어요. 지금은 희귀까지 */
+const SLOTS = ['armor', 'shoes', 'gloves', 'helm', 'cape', 'weapon'], DROP_SLOTS = SLOTS.slice(0, 5), WEP_MAXG = 3;      /* 무기 칸: 레벨업 카드를 다 채운 뒤에만 얻어요. 지금은 희귀까지 */
 const SLOT = {
   armor: { name: '옷', nouns: ['제빵 앞치마', '레이스 원피스', '설탕 갑옷'] },
   shoes: { name: '신발', nouns: ['버터 장화', '초코 운동화', '솜사탕 구두'] },
@@ -1117,7 +1129,9 @@ const SP = {
   lucky: { s: 'helm', name: '행운의 일격', d: k => `치명타로 잡은 적은 ${Math.round(20 * k)}% 확률로 보석을 하나 더 떨어뜨려요` },
   twin: { s: 'cape', name: '메아리', d: k => `망토의 무기가 ${Math.round(18 * k)}% 확률로 바로 한 번 더 공격해요` },
   giant: { s: 'cape', name: '거인 사냥꾼', d: k => `망토의 무기가 보스와 엘리트에게 ${Math.round(30 * k)}% 더 세요` },
-  chill: { s: 'cape', name: '서리', d: k => `망토의 무기에 맞은 적이 ${(1.5 * k).toFixed(1)}초 동안 느려져요` }
+  chill: { s: 'cape', name: '서리', d: k => `망토의 무기에 맞은 적이 ${(1.5 * k).toFixed(1)}초 동안 느려져요` },
+  wrath: { s: 'weapon', name: '대장 사냥', d: k => `보스와 엘리트에게 주는 피해 +${Math.round(25 * k)}%` },
+  swift: { s: 'weapon', name: '날랜 손', d: k => `공격 속도 +${Math.round(10 * k)}%` }
 };
 /* 전설 장비 강화: 전설 장비는 칸과 상관없이 기본 스킬 하나를 한 층 특별하게 만들어요. 생김새와 쓰는 법은 그대로, 조금 더 세고 조금 달라져요 */
 const LW = {
@@ -1147,7 +1161,7 @@ function rollItem(n, minG = 0, slot) {
   if (s === 'gloves') { fx.atk = r1([3, 4.5, 6, 8, 10][g]); if (g >= 2) { const k = pick(['open', 'rush']), i = g - 2; fx[k] = { open: [15, 22, 30], rush: [8, 12, 16] }[k][i]; } }
   if (s === 'helm') { fx.crit = r1([1.5, 2.2, 3, 4, 5][g]); if (g >= 2) fx.critd = [15, 22, 30][g - 2]; }
   if (s === 'cape') { const own = run && run.wpn && run.wpn.length && Math.random() < 0.65 ? pick(run.wpn).id : pick(Object.keys(WEAPONS)); fx.w = own; fx.wd = [8, 12, 16, 22, 30][g]; fx.critd = [6, 10, 15, 22, 30][g]; if (g >= 2) { const [k, , v] = CAPE_FX[own]; fx[k] = v[g - 2]; } if (g === 4) fx.proj = (fx.proj || 0) + 1; }
-  if (s === 'weapon') { fx.wdmg = r1([4, 6][g]); if (g >= 1) fx.critd = [0, 8][g]; }      /* 무기: 모든 공격 피해 */
+  if (s === 'weapon') { fx.wdmg = r1([4, 6, 9, 13][g]); if (g >= 1) fx.critd = [0, 8, 12, 18][g]; if (g >= 2) fx.atk = [0, 0, 4, 6][g]; }      /* 무기: 모든 공격 피해, 희귀부터 치명타 피해, 유물부터 공격 속도. 영웅은 고유 효과도 */      /* 무기: 모든 공격 피해 */
   const v = rnd(SLOT[s].nouns.length), nm = s === 'cape' ? `${GRADES[g].pre} ${WEAPONS[fx.w].name} 망토` : `${GRADES[g].pre} ${SLOT[s].nouns[v]}`;
   const it = { id: Date.now().toString(36) + (itemSeq++), s, g, n, nm, fx, v }; rollSp(it); rollLw(it); return it;
 }
@@ -1233,7 +1247,7 @@ function battleStats() {
     spd: (1 + 0.05 * b.spd) * (1 + 0.03 * M('spd')) * (1 + eqSum('spd') / 100),
     lw: eqList().filter(it => it.g === 4 && it.lw).reduce((o, it) => (o[it.lw] = (o[it.lw] || 0) + 1, o), {}),
     xp: 1 + 0.06 * M('xp'), pickup: 88 * (1 + 0.15 * M('mag')) * (1 + 0.4 * (sp.magnetic || 0)), sp, invK: (1 + 0.1 * M('guard')) * (1 + eqSum('inv') / 100), area: 1 + 0.06 * M('size'),
-    atk: 1 + eqSum('atk') / 100 + 0.03 * M('aspd') + 0.04 * M('haste2'), guard: guardSec(), open: eqSum('open') / 100, rush: eqMax('rush'), hitHaste: eqMax('hitHaste') / 100, killHaste: eqMax('killHaste') / 100, lowHaste: eqMax('lowHaste') / 100
+    atk: 1 + eqSum('atk') / 100 + 0.1 * (sp.swift || 0) + 0.03 * M('aspd') + 0.04 * M('haste2'), guard: guardSec(), open: eqSum('open') / 100, rush: eqMax('rush'), hitHaste: eqMax('hitHaste') / 100, killHaste: eqMax('killHaste') / 100, lowHaste: eqMax('lowHaste') / 100
   };
 }
 const needOf = lvl => Math.round(5 + 3 * (lvl - 1) + 0.07 * (lvl - 1) ** 2 + 0.012 * (lvl - 1) ** 3);      /* 스테이지가 끝없이 이어지니까 뒤로 갈수록 레벨이 천천히 올라요 */
@@ -1461,7 +1475,7 @@ function hurtFoe(f, d, w, ax, ay, kbm = 1) {
   if (SPv.grit && B.p.hp <= 1) d *= 1 + 0.2 * SPv.grit; if (f.markT > B.t) d *= 1 + 0.15 * (SPv.mark || 0); if (crit && SPv.mark) f.markT = B.t + 3;
   if (w && w.id) { const gk = capeSp('giant', w.id), ck = capeSp('chill', w.id); if (gk && FOES[f.type].big) d *= 1 + 0.3 * gk; if (ck) f.slow = Math.max(f.slow || 0, 1.5 * ck); }
   f.critHit = crit;
-  d *= FOES[f.type].big ? 1 + 0.1 * M('hunter') : 1 + 0.08 * M('sweep');
+  d *= FOES[f.type].big ? (1 + 0.1 * M('hunter')) * (1 + 0.25 * (SPv.wrath || 0)) : 1 + 0.08 * M('sweep');
   if (w && FOES[f.type].big) d *= BOSSK[w.id] || 1;      // 보스·엘리트에게: 근접 무기는 더 세게, 번개·폭탄·크림도 조금 보강
   d *= B.st.dmg * (1 + capeD(w && w.id)); if (f.coat > 0) { f.coat -= d; d *= 0.35; if (f.coat <= 0 && !headless) burst(f.x, f.y - FOES[f.type].h * 0.4, '#FFFFFF', 8, 170); }      /* 설탕 껍질이 깨질 때까지는 피해가 덜 들어가요 */ f.hp -= d; f.flash = 0.08; f.sq = 0.35;
   if (SPv.execute && f.hp > 0 && !FOES[f.type].big && f.hp < f.max * 0.12 * SPv.execute) f.hp = 0;
@@ -1711,7 +1725,7 @@ function rollLevelOpts() {
 }
 function applyLevel(o) {
   if (o.t === 'leg') { const S2 = run.shards || (run.shards = {}); S2[o.id] = (S2[o.id] || 0) + 1; if (S2[o.id] >= LEG_N) { (run.leg || (run.leg = {}))[o.id] = 1; if (B && !headless) { toast(`전설 스킬: ${LEG[o.id].name}!`); B.flashScr = { col: '255,216,107', t: 0.6, max: 0.6 }; confetti(60); } } return; }
-  if (o.t === 'eqw') { const it = rollItem(Math.max(1, run.stage || 1), Math.random() < 0.15 ? 1 : 0, 'weapon'); addItems([it]); if (!headless) { toast(`레벨업! 무기 획득: ${it.nm} (${GRADES[it.g].name})`); if (B) textAdd(B.p.x, B.p.y - 56, `${GRADES[it.g].name} 무기 획득!`, it.g ? '#59B8FF' : '#FFFFFF', true); } return; }
+  if (o.t === 'eqw') { const r0 = Math.random(), it = rollItem(Math.max(1, run.stage || 1), r0 < 0.01 ? 3 : r0 < 0.05 ? 2 : r0 < 0.2 ? 1 : 0, 'weapon'); addItems([it]); if (!headless) { toast(`레벨업! 무기 획득: ${it.nm} (${GRADES[it.g].name})`); if (B) textAdd(B.p.x, B.p.y - 56, `${GRADES[it.g].name} 무기 획득!`, it.g ? '#59B8FF' : '#FFFFFF', true); } return; }
   if (o.t === 's') { run.bonus[o.id] = (run.bonus[o.id] || 0) + 1; if (o.id === 'heart') { run.maxHp++; run.hp++; if (B) { B.p.max++; B.p.hp++; } } if (B) B.st = battleStats(); return; }
   let w = run.wpn.find(x => x.id === o.id);
   if (w) { w.lv++; const bw = B && B.weapons.find(x => x.src === w); if (bw) bw.lv = w.lv + capeP(w.id); if (B && (w.lv === 5 || w.lv === 10)) specialFx(w); }
@@ -1722,7 +1736,7 @@ function levelSheet(opts, after, shown) {
   /* 짧게: 무기는 레벨만, 능력은 한 줄. Lv5·Lv10이 되는 카드는 색으로 구분 */
   const optHtml = (o, i) => {
     if (o.t === 'leg') { const n = ((run.shards || {})[o.id] || 0) + 1; return `<button class="opt lvc lv10 leg" type="button" data-act="pick" data-i="${i}"><i class="shine"></i><em class="tag">${n >= LEG_N ? '★ 전설 각성!' : '★ 전설 조각'}</em><span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${LEG[o.id].name} ${n}/${LEG_N}</b><span>${n >= LEG_N ? LEG[o.id].desc : `${WEAPONS[o.id].name}의 전설 조각. 10개를 모으면 전설 스킬이 돼요.`}</span></span></button>`; }
-    if (o.t === 'eqw') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON.pin)}</span><span class="tx"><b>무기 장비 상자</b><span>무기 칸 장비를 하나 받아요. 일반 85%, 희귀 15%. 가방에 들어가요.</span></span></button>`;
+    if (o.t === 'eqw') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON.pin)}</span><span class="tx"><b>무기 장비 상자</b><span>무기 칸 장비를 하나 받아요. 일반 80%, 희귀 15%, 유물 4%, 영웅 1%. 가방에 들어가요.</span></span></button>`;
     if (o.t === 's') return `<button class="opt lvc" type="button" data-act="pick" data-i="${i}"><span class="ic">${svg(ICON[STATS[o.id].icon])}</span><span class="tx"><b>${STATS[o.id].name}</b></span></button>`;
     const lv = wLv(o.id), nx = lv + 1, W = WEAPONS[o.id];
     const sp = nx === 5 || nx === 10;
@@ -2470,7 +2484,7 @@ const TIPS = [
   { id: 'legAll', when: () => legAll(), title: '전설 스킬을 모두 모았어요!', icon: 'star',
     text: () => `이제 <b>전설 별 강화</b>로 더 키울 수 있어요.<br><br><b>얻는 법</b><br>· 몬스터를 잡다 보면 아주 가끔 <b>전설 별 조각</b>이 떨어져요. 보랏빛 기운이 모이고 빛기둥이 서요. 떨어지는 순간 바로 얻어요.<br>· 바닥에 남은 결정에 직접 닿으면 화면의 몬스터가 모두 사라져요.<br><br><b>강화하면</b><br>· 조각을 모으면 전설 스킬에 별이 붙어요 (★1~★5, 조각 1·2·3·4·5개).<br>· 별 하나마다 그 스킬 피해 +12%, ★3과 ★5에서는 쿨타임이 짧아져요.<br>· 진행도는 캐릭터 창 무기 목록에서 볼 수 있어요.${run.stage >= 100 ? '<br><br>지도 맨 위 <b>무한의 탑</b>도 올라 보세요. 층마다 꾸미기를 받아요.' : ''}` },
   { id: 'cards', when: () => cardsDone(), title: '레벨업 카드를 모두 채웠어요!', icon: 'chest',
-    text: () => `더 고를 카드가 없어서, 이제부터는 <b>레벨업할 때마다 무기 장비</b>를 바로 받아요.<br><br>· 새 장비 칸 <b>무기</b>에 끼워요. 모든 공격 피해가 올라가요.<br>· 일반 85%, 희귀 15%로 나와요. 일반 5개를 합성하면 희귀가 돼요.<br>· 지금은 희귀까지 있어요.` },
+    text: () => `더 고를 카드가 없어서, 이제부터는 <b>레벨업할 때마다 무기 장비</b>를 바로 받아요.<br><br>· 새 장비 칸 <b>무기</b>에 끼워요. 모든 공격 피해가 올라가요.<br>· 일반 80%, 희귀 15%, 유물 4%, 영웅 1%로 나와요. 같은 등급 5개를 합성하면 한 등급 올라가요.<br>· 지금은 영웅까지 있어요. 영웅 무기에는 고유 효과가 붙어요.` },
   { id: 'star5', when: () => legAll() && Object.keys(WEAPONS).every(id => lStar(id) >= LSTAR_MAX), title: '전설 별 강화를 모두 끝냈어요!', icon: 'star',
     text: () => `모든 전설 스킬이 ★5가 됐어요. 정말 대단해요!<br><br><b>남은 성장</b><br>· 레벨업마다 받는 무기 장비를 모아 합성해요.<br>· 무한의 탑을 올라 층마다 새 꾸미기를 모아요.<br>· 성장 트리에서 남은 특성을 배워요.` }
 ];

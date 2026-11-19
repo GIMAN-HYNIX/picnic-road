@@ -49,6 +49,22 @@ const DOLL = (() => {
     specs: { t: 'face', L: rows(11, ['......GGGG...', '.....G....GGG', '.....G....G..', '.....G....G..', '......GGGG...']) },
     hearts: { t: 'face', L: rows(14, ['....qkq......', '.....q.......']) },
     angel: { t: 'back', wide: 1, L: rows(14, ['..WW............', '.WWWW...........', 'WWVWWW..........', 'WVWWVWW.........', 'WWVWWVWW........', '.WWVWWVWW.......', '..WWVWWWW.......', '...WWVWWW.......', '....WWWW........', '.....WW.........']) },
+    crown: { t: 'head', L: rows(-4, ['.......G...G.', '.......GG.GGG', '.......GGGGGG', '.......GqGGNG', '.......GGGGGG']) },
+    chef: { t: 'head', L: rows(-5, ['..........WWW', '........WWWWW', '.......WWWWWW', '.......WWVWWW', '........WWWWW', '.......VVVVVV', '.......VVVVVV']) },
+    witch: { t: 'head', L: rows(-7, ['...........UU', '..........UUU', '.........UUuU', '........UUUUU', '........UUUUU', '.......UUUUUU', '.......GGGGGG', '...UUUUUUUUUU', '..UUUUUUUUUUU']) },
+    bear: { t: 'head', L: rows(-2, ['...DDD.......', '..DYYDD......', '..DYYDD......', '...DDD.......']) },
+    beret: { t: 'head', L: rows(-4, ['...........QQ', '.......qqqqqq', '....qqqqqqqqq', '...qqQqqqqqqq', '...QQQQQQQQQQ']) },
+    horns: { t: 'head', L: rows(-3, ['.....V.......', '.....VV......', '.....VVV.....']) },
+    cherry: { t: 'head', L: rows(1, ['..L..........', '.L.L.........', 'qq.qq........', 'qQ.qQ........']) },
+    phones: { t: 'head', L: rows(-2, ['.....NNNNNNNN', '...NN........', '..N..........', '.N...........', '.N...........', '.N...........', '.N...........', '.N...........', '.N...........', '.N...........', 'NNN..........', 'NeN..........', 'NeN..........', 'NNN..........']) },
+    starclip: { t: 'head', L: rows(2, ['..G..........', '.GGG.........', '..G..........']) },
+    roundp: { t: 'face', L: rows(11, ['......kkkk...', '.....k....kkk', '.....k....k..', '.....k....k..', '......kkkk...']) },
+    sticker: { t: 'face', L: rows(14, ['...G.........', '..GGG........', '...G.........']) },
+    mask: { t: 'face', L: rows(15, ['......WWWWWWW', '.....WWWWWWWW', '......WWWWWWW']) },
+    freckle: { t: 'face', L: rows(14, ['....D.D......', '.....D.......']) },
+    butterfly: { t: 'back', wide: 1, L: rows(14, ['.qq.............', 'qGqq............', 'qqGqq...........', 'qqqqqq..........', '.qqqqqq.........', '..qqqqq.........', '.qqGqq..........', 'qGqq............', 'qq..............']) },
+    fairy: { t: 'back', wide: 1, L: rows(14, ['..NN............', '.NWNN...........', 'NWWWNN..........', 'NWWNNNN.........', '.NNNWNNN........', '..NNNNNN........', '..NWNN..........', '.NWN............', '.NN.............']) },
+    leafw: { t: 'back', wide: 1, L: rows(14, ['.LL.............', 'LLLL............', 'LLDLL...........', 'LLLDLL..........', '.LLLDLL.........', '..LLLLL.........', '...LL...........']) },
     devil: { t: 'back', wide: 1, L: rows(14, ['.U..............', 'UUU.............', 'UuUUU...........', 'UuuUUUU.........', 'U.UuuUUU........', '..U.UuUUU.......', '....U.UUU.......', '......UUU.......']) }
   };
   let shadesOn = false;
