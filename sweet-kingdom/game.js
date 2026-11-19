@@ -1658,13 +1658,14 @@ function rollLevelOpts() {
 }
 function applyLevel(o) {
   if (o.t === 'leg') { const S2 = run.shards || (run.shards = {}); S2[o.id] = (S2[o.id] || 0) + 1; if (S2[o.id] >= LEG_N) { (run.leg || (run.leg = {}))[o.id] = 1; if (B && !headless) { toast(`전설 스킬: ${LEG[o.id].name}!`); B.flashScr = { col: '255,216,107', t: 0.6, max: 0.6 }; confetti(60); } } return; }
-  if (o.t === 'eqw') { const it = rollItem(Math.max(1, run.stage || 1), Math.random() < 0.15 ? 1 : 0, 'weapon'); addItems([it]); if (!headless) toast(`무기 장비: ${it.nm} (${GRADES[it.g].name})`); return; }
+  if (o.t === 'eqw') { const it = rollItem(Math.max(1, run.stage || 1), Math.random() < 0.15 ? 1 : 0, 'weapon'); addItems([it]); if (!headless) { toast(`레벨업! 무기 획득: ${it.nm} (${GRADES[it.g].name})`); if (B) textAdd(B.p.x, B.p.y - 56, `${GRADES[it.g].name} 무기 획득!`, it.g ? '#59B8FF' : '#FFFFFF', true); } return; }
   if (o.t === 's') { run.bonus[o.id] = (run.bonus[o.id] || 0) + 1; if (o.id === 'heart') { run.maxHp++; run.hp++; if (B) { B.p.max++; B.p.hp++; } } if (B) B.st = battleStats(); return; }
   let w = run.wpn.find(x => x.id === o.id);
   if (w) { w.lv++; const bw = B && B.weapons.find(x => x.src === w); if (bw) bw.lv = w.lv + capeP(w.id); if (B && (w.lv === 5 || w.lv === 10)) specialFx(w); }
   else { w = { id: o.id, lv: 1 }; run.wpn.push(w); if (B) B.weapons.push({ id: w.id, lv: 1 + capeP(w.id), src: w, cd: 0.2, ang: 0 }); }
 }
 function levelSheet(opts, after, shown) {
+  if (opts.length === 1 && opts[0].t === 'eqw') { applyLevel(opts[0]); sfx.good(); if (after) { after(); return; } if (B) { B.paused = false; last = performance.now(); } return; }      /* 카드를 다 채웠으면 고를 것 없이 바로 무기를 받아요 */
   /* 짧게: 무기는 레벨만, 능력은 한 줄. Lv5·Lv10이 되는 카드는 색으로 구분 */
   const optHtml = (o, i) => {
     if (o.t === 'leg') { const n = ((run.shards || {})[o.id] || 0) + 1; return `<button class="opt lvc lv10 leg" type="button" data-act="pick" data-i="${i}"><i class="shine"></i><em class="tag">${n >= LEG_N ? '★ 전설 각성!' : '★ 전설 조각'}</em><span class="ic">${svg(ICON[o.id])}</span><span class="tx"><b>${LEG[o.id].name} ${n}/${LEG_N}</b><span>${n >= LEG_N ? LEG[o.id].desc : `${WEAPONS[o.id].name}의 전설 조각. 10개를 모으면 전설 스킬이 돼요.`}</span></span></button>`; }
