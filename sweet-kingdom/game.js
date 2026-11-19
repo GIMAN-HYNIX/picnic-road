@@ -2502,8 +2502,11 @@ const TIPS = [
   { id: 'star5', when: () => legAll() && Object.keys(WEAPONS).every(id => lStar(id) >= LSTAR_MAX), title: '전설 별 강화를 모두 끝냈어요!', icon: 'star',
     text: () => `모든 전설 스킬이 ★5가 됐어요. 정말 대단해요!<br><br><b>남은 성장</b><br>· 레벨업마다 받는 무기 장비를 모아 합성해요.<br>· 무한의 탑을 올라 층마다 새 꾸미기를 모아요.<br>· 성장 트리에서 남은 특성을 배워요.` }
 ];
+let rewarding = false;
+let rewardT = 0;
+function rewardLock(on) { rewarding = on; const m = $('#map'); if (m) m.classList.toggle('busy', on); clearTimeout(rewardT); if (on) rewardT = setTimeout(() => rewardLock(false), 90000); }      /* 혹시 막히면 90초 뒤 저절로 풀려요 */
 function tipCheck() {
-  if (!run || !overlay.hidden) return; const T = run.tips || (run.tips = {}); const t = TIPS.find(x => !T[x.id] && x.when()); if (!t) return;
+  if (!run || !overlay.hidden || rewarding) return; const T = run.tips || (run.tips = {}); const t = TIPS.find(x => !T[x.id] && x.when()); if (!t) return;
   T[t.id] = 1; persist(); sfx.rare(); noteSheet(t.title, t.text(), t.icon, () => setTimeout(tipCheck, 250));
 }
 function pickNode(id, quiet) {
@@ -2675,7 +2678,7 @@ function afterBattle(id, r) {
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
   steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
   if (first && id === STAGES.length) steps.push(next => noteSheet('지금 열린 마지막 스테이지까지 깼어요!', '새 스테이지가 곧 열려요. 그동안 지도 맨 위의 무한의 탑을 올라 보세요. 층마다 꾸미기를 받아요.', 'chest', next));
-  const go = () => { const st = steps.shift(); if (st) st(go); else { persist(); showMap(); } };
+  rewardLock(true); const go = () => { const st = steps.shift(); if (st) { try { st(go); } catch (e) { console.error(e); go(); } } else { rewardLock(false); persist(); showMap(); } };      /* 보상 창이 다 끝날 때까지 지도를 못 눌러요 */
   go();
 }
 /* ───── 무한의 탑: 100스테이지를 깨면 열려요. 층마다 기믹이 무작위로 섞이고, 처음 깨는 층마다 꾸미기를 하나씩 받아요 ───── */
@@ -2713,7 +2716,7 @@ function towerAfter(f, r) {
   { const items = Array.from({ length: s.boss ? 5 : 3 }, (_, q) => rollItem(100 + f, s.boss && q === 0 ? 1 : 0)); steps.push(next => rewardSheet(items, got ? { t: 'hero', k } : null, `탑 ${f}층 보상`, next)); }
   for (let i = 0; i < (run.picks || 0); i++) steps.push(next => { run.picks--; levelSheet(rollLevelOpts(), next, run.lvl - run.picks); });
   steps.push(next => noteSheet(`설탕 별 +${stars}개`, `성장 트리에서 쓸 수 있어요. 지금 ${S.meta.pts}개 있어요.`, 'star', next));
-  const go = () => { const st = steps.shift(); if (st) st(go); else { persist(); showMap(); pickTower(); } }; go();
+  rewardLock(true); const go = () => { const st = steps.shift(); if (st) { try { st(go); } catch (e) { console.error(e); go(); } } else { rewardLock(false); persist(); showMap(); pickTower(); } }; go();
 }
 /* 막을 깼어요: 보상을 받고 다음 막의 새 지도로 */
 function noteSheet(title, text, icon, next) {
