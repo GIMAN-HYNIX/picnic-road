@@ -1362,12 +1362,12 @@ const STAGES = [
   { n: '와플 광란', g: ['grid', 'fast'] }, { n: '도넛 그림자', g: ['donut', 'stalker'] }, { n: '마지막 와플', g: ['grid', 'roll'] }, { n: '마지막 도넛', g: ['donut', 'spiral'] }, { n: '탄 설탕 마왕, 다시 깨어나다', boss: 'boss3', g: ['grid'] },
   { n: '왕좌로 가는 와플 다리', g: ['grid', 'coat'] }, { n: '왕좌를 두른 도넛', g: ['donut', 'sugar'] }, { n: '마지막 시험의 격자', g: ['grid', 'spiral'] }, { n: '왕좌 앞의 고요', g: ['donut'] }, { n: '이백 번째 왕좌: 디저트 여왕의 진짜 왕관', boss: 'queen', g: ['donut'] },
   { n: '케이크 자르는 날', g: ['slice'] }, { n: '생일 촛불밭', g: ['candles'] }, { n: '조각 케이크 보석 비', g: ['slice', 'gemrain'] }, { n: '촛불 켜진 보석길', g: ['candles', 'gemrain'] }, { n: '초코 분수 대왕의 생일', boss: 'boss2', g: ['candles'] },
-  { n: '칼금 도넛', g: ['slice', 'donut'] }, { n: '촛불 사이 그림자', g: ['candles', 'stalker'] }, { n: '조각조각 황금 젤리', g: ['slice', 'goldrush'] }, { n: '촛불과 롤케이크', g: ['candles', 'roll'] }, { n: '마카롱 여왕의 케이크 커팅', boss: 'queen', g: ['slice'] },
+  { n: '칼금 도넛', g: ['slice', 'donut'] }, { n: '촛불 사이 그림자', g: ['candles', 'stalker'] }, { n: '조각조각 케이크', g: ['slice'] }, { n: '촛불과 롤케이크', g: ['candles', 'roll'] }, { n: '마카롱 여왕의 케이크 커팅', boss: 'queen', g: ['slice'] },
   { n: '코팅된 조각 케이크', g: ['slice', 'coat'] }, { n: '생일 축하 현상범', g: ['candles', 'bounty'] }, { n: '칼금 빙판', g: ['slice', 'gemrain'] }, { n: '촛불 차원문', g: ['candles', 'portal'] }, { n: '탄 설탕 마왕의 촛불', boss: 'boss3', g: ['candles'] },
   { n: '조각 케이크 거인', g: ['slice', 'giant'] }, { n: '촛불 보석 비', g: ['candles', 'gemrain'] }, { n: '칼금 십자 촛불', g: ['slice', 'cross'] }, { n: '촛불 켠 생일상', g: ['candles'] }, { n: '곰팡이 케이크의 생일 파티', boss: 'boss', g: ['slice'] },
-  { n: '칼금 포위망', g: ['slice', 'roll'] }, { n: '생일 거인', g: ['candles', 'giant'] }, { n: '조각 케이크 보석', g: ['slice', 'gemrain'] }, { n: '촛불 도넛', g: ['candles', 'donut'] }, { n: '여왕의 생일 무대', boss: 'queen', g: ['candles'] },
+  { n: '칼금 보석길', g: ['slice', 'gemrain'] }, { n: '생일 거인', g: ['candles', 'giant'] }, { n: '조각 케이크 보석', g: ['slice', 'gemrain'] }, { n: '촛불 도넛', g: ['candles', 'donut'] }, { n: '여왕의 생일 무대', boss: 'queen', g: ['candles'] },
   { n: '칼금 현상범', g: ['slice', 'bounty'] }, { n: '촛불 황금 젤리', g: ['candles', 'goldrush'] }, { n: '조각 케이크 현상범', g: ['slice', 'bounty'] }, { n: '촛불 거인', g: ['candles', 'giant'] }, { n: '초코 분수 대왕의 마지막 촛불', boss: 'boss2', g: ['slice'] },
-  { n: '케이크 칼 보석', g: ['slice', 'gemrain'] }, { n: '단단한 생일상', g: ['candles', 'bounty'] }, { n: '마지막 조각', g: ['slice', 'spiral'] }, { n: '마지막 촛불', g: ['candles', 'goldrush'] }, { n: '탄 설탕 마왕의 케이크', boss: 'boss3', g: ['candles'] },
+  { n: '케이크 칼 보석', g: ['slice', 'gemrain'] }, { n: '단단한 생일상', g: ['candles', 'bounty'] }, { n: '마지막 조각', g: ['slice', 'spiral'] }, { n: '마지막 촛불', g: ['candles'] }, { n: '탄 설탕 마왕의 케이크', boss: 'boss3', g: ['candles'] },
   { n: '케이크 탑 계단', g: ['slice', 'coat'] }, { n: '촛불 켠 왕좌 길', g: ['candles', 'roll'] }, { n: '마지막 커팅', g: ['slice'] }, { n: '촛불을 불 시간', g: ['candles'] }, { n: '이백사십 번째 왕좌: 디저트 여왕의 생일 왕관', boss: 'queen', g: ['slice'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
