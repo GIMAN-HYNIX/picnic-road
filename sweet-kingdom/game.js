@@ -1315,6 +1315,8 @@ const GIM = {
   roll: { name: '롤케이크', hint: '굴러오는 롤케이크를 피해요', desc: '굵은 줄 위로 거대한 롤케이크가 굴러가요. 나는 피하고, 줄 위의 적은 깔려서 크게 다쳐요.' },
   coat: { name: '설탕 코팅', hint: '반짝이는 적은 단단해요', desc: '적이 설탕 껍질을 두르고 나와요. 껍질이 깨질 때까지는 피해가 덜 들어가요.' },
   grid: { name: '와플 격자', hint: '격자 줄 사이 칸으로 피해요', desc: '내 주변에 와플 같은 가로세로 줄이 그어지고 곧 뜨거워져요. 줄과 줄 사이 빈칸으로 들어가요.' },
+  slice: { name: '케이크 자르기', hint: '세 갈래 칼금 사이로 피해요', desc: '내 자리에서 케이크를 자르듯 세 갈래 칼금이 뻗어 나가요. 칼금 사이 빈 조각으로 비켜요.' },
+  candles: { name: '생일 촛불밭', hint: '켜진 촛불 가까이 가지 말아요', desc: '내 주변에 생일 초가 꽂히고 한동안 활활 타요. 불 붙은 초에 닿으면 다쳐요.' },
   donut: { name: '도넛 포위망', hint: '조여 오는 고리 안쪽에 있어요', desc: '내 둘레에 도넛 모양으로 빨간 원들이 둘러싸요. 고리 위에 있으면 다쳐요. 안쪽에 머물거나 빈틈으로 빠져나가요.' }
 };
 const STAGES = [
@@ -1358,7 +1360,15 @@ const STAGES = [
   { n: '별빛 와플 길', g: ['grid', 'sprinkle'] }, { n: '도넛 소용돌이', g: ['donut', 'vortex'] }, { n: '와플 위 번개', g: ['grid', 'beams'] }, { n: '도넛 롤케이크', g: ['donut', 'roll'] }, { n: '여왕의 두 번째 무대', boss: 'queen', g: ['grid'] },
   { n: '격자 시럽 나선', g: ['grid', 'spiral'] }, { n: '도넛 안개', g: ['donut', 'fog'] }, { n: '와플 십자 촛불', g: ['grid', 'cross'] }, { n: '단단한 도넛 떼', g: ['donut', 'coat'] }, { n: '초코 분수 대왕의 마지막 춤', boss: 'boss2', g: ['donut'] },
   { n: '와플 광란', g: ['grid', 'fast'] }, { n: '도넛 그림자', g: ['donut', 'stalker'] }, { n: '마지막 와플', g: ['grid', 'roll'] }, { n: '마지막 도넛', g: ['donut', 'spiral'] }, { n: '탄 설탕 마왕, 다시 깨어나다', boss: 'boss3', g: ['grid'] },
-  { n: '왕좌로 가는 와플 다리', g: ['grid', 'coat'] }, { n: '왕좌를 두른 도넛', g: ['donut', 'sugar'] }, { n: '마지막 시험의 격자', g: ['grid', 'spiral'] }, { n: '왕좌 앞의 고요', g: ['donut'] }, { n: '이백 번째 왕좌: 디저트 여왕의 진짜 왕관', boss: 'queen', g: ['donut'] }
+  { n: '왕좌로 가는 와플 다리', g: ['grid', 'coat'] }, { n: '왕좌를 두른 도넛', g: ['donut', 'sugar'] }, { n: '마지막 시험의 격자', g: ['grid', 'spiral'] }, { n: '왕좌 앞의 고요', g: ['donut'] }, { n: '이백 번째 왕좌: 디저트 여왕의 진짜 왕관', boss: 'queen', g: ['donut'] },
+  { n: '케이크 자르는 날', g: ['slice'] }, { n: '생일 촛불밭', g: ['candles'] }, { n: '조각 케이크 개미 떼', g: ['slice', 'swarm'] }, { n: '촛불 켜진 와플', g: ['candles', 'grid'] }, { n: '초코 분수 대왕의 생일', boss: 'boss2', g: ['candles'] },
+  { n: '칼금 도넛', g: ['slice', 'donut'] }, { n: '촛불 사이 그림자', g: ['candles', 'stalker'] }, { n: '조각조각 시럽', g: ['slice', 'spiral'] }, { n: '촛불과 롤케이크', g: ['candles', 'roll'] }, { n: '마카롱 여왕의 케이크 커팅', boss: 'queen', g: ['slice'] },
+  { n: '코팅된 조각 케이크', g: ['slice', 'coat'] }, { n: '생일 축하 포탑', g: ['candles', 'turret'] }, { n: '칼금 빙판', g: ['slice', 'gemrain'] }, { n: '촛불 차원문', g: ['candles', 'portal'] }, { n: '탄 설탕 마왕의 촛불', boss: 'boss3', g: ['candles'] },
+  { n: '조각 케이크 폭주', g: ['slice', 'sugar'] }, { n: '쪼개지는 촛불', g: ['candles', 'split'] }, { n: '칼금 십자 촛불', g: ['slice', 'cross'] }, { n: '촛불 나선', g: ['candles', 'spiral'] }, { n: '곰팡이 케이크의 생일 파티', boss: 'boss', g: ['slice'] },
+  { n: '칼금 포위망', g: ['slice', 'roll'] }, { n: '생일 거인', g: ['candles', 'giant'] }, { n: '조각 와플', g: ['slice', 'grid'] }, { n: '촛불 도넛', g: ['candles', 'donut'] }, { n: '여왕의 생일 무대', boss: 'queen', g: ['candles'] },
+  { n: '칼금 지뢰밭', g: ['slice', 'mines'] }, { n: '촛불 소용돌이', g: ['candles', 'vortex'] }, { n: '조각 케이크 현상범', g: ['slice', 'bounty'] }, { n: '촛불 스프링클', g: ['candles', 'sprinkle'] }, { n: '초코 분수 대왕의 마지막 촛불', boss: 'boss2', g: ['slice'] },
+  { n: '케이크 칼 광란', g: ['slice', 'fast'] }, { n: '단단한 촛불', g: ['candles', 'coat'] }, { n: '마지막 조각', g: ['slice', 'spiral'] }, { n: '마지막 촛불', g: ['candles', 'grid'] }, { n: '탄 설탕 마왕의 케이크', boss: 'boss3', g: ['candles'] },
+  { n: '케이크 탑 계단', g: ['slice', 'coat'] }, { n: '촛불 켠 왕좌 길', g: ['candles', 'roll'] }, { n: '마지막 커팅', g: ['slice', 'donut'] }, { n: '촛불을 불 시간', g: ['candles'] }, { n: '이백사십 번째 왕좌: 디저트 여왕의 생일 왕관', boss: 'queen', g: ['slice'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1367,6 +1377,7 @@ function gimInit() {
   if (G('giant')) { B.rateK *= 0.45; B.hpK *= 2.3; } if (G('swarm')) { B.rateK *= 2.1; B.hpK *= 0.4; B.fspK *= 1.1; } if (G('fast')) { B.fspK *= 1.35; B.rateK *= 0.85; } if (G('ring')) B.rateK *= 0.7; if (G('bombs')) B.rateK *= 0.8;
   if (G('balls')) B.balls = Array.from({ length: B.floor > 40 ? 3 : 2 }, (_, i) => ({ rx: (i - 0.5) * 160, ry: -260 + i * 120, vx: (i % 2 ? -1 : 1) * 95, vy: 80 + i * 15, r: 16 }));
   if (G('mines')) B.mineOff = new Set();
+  if (G('candles')) B.candles = [];
   if (G('portal')) { B.ports = [{ x: 190, y: -150 }, { x: -200, y: 170 }]; B.rateK *= 0.6; }
   if (G('turret')) B.turs = [{ x: 210, y: 120, cd: 2 }, { x: -220, y: -140, cd: 3.5 }];
   if (G('vortex')) B.vort = [{ x: 180, y: -120 }, { x: -200, y: 160 }];
@@ -1411,6 +1422,9 @@ function gimUpdate(dt) {
   if (G('ghost')) B.ghostA = B.t % 5 < 2.6 ? 1 : 0.14;
   if (G('spiral') && every('spi', 8)) { const a0 = Math.random() * 6.283, dir = Math.random() < 0.5 ? 1 : -1, cx = p.x, cy = p.y; for (let i = 0; i < 14; i++) { const a = a0 + dir * i * 0.5, d = 30 + i * 21; hazard({ k: 'c', x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, r: 34, t: 1.0 + i * 0.09 }); } if (!headless) sfx.warn(); }      /* 시럽 나선: 안쪽부터 차례로 터져요 */
   if (G('grid') && every('grd', 7.5)) { const ox = p.x + rand(-30, 30), oy = p.y + rand(-30, 30), gap = 120; for (const k of [-1, 1]) { hazard({ k: 'l', x: ox - 560, y: oy + k * gap / 2, a: 0, len: 1120, w: 18, t: 1.6 }); hazard({ k: 'l', x: ox + k * gap / 2, y: oy - 560, a: 1.5708, len: 1120, w: 18, t: 1.6 }); } for (const k of [-1.5, 1.5]) { hazard({ k: 'l', x: ox - 560, y: oy + k * gap, a: 0, len: 1120, w: 18, t: 1.6 }); hazard({ k: 'l', x: ox + k * gap, y: oy - 560, a: 1.5708, len: 1120, w: 18, t: 1.6 }); } if (!headless) sfx.warn(); }      /* 와플 격자: 줄 사이 칸이 안전해요 */
+  if (G('slice') && every('slc', 6.5)) { const a0 = Math.random() * 6.283, n = 3; for (let k = 0; k < n; k++) hazard({ k: 'l', x: p.x, y: p.y, a: a0 + k * 6.283 / n, len: 560, w: 24, t: 1.4 }); if (!headless) sfx.warn(); }      /* 케이크 자르기: 세 조각 사이가 안전해요 */
+  if (G('candles')) { if (every('cdl', 6)) { for (let k = 0; k < 5; k++) { const a = Math.random() * 6.283, d = rand(70, 210); B.candles.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, t: 0, cd: 0, hue: k }); } if (B.candles.length > 15) B.candles.splice(0, B.candles.length - 15); if (!headless) sfx.warn(); }      /* 생일 촛불: 1초 꽂히고 5초 타요 */
+    for (const c of B.candles) { c.t += dt; c.cd -= dt; if (c.t > 1 && c.t < 6 && c.cd <= 0 && (p.x - c.x) ** 2 + (p.y - c.y) ** 2 < (22 + HERO_R) ** 2) { c.cd = 1; hurtPlayer('gim'); } } B.candles = B.candles.filter(c => c.t < 6.4); }
   if (G('donut') && every('dnt', 9)) { const cx = p.x, cy = p.y, n = 16, gapI = Math.floor(Math.random() * n); for (let i = 0; i < n; i++) { if (i === gapI || i === (gapI + 1) % n) continue; const a = i / n * 6.283; hazard({ k: 'c', x: cx + Math.cos(a) * 170, y: cy + Math.sin(a) * 170, r: 40, t: 1.7 }); } if (!headless) sfx.warn(); }      /* 도넛 포위망: 안쪽이나 빈틈이 안전해요 */
   if (G('roll') && every('rol', 7)) { const a = Math.random() * 6.283, c = Math.cos(a), sn = Math.sin(a), off = rand(-40, 40); hazard({ k: 'l', x: p.x - c * 560 - sn * off, y: p.y - sn * 560 + c * off, a, len: 1120, w: 36, t: 1.5, roll: true }); if (!headless) sfx.warn(); }      /* 롤케이크: 굵은 줄을 따라 굴러가요 */
   if (G('regen') && every('re', 1)) for (const f of B.foes) if (!f.dead && f !== B.big && f.hp < f.max && B.t - (f.lastHit || 0) > 2) f.hp = Math.min(f.max, f.hp + f.max * 0.12);
@@ -1431,6 +1445,10 @@ function gimGround() {
   if (G('mines')) { const C = MINE_C; for (let j = Math.floor((p.y - vh) / C); j <= Math.floor((p.y + vh) / C); j++) for (let i = Math.floor((p.x - vw) / C); i <= Math.floor((p.x + vw) / C); i++) { if (B.mineOff.has(i + ',' + j)) continue; const m = minePos(i, j); if (!m) continue; const mx = X(m[0]), my = Y(m[1]), bl = Math.floor(B.t * 3 + i + j) % 2; pdisc(mx, my, 5, INK); pdisc(mx, my, 4, '#6B3A1E'); R('#A0663C', mx - 2, my - 3, 2, 2); R(bl ? '#FF3B5C' : '#7A1E2E', mx, my - 1, 2, 2); } }
   if (G('portal')) for (const v of B.ports) { const vx = X(v.x), vy = Y(v.y); putDisc(vx, vy, 16, 12, '#3A1E5A', 12); for (let k = 0; k < 4; k++) { const a = -B.t * 4 + k * 1.571; pline(Math.round(vx + Math.cos(a) * 15), Math.round(vy + Math.sin(a) * 11), Math.round(vx + Math.cos(a + 1) * 6), Math.round(vy + Math.sin(a + 1) * 4), k % 2 ? '#C77DFF' : '#FFFFFF'); } pcircle(vx, vy, 16, '#C77DFF'); }
   if (G('turret')) for (const t of B.turs) { const tx0 = X(t.x), ty0 = Y(t.y), hot = t.cd < 0.6 && Math.floor(B.t * 12) % 2; R('rgba(14,6,20,.5)', tx0 - 7, ty0 + 2, 14, 2); R(INK, tx0 - 6, ty0 - 4, 12, 7); R('#8E9AA8', tx0 - 5, ty0 - 3, 10, 5); R(INK, tx0 - 4, ty0 - 12, 8, 9); R(hot ? '#FFFFFF' : '#E8323C', tx0 - 3, ty0 - 11, 6, 7); R('#FFB0BC', tx0 - 2, ty0 - 10, 2, 2); R(INK, tx0 - 1, ty0 - 15, 2, 4); }
+  if (G('candles')) for (const c of B.candles) { const cx = X(c.x), cy = Y(c.y), lit = c.t > 1 && c.t < 6, rise = Math.min(1, c.t / 0.25), h = Math.round(12 * rise), col = PASTEL[c.hue % PASTEL.length];      /* 줄무늬 생일 초와 흔들리는 불꽃 */
+    if (c.t < 1) { const k = c.t; pcircle(cx, cy, Math.round(22 / WP) + 2, Math.floor(B.t * 10) % 2 ? '#FF3B5C' : '#FFD86B'); putDisc(cx, cy, Math.round(22 / WP) + 2, Math.round(22 / WP), '#FF3B5C', Math.round(3 + k * 4)); }
+    R('rgba(14,6,20,.45)', cx - 4, cy, 9, 2); R(INK, cx - 3, cy - h - 1, 7, h + 2); for (let y = 0; y < h; y++) R(Math.floor((y + c.hue) / 3) % 2 ? '#FFFFFF' : col, cx - 2, cy - h + y, 5, 1);
+    if (lit) { const fl = Math.floor(B.t * 12 + c.hue) % 3, fy = cy - h - 2; putDisc(cx, fy - 2, 9, 9, '#FFB020', 6); pdisc(cx, fy - 2, 3, '#FF7A1F'); pdisc(cx, fy - 3 - (fl === 1 ? 1 : 0), 2, '#FFE27A'); R('#FFFFFF', cx, fy - 3, 1, 1); if (fl === 2) R('#FFE27A', cx + 1, fy - 7, 1, 1); } else if (c.t >= 6) R('#8C88A8', cx, cy - h - 4, 1, 2); }
   if (G('shrink')) { const r = Math.round(B.shrinkR / WP); pcircle(X(0), Y(0), r, Math.floor(B.t * 6) % 2 ? '#FF4F9A' : '#FFD0E4', 2); pcircle(X(0), Y(0), r + 3, '#9C1E5C'); }
   if (G('balls')) for (const o of B.balls) { const bx = X(p.x + o.rx), by = Y(p.y + o.ry), r = Math.round(o.r / WP); putDisc(bx, by + r, r, Math.round(r * 0.4), '#1A0E22', 8); pdisc(bx, by, r + 1, INK); pdisc(bx, by, r, '#FFFFFF'); for (let k = 0; k < 3; k++) { const a = B.t * 4 + k * 2.094; pline(bx, by, Math.round(bx + Math.cos(a) * r), Math.round(by + Math.sin(a) * r), '#E8323C', 2); } pdisc(bx - 2, by - 2, 2, '#FFE0E6'); }
   if (G('vortex')) for (const v of B.vort) { const vx = X(v.x), vy = Y(v.y); putDisc(vx, vy, 30, 24, '#8B5A3C', 7); for (let k = 0; k < 3; k++) { const a = B.t * 3 + k * 2.094; pline(Math.round(vx + Math.cos(a) * 26), Math.round(vy + Math.sin(a) * 20), Math.round(vx + Math.cos(a + 0.9) * 10), Math.round(vy + Math.sin(a + 0.9) * 8), '#FFE1A8'); } }
@@ -2024,6 +2042,7 @@ function bigIntro() { if (!['donut', 'golem', 'knight'].includes(B.big.type) && 
 function autopilot() {
   const p = B.p; let x = 0, y = 0;
   if (G('mines')) { const ci = Math.floor(p.x / MINE_C), cj = Math.floor(p.y / MINE_C); for (let j = cj - 1; j <= cj + 1; j++) for (let i = ci - 1; i <= ci + 1; i++) { if (B.mineOff.has(i + ',' + j)) continue; const m = minePos(i, j); if (!m) continue; const dx = p.x - m[0], dy = p.y - m[1], d = Math.hypot(dx, dy) || 1; if (d < 95) { x += dx / d * 3 * (95 - d) / 95; y += dy / d * 3 * (95 - d) / 95; } } }
+  if (G('candles')) for (const c of B.candles) { if (c.t < 0.6 || c.t > 6) continue; const dx = p.x - c.x, dy = p.y - c.y, d = Math.hypot(dx, dy) || 1; if (d < 80) { x += dx / d * 3 * (80 - d) / 80; y += dy / d * 3 * (80 - d) / 80; } }
   if (G('balls')) for (const o of B.balls) { const d = Math.hypot(o.rx, o.ry) || 1; if (d < 110) { x -= o.rx / d * 4 * (110 - d) / 110; y -= o.ry / d * 4 * (110 - d) / 110; } }
   if (G('shrink')) { const d = Math.hypot(p.x, p.y) || 1; if (d > B.shrinkR * 0.7) return [-p.x / d, -p.y / d]; }
   for (const f of B.foes) { const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1, reach = 120 + f.r; if (d < reach) { const k = (reach - d) / reach; x += dx / d * k * 2; y += dy / d * k * 2; } }
