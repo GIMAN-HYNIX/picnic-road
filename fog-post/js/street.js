@@ -12,13 +12,13 @@ function bPostOffice(pb) {
   const x = 2, w = 188, r = RNG(101), wall = '#e9e1d1';
   wallTile(pb, x, 116, w, 84, wall, 101); parapet(pb, x, 108, w, '#d8cfbe');
   for (let i = x + 2; i < x + w - 2; i += 6) pb.vl(i, 100, 107, '#7d8387'); pb.hl(x + 2, x + w - 3, 100, '#a3a9ad'); pb.hl(x + 2, x + w - 3, 104, '#8d9397');
-  antenna(pb, x + 26, 100, 16); dish(pb, x + 52, 95); tank(pb, x + 150, 85, 12, 14, '#3f8f6b'); pb.rect(x + 100, 92, 22, 8, '#c9c4b8'); pb.hl(x + 100, x + 121, 92, '#ddd8cc'); for (let i = 0; i < 4; i++) pb.vl(x + 103 + i * 5, 94, 98, '#9a958a');
+  stairHouse(pb, x + 18, 84, 28, 16); tank(pb, x + 150, 85, 12, 14, '#3f8f6b'); pb.rect(x + 100, 92, 22, 8, '#c9c4b8'); pb.hl(x + 100, x + 121, 92, '#ddd8cc'); for (let i = 0; i < 4; i++) pb.vl(x + 103 + i * 5, 94, 98, '#9a958a');
   for (let i = 0; i < 5; i++) win(pb, x + 12 + i * 36, 124, 20, 18, { frame: PAL.frameA, wall, blinds: i % 2 ? .55 : 0, lit: i === 3, curtain: false, plant: i === 1 ? 1 : 0, r });
   // 간판 띠
   const sy = 151; dropShadow(pb, x, sy, w, 14);
   pb.rect(x, sy, w, 14, '#c8392f'); pb.hl(x, x + w - 1, sy, '#e2604f'); pb.hl(x, x + w - 1, sy + 13, '#86231c'); pb.hl(x, x + w - 1, sy + 1, '#d44a3d');
-  const ex = x + 58, ey = sy + 3; pb.rect(ex, ey, 13, 8, '#fbf6ec'); pb.line(ex, ey, ex + 6, ey + 4, '#c8392f'); pb.line(ex + 12, ey, ex + 6, ey + 4, '#c8392f'); pb.hl(ex, ex + 12, ey + 7, '#d9d2c4');
-  pb.text('우체국', x + 98, sy + 1, F11B, '#ffffff', 'center', '#86231c');
+  const ex = x + 42, ey = sy + 3; pb.rect(ex, ey, 13, 8, '#fbf6ec'); pb.line(ex, ey, ex + 6, ey + 4, '#c8392f'); pb.line(ex + 12, ey, ex + 6, ey + 4, '#c8392f'); pb.hl(ex, ex + 12, ey + 7, '#d9d2c4');
+  pb.text('물빛우체국', x + 92, sy + 1, F11B, '#ffffff', 'center', '#86231c');
   pb.text('POST OFFICE', x + w - 7, sy + 4, F7, '#f8d3cb', 'right');
   // 1층 유리
   shopGlass(pb, x + 8, 170, 62, 27, { lit: true, r });
@@ -27,7 +27,7 @@ function bPostOffice(pb) {
   // 자동문
   const dx = x + 78; pb.rect(dx - 1, 169, 36, 31, '#4a5056'); for (let k = 0; k < 2; k++) { const gx = dx + 1 + k * 17; for (let j = 0; j < 29; j++) pb.hl(gx, gx + 15, 170 + j, PAL.glass[j < 8 ? 1 : j < 20 ? 2 : 1]); for (let j = 0; j < 29; j++) if ((j + k * 3) % 7 < 2) pb.tint(gx + 10 - Math.floor(j / 3), 170 + j, .25, '#ffffff'); }
   pb.vl(dx + 17, 170, 199, '#4a5056'); pb.rect(dx + 3, 181, 28, 10, '#f4efe6'); pb.text('자동문', dx + 17, 182, F7, '#3d4a52', 'center');
-  pb.rect(dx - 3, 197, 40, 3, '#bdb7aa'); pb.hl(dx - 3, dx + 36, 197, '#d6d0c3');
+  pb.rect(dx - 3, 197, 40, 3, '#bdb7aa'); pb.hl(dx - 3, dx + 36, 197, '#d6d0c3'); addrPlate(pb, dx + 38, 171, 15);
   // 오른쪽 유리 (택배 상자)
   shopGlass(pb, x + 120, 170, 62, 27, { lit: true, r });
   for (let i = 0; i < 4; i++) { const bx = x + 124 + i * 13, bh = 6 + (i % 2) * 4; pb.rect(bx, 196 - bh, 11, bh, '#c49a62'); pb.hl(bx, bx + 10, 196 - bh, '#ddb57c'); pb.vl(bx + 5, 196 - bh, 195, '#e9dcc0'); }
@@ -42,18 +42,18 @@ function bLaundry(pb) {
   wallPlaster(pb, x, 124, w, 76, wall, 111, { stain: 3, crack: 1 }); parapet(pb, x, 118, w, '#94b3a5');
   tank(pb, x + 60, 102, 11, 14, '#3f8f6b'); clothesline(pb, x + 8, x + 50, 106, r); antenna(pb, x + 80, 118, 12);
   win(pb, x + 12, 132, 18, 15, { wall, guard: 2, plant: 1, r }); win(pb, x + 48, 132, 18, 15, { wall, lit: true, curtain: '#d98c78', r }); acUnit(pb, x + 74, 136, { pipe: 18 });
-  sign(pb, x + 4, 152, 70, 12, '세탁소', '#2b5d8c', '#ffffff', { inner: '#5f8fbf' });
+  sign(pb, x + 4, 152, 70, 12, '세탁소', '#2b5d8c', '#ffffff', { inner: '#5f8fbf' }); vsign(pb, x + 1, 120, 11, '피아노', '#f4efe6', '#c8392f');
   shopGlass(pb, x + 6, 169, 54, 28, { lit: true, r });
   pb.hl(x + 8, x + 58, 172, '#8d8f8f');
   for (let i = 0; i < 9; i++) { const cx = x + 10 + i * 5.5, c = pick(['#f4efe6', '#9ec0d6', '#e7b8b0', '#3f4a5a', '#d9c27a']); pb.px(cx + 1, 173, '#8d8f8f'); pb.rect(cx, 174, 4, 9 + (i % 3) * 3, c); pb.vl(cx + 3, 174, 182, dk(c, .15)); pb.tintDith(cx, 174, 4, 12, .1, .3, '#ffffff'); }
-  door(pb, x + 64, 172, 16, 28, '#d6dde0', { glass: true, wall }); pb.rect(x + 67, 186, 10, 3, '#2b5d8c');
+  door(pb, x + 64, 172, 16, 28, '#d6dde0', { glass: true, wall }); pb.rect(x + 67, 186, 10, 3, '#2b5d8c'); addrPlate(pb, x + 80, 168, 17);
   pb.rect(x + 86, 176, 4, 2, '#8d9397'); pb.rect(x + 88, 172, 2, 5, '#8d9397'); META.steams.push({ x: x + 89, y: 171, rate: 3 });
 }
 function bVilla(pb) {
   const x = 288, w = 104, r = RNG(121), wall = '#8c4836';
   wallBrick(pb, x, 98, w, 102, PAL.brickRed, 121); parapet(pb, x, 92, w, '#c9c1b2');
   for (const y of [131, 165]) { pb.hl(x, x + w - 1, y, '#c7bba8'); pb.hl(x, x + w - 1, y + 1, '#a89c88'); }
-  tank(pb, x + 66, 74, 13, 16, '#3f8f6b'); dish(pb, x + 20, 86); clothesline(pb, x + 30, x + 58, 80, r); antenna(pb, x + 92, 92, 14);
+  tank(pb, x + 66, 74, 13, 16, '#3f8f6b'); clothesline(pb, x + 16, x + 58, 80, r); antenna(pb, x + 92, 92, 14);
   // 계단실과 입구
   for (const y of [106, 140]) win(pb, x + 10, y, 12, 12, { wall, frame: PAL.frameA, lit: y === 140, curtain: false, mull: false, r });
   pb.rect(x + 4, 166, 26, 3, '#c7c2b6'); pb.hl(x + 4, x + 29, 166, '#e0dbcf'); pb.tintDith(x + 4, 169, 26, 3, .35, .6);
@@ -67,7 +67,7 @@ function bVilla(pb) {
   }
   acUnit(pb, x + 93, 146, { pipe: 14 }); acUnit(pb, x + 93, 112, { pipe: 12 });
   gasPipe(pb, x + 99, 98, 199, [{ x: x + 94, y: 128, meter: 1 }, { x: x + 94, y: 162, meter: 1 }, { x: x + 94, y: 194, meter: 1 }]);
-  dish(pb, x + 64, 120);
+  addrPlate(pb, x + 29, 176, 19);
 }
 function bAlley(pb, x0, x1) {
   for (let x = x0; x < x1; x++) for (let y = 70; y < 200; y++) pb.px(x, y, mix('#46434b', '#2b2a30', (x - x0) / (x1 - x0) * .6 + (200 - y) / 300));
@@ -79,7 +79,7 @@ function bBunsik(pb) {
   wallPlaster(pb, x, 124, w, 76, wall, 131, { peel: 1, stain: 2 }); parapet(pb, x, 118, w, '#d4c099');
   potPlant(pb, x + 10, 118, 1); potPlant(pb, x + 16, 118, 2); onggi(pb, x + 70, 118, .8);
   win(pb, x + 14, 130, 20, 16, { wall, curtain: '#e8a4b0', r }); win(pb, x + 50, 130, 20, 16, { wall, lit: true, curtain: '#e8a4b0', silh: true, r }); acUnit(pb, x + 72, 134, { pipe: 10 });
-  sign(pb, x + 6, 148, 72, 11, '분식', '#c8392f', '#f8d55a', { inner: '#e2604f' });
+  sign(pb, x + 6, 148, 72, 11, '분식', '#c8392f', '#f8d55a', { inner: '#e2604f' }); vsign(pb, x + 37, 108, 11, '태권도', '#2f5f8c', '#ffffff');
   pb.text('김밥 떡볶이 라면', x + 42, 160, F7, '#5a3a2a', 'center');
   awning(pb, x, 168, w, 6, '#d9433b', '#f4efe6');
   // 가게 안
@@ -96,7 +96,7 @@ function bSalon(pb) {
   const x = 492, w = 70, wall = '#e3b5ad', r = RNG(141);
   wallPlaster(pb, x, 124, w, 76, wall, 141, { stain: 2 }); parapet(pb, x, 118, w, '#d2a39b');
   win(pb, x + 10, 130, 18, 16, { wall, flowerBox: true, r }); win(pb, x + 42, 130, 18, 16, { wall, blinds: .4, r });
-  sign(pb, x + 4, 151, 62, 12, '미용실', '#c4527a', '#ffffff', { inner: '#e48aa8' });
+  sign(pb, x + 4, 151, 62, 12, '이발소', '#f4efe6', '#2f5f8c', { inner: '#c8392f' }); glassText(pb, x + 51, 135, '수학');
   shopGlass(pb, x + 4, 169, 44, 28, { lit: true, r });
   for (let i = 0; i < 2; i++) { const cx = x + 10 + i * 20; pb.rect(cx, 173, 10, 12, '#dfe9ec'); pb.frame(cx, 173, 10, 12, '#b8c2c5'); pb.rect(cx + 2, 188, 6, 6, '#3a3d40'); pb.rect(cx + 1, 186, 8, 2, '#4a4d50'); }
   pb.rect(x + 7, 171, 8, 9, '#f4efe6'); pb.circle(x + 11, 174, 2, '#d9a37a'); pb.rect(x + 9, 172, 4, 2, '#3a2a22');
@@ -108,7 +108,7 @@ function bSuper(pb) {
   const x = 566, w = 74, wall = '#b6cad6', r = RNG(151);
   wallPlaster(pb, x, 124, w, 76, wall, 151, { stain: 1 }); parapet(pb, x, 118, w, '#a3b8c5');
   tank(pb, x + 8, 104, 10, 12, '#3b78a8'); win(pb, x + 14, 130, 18, 16, { wall, lit: true, r }); win(pb, x + 46, 130, 18, 16, { wall, guard: 1, r });
-  sign(pb, x + 4, 151, 66, 12, '슈퍼마켓', '#2f7a55', '#ffffff', { inner: '#5fa77f' });
+  sign(pb, x + 4, 151, 66, 12, '물빛슈퍼', '#2f7a55', '#ffffff', { inner: '#5fa77f' }); glassText(pb, x + 23, 135, '영어');
   shopGlass(pb, x + 4, 169, 40, 28, { shelves: true, lit: true, r });
   door(pb, x + 48, 171, 18, 29, '#d9e1e4', { glass: true, wall });
   pb.rect(x + 68, 176, 6, 18, '#e9eef0'); pb.frame(x + 68, 176, 6, 18, '#9aa3a7'); for (let j = 0; j < 4; j++) pb.hl(x + 69, x + 72, 179 + j * 4, pick(['#d9433b', '#4a8fd0', '#f2c94c']));
@@ -127,8 +127,8 @@ function bHillHouses(pb) {
 function bViewpoint(pb) {
   for (let x = 760; x < 884; x++) { if ((x - 760) % 8 === 0) pb.vl(x, 140, 152, '#4a5a52'); } pb.hl(760, 883, 140, '#6a7a72'); pb.hl(760, 883, 146, '#4a5a52');
   bench(pb, 788, 152);
-  // 동전 망원경
-  { const x = 846; pb.vl(x, 138, 152, '#3f5f7f'); pb.vl(x + 1, 138, 152, '#5a7fa3'); pb.rect(x - 3, 150, 8, 2, '#3f5f7f'); pb.rect(x - 4, 131, 10, 7, '#3f6d8f'); pb.hl(x - 4, x + 5, 131, '#6a96bd'); pb.rect(x + 5, 132, 3, 4, '#2b4a66'); pb.px(x + 7, 133, '#c9dfe8'); }
+  // 동네 야외 운동기구
+  exerciseGym(pb, 820, 152);
   sign(pb, 768, 124, 30, 10, '물빛언덕', '#7a5134', '#f4efe6', { font: F7, screws: false }); pb.vl(782, 134, 151, '#6a4a2c'); pb.vl(783, 134, 151, '#86603a');
 }
 function bDownHouses(pb) {
@@ -167,19 +167,19 @@ function bPharmacy(pb) {
   const x = 1182, w = 64, wall = '#ece8df', r = RNG(211);
   wallPlaster(pb, x, 124, w, 76, wall, 211, { stain: 1 }); parapet(pb, x, 118, w, '#dcd7cc'); pb.hl(x, x + w - 1, 124, '#2e8a57');
   win(pb, x + 8, 130, 18, 16, { wall, blinds: .5, r }); win(pb, x + 38, 130, 18, 16, { wall, lit: true, r });
-  sign(pb, x + 18, 151, 44, 12, '약국', '#2e8a57', '#ffffff', { inner: '#5fb487' });
-  { const cx = x + 8, cy = 157; pb.rect(cx - 5, cy - 6, 12, 12, '#f4efe6'); pb.rect(cx - 1, cy - 4, 4, 8, '#2e8a57'); pb.rect(cx - 3, cy - 2, 8, 4, '#2e8a57'); META.neons.push({ x: cx + 1, y: cy, w: 12, h: 12, col: '#7fe0a8', steady: true }); }
+  sign(pb, x + 18, 151, 44, 12, '물빛약국', '#2e8a57', '#ffffff', { inner: '#5fb487' });
+  { const cx = x + 8, cy = 157; bevelRect(pb, cx - 6, cy - 6, 13, 13, '#fbf6ec'); pb.frame(cx - 6, cy - 6, 13, 13, '#c8392f'); pb.text('약', cx + .5, cy - 5, F9, '#c8392f', 'center'); META.neons.push({ x: cx + .5, y: cy, w: 13, h: 13, col: '#ff7a6a', steady: true }); }
   shopGlass(pb, x + 4, 169, 38, 28, { shelves: true, lit: true, goods: ['#ffffff', '#e98fb0', '#4a8fd0', '#f2c94c', '#6fbf73'], r });
   door(pb, x + 45, 172, 16, 28, '#e9eef0', { glass: true, wall });
 }
-/* ---------- 5. 운하 관리소 + 셔터 통로 ---------- */
+/* ---------- 5. 빗물펌프장 + 셔터 통로 ---------- */
 function bOffice(pb) {
   const x = 1738, w = 124, wall = '#bcb7ab', r = RNG(221);
   wallConcrete(pb, x, 112, w, 88, wall, 221); parapet(pb, x, 106, w, '#aaa598');
-  antenna(pb, x + 18, 106, 18); pb.rect(x + 90, 96, 8, 10, '#9aa0a3'); pb.rect(x + 88, 92, 12, 4, '#7a8084'); pb.ellipse(x + 104, 100, 3, 4, '#c9cfd2'); pb.px(x + 103, 99, '#7a8084');
+  stairHouse(pb, x + 10, 92, 24, 14); pb.rect(x + 90, 96, 8, 10, '#9aa0a3'); pb.rect(x + 88, 92, 12, 4, '#7a8084'); pb.vl(x + 106, 88, 106, '#6a7074'); pb.rect(x + 103, 86, 7, 4, '#c9cfd2'); pb.px(x + 104, 87, '#7a8084');
   // 수위 눈금
   for (let y = 150; y < 200; y++) pb.hl(x + 2, x + 5, y, (Math.floor(y / 4) % 2) ? '#c8392f' : '#f4efe6'); for (let y = 152; y < 200; y += 8) pb.px(x + 7, y, '#2b2b2b');
-  sign(pb, x + 12, 134, 70, 12, '운하 관리소', '#2f5f8c', '#ffffff', { inner: '#5f8fbf' });
+  sign(pb, x + 12, 134, 70, 12, '빗물펌프장', '#2f5f8c', '#ffffff', { inner: '#5f8fbf' });
   win(pb, x + 14, 116, 16, 13, { wall, blinds: .7, frame: PAL.frameA, r }); win(pb, x + 50, 116, 16, 13, { wall, blinds: .4, frame: PAL.frameA, lit: true, curtain: false, r });
   win(pb, x + 14, 160, 16, 14, { wall, guard: 1, frame: PAL.frameA, r }); door(pb, x + 44, 168, 16, 32, '#3f5f7f', { wall });
   pb.rect(x + 66, 168, 12, 16, '#9aa0a3'); pb.frame(x + 66, 168, 12, 16, '#6f7578'); pb.rect(x + 69, 171, 6, 4, '#e8c33e'); pb.text('!', x + 72, 170, F7, '#2b2b2b', 'center'); for (let i = 0; i < 3; i++) pb.px(x + 69 + i * 2, 179, i === 1 ? '#5fd07a' : '#d9433b');
@@ -199,7 +199,7 @@ function bFogAlley(pb) {
     acUnit(pb, x + 68, 110); acUnit(pb, x + 68, 144, { pipe: 24 });
     for (let y = 168; y < 200; y++) pb.hl(x + 6, x + 60, y, ((y - 168) % 3 === 0) ? '#6f7578' : (y < 182 ? '#9aa0a3' : '#3a3f43')); pb.rect(x + 5, 166, 57, 3, '#5a6064');
     const vh = vsign(pb, x + w - 14, 140, 11, '만화방', '#1f2a33', '#7fe8ff'); META.neons.push({ x: x + w - 8.5, y: 140 + vh / 2, w: 11, h: vh, col: '#5fd8ff' });
-    META.laundry.push({ x0: x + 30, y0: 126, x1: x + 120, y1: 130, seed: 1 }); }
+  }
   // L: 어두운 벽돌, 다방, 바깥 계단
   { const x = 1954, w = 86, r = RNG(241); wallBrick(pb, x, 132, w, 68, PAL.brickDark, 241); parapet(pb, x, 126, w, '#8c8478');
     win(pb, x + 44, 138, 18, 15, { wall: '#6c3e39', lit: true, curtain: '#c96a7a', silh: true, r }); acUnit(pb, x + 68, 140);
@@ -216,6 +216,8 @@ function bFogAlley(pb) {
     for (let i = 0; i < 3; i++) acUnit(pb, x + 30 + i * 30, 122 + (i % 2) * 34);
     pb.hl(x + 6, x + 92, 154, '#3a3f43'); for (let xx = x + 6; xx < x + 92; xx += 3) pb.vl(xx, 154, 162, '#3a3f43'); pb.hl(x + 6, x + 92, 162, '#55595c');
     for (let i = 0; i < 5; i++) potPlant(pb, x + 10 + i * 16, 162, i % 2 + 1);
+    for (const [tx, c] of [[x + 18, '#9ec0d6'], [x + 50, '#f4efe6'], [x + 58, '#e8a4b0'], [x + 76, '#f2d27a']]) { pb.rect(tx, 153, 6, 2, c); pb.rect(tx, 155, 6, 5, dk(c, .06)); pb.vl(tx + 5, 155, 159, dk(c, .2)); }
+    vsign(pb, x + 84, 128, 11, '당구장', '#2f7a55', '#ffffff');
     shopGlass(pb, x + 6, 172, 52, 25, { lit: true, r }); door(pb, x + 64, 170, 16, 30, '#3a2f4a', { glass: true, wall });
     sign(pb, x + 6, 164, 52, 8, '노래방', '#2a1f3a', '#ffe36f', { font: F7, screws: false }); META.neons.push({ x: x + 32, y: 168, w: 52, h: 8, col: '#c58fff' }); }
   // N: 닫힌 문구점
@@ -224,8 +226,8 @@ function bFogAlley(pb) {
     sign(pb, x + 8, 156, 50, 11, '문구', mix('#3f7fbf', '#d6cdb8', .45), mix('#ffffff', '#d6cdb8', .2), {});
     for (let y = 170; y < 200; y++) pb.hl(x + 6, x + 88, y, ((y - 170) % 3 === 0) ? '#7c8286' : '#a7adb0'); pb.rect(x + 5, 168, 85, 3, '#5f6569');
     // 셔터 낙서: 수달
-    { const gx = x + 30, gy = 180; pb.ellipse(gx, gy, 7, 4, '#3f7fbf'); pb.circle(gx + 7, gy - 2, 3, '#3f7fbf'); pb.px(gx + 8, gy - 3, '#ffffff'); pb.line(gx - 7, gy, gx - 12, gy + 3, '#3f7fbf'); pb.text('hi', gx + 20, gy - 4, F7, '#d9433b'); }
-    cone(pb, x + 80, 200); }
+    { const gx = x + 34, gy = 174; pb.rect(gx, gy, 22, 16, '#fbf8f0'); pb.frame(gx, gy, 22, 16, '#d9d4c6'); pb.text('임대', gx + 11, gy + 1, F9, '#c8392f', 'center'); pb.hl(gx + 4, gx + 17, gy + 12, '#8a8f93'); pb.hl(gx + 6, gx + 15, gy + 14, '#8a8f93'); pb.px(gx + 1, gy, '#cfc8b8'); pb.px(gx + 20, gy, '#cfc8b8'); }
+    trashBags(pb, x + 66, 200); sign(pb, x + 50, 150, 42, 9, '무단투기 금지', '#fbf6ec', '#c8392f', { font: F7, screws: false }); }
   // O: 담쟁이 3층
   { const x = 2244, w = 96, r = RNG(271); wallBrick(pb, x, 98, w, 102, PAL.brickRed, 271); parapet(pb, x, 92, w, '#c9c1b2');
     for (const y of [104, 138, 172]) { win(pb, x + 14, y, 18, 15, { wall: '#8c4836', r, lit: y === 138, curtain: '#e6c9a8', guard: y === 172 ? 2 : 0 }); win(pb, x + 60, y, 18, 15, { wall: '#8c4836', r, curtain: '#9ec0d6' }); }
@@ -275,7 +277,7 @@ function bResidential(pb) {
   // 문패, 우편함, 초인종
   { pb.rect(2830, 174, 38, 11, '#f7f3ea'); pb.frame(2830, 174, 38, 11, '#8a7a62'); pb.text('물빛동 3', 2849, 175, F7, '#2b2b2b', 'center');
     const mx = LV.postbox.x - 6, my = 186; bevelRect(pb, mx, my, 13, 10, '#c9cfd2'); pb.hl(mx + 2, mx + 10, my + 3, '#2b2f33'); pb.rect(mx + 4, my + 6, 5, 2, '#c8392f');
-    pb.rect(2779, 180, 5, 7, '#9aa0a3'); pb.px(2781, 182, '#2b2f33'); pb.px(2781, 185, '#e8c25a'); }
+    pb.rect(2779, 180, 5, 7, '#9aa0a3'); pb.px(2781, 182, '#2b2f33'); pb.px(2781, 185, '#e8c25a'); addrPlate(pb, 2774, 168, 3); addrPlate(pb, 2486, 170, 1); addrPlate(pb, 2646, 170, 5); }
 }
 
 /* ---------- 땅 ---------- */
@@ -313,8 +315,11 @@ function buildGround(pb) {
   for (let x = 640; x < 1062; x++) { const g = groundAt(x); for (let yy = Math.round(g.y) + 5; yy < WH - WOY; yy++) pb.tint(x, yy, clamp((yy - g.y) / 260, 0, .55)); }
   // 도로 디테일
   for (let i = 0; i < 2600; i++) { const x = LV.x0 + Math.floor(r() * (LV.x1 - LV.x0)); if (x >= 640 && x < 1062 || inWaterX(x)) continue; const g = groundAt(x); if (!g) continue; const y = Math.round(g.y) + 10 + Math.floor(r() * 70); pb.px(x, y, r() < .5 ? '#676a71' : '#2c2e35'); }
-  const lanes = [[-60, 640], [1150, 1290], [1728, 1866]];
-  for (const [a, b] of lanes) for (let x = a; x < b; x += 24) for (let i = 0; i < 12; i++) { const g = groundAt(x + i); if (!g) continue; pb.px(x + i, Math.round(g.y) + 34, '#cfc8b4'); pb.px(x + i, Math.round(g.y) + 35, '#a9a392'); }
+  const lanes = [[-100, 640], [1150, 1290], [1728, 2400]], CW = [146, 208];
+  for (const [a, b] of lanes) for (let x = a; x < b; x++) { if (x >= CW[0] && x < CW[1]) continue; const g = groundAt(x); if (!g) continue; const y = Math.round(g.y) + 40; if (bay(x + WOX, y + WOY) < .9) { pb.px(x, y, '#e3b53a'); pb.px(x, y + 1, '#a8862a'); } }
+  for (let y = 211; y < 268; y += 7) for (let x = CW[0]; x < CW[1]; x++) for (let j = 0; j < 3; j++) if (hash2(x, y + j) > .07) pb.px(x, y + j, j === 0 ? '#ece8dc' : '#d9d4c6');
+  for (let x = CW[0]; x < CW[1]; x++) { pb.px(x, 201, '#e8c33e'); pb.px(x, 202, (x % 2) ? '#c9a22e' : '#e8c33e'); pb.px(x, 203, '#d4ad30'); }
+  for (const tx of [2520, 2860]) pb.text('천천히', tx, 218, F9, '#e3dfd2', 'center');
   for (let x = -40; x < 2950; x += 140) { if (x >= 640 && x < 1062 || inWaterX(x) || inWaterX(x + 10) || (x > 1050 && x < 1160)) continue; const g = groundAt(x); if (!g) continue; const y = Math.round(g.y) + 10; pb.rect(x, y, 10, 3, '#2b2d33'); for (let i = 0; i < 10; i += 2) pb.px(x + i, y + 1, '#5a5d63'); }
   // 금
   for (let k = 0; k < 40; k++) { let x = LV.x0 + r() * (LV.x1 - LV.x0); if (x >= 640 && x < 1062 || inWaterX(x)) continue; const g = groundAt(x); if (!g) continue; let y = g.y + 14 + r() * 50; for (let j = 0; j < 8 + r() * 10; j++) { pb.px(x, y, '#2a2c32'); x += r() < .5 ? 1 : 0; y += r() < .7 ? 1 : 0; } }
@@ -336,7 +341,7 @@ function buildGround(pb) {
   for (let x = P.x0 + 6; x < P.x1; x += 22) pb.rect(x, 233, 3, 7, '#2a5a8a');
   pb.rect(P.x0, 252, 24, 8, '#8a8f93'); pb.hl(P.x0, P.x0 + 23, 252, '#a9aeb2'); pb.ellipse(P.x0 + 24, 256, 2, 4, '#1b1e20');
   for (const ex of [P.x0 - 3, P.x0 - 1, P.x1, P.x1 + 2]) for (let y = 196; y < 204; y++) if (r() < .5) pb.px(ex, y, '#5a5d64');
-  // 운하 둑과 바닥
+  // 개천 둑과 바닥
   const W = LV.water;
   for (let x = W.x0; x < W.x1; x++) {
     const g = groundAt(x), y = Math.round(g.y), bank = x < 1318 || x > 1700;
@@ -381,8 +386,8 @@ function buildProps(pb) {
   mailbox(pb, 194, 200);
   scooter(pb, 128, 200);
   // 전봇대와 전깃줄
-  const poles = [[226, 200, 58], [436, 200, 56], [634, 200, 60], [1252, 200, 62], [2042, 200, 70], [2244, 200, 62], [2560, 200, 64]];
-  for (const [x, yb, top] of poles) pole(pb, x, yb, top, { trans: x === 436 || x === 2244 });
+  const poles = [[226, 200, 58], [398, 200, 56], [634, 200, 60], [1252, 200, 62], [2042, 200, 70], [2244, 200, 62], [2560, 200, 64]];
+  for (const [x, yb, top] of poles) pole(pb, x, yb, top, { trans: x === 398 || x === 2244 });
   const tops = poles.map(p => ({ x: p[0], y: p[2] }));
   for (let i = 0; i < tops.length - 1; i++) {
     const a = tops[i], b = tops[i + 1]; if (b.x - a.x > 520) continue;
@@ -391,7 +396,14 @@ function buildProps(pb) {
   }
   wire(pb, 634 + 13, 65, 780, 40, 8, '#2b2f33'); pb.vl(780, 40, 152, '#5a6064'); pb.vl(781, 40, 152, '#7a8084');
   wire(pb, 1252 + 13, 67, 1742, 108, 34); wire(pb, 1252 - 9, 67, 1742, 112, 40);
-  wire(pb, 226, 72, 300, 104, 4, '#2b2f33', false); wire(pb, 436, 72, 392, 110, 4, '#2b2f33', false); wire(pb, 2244, 76, 2300, 108, 4, '#2b2f33', false); wire(pb, 2560, 78, 2470, 122, 6, '#2b2f33', false);
+  wire(pb, 226, 72, 300, 104, 4, '#2b2f33', false); wire(pb, 398, 72, 420, 112, 4, '#2b2f33', false); wire(pb, 2244, 76, 2300, 108, 4, '#2b2f33', false); wire(pb, 2560, 78, 2470, 122, 6, '#2b2f33', false);
+  // 현수막
+  banner(pb, 238, 386, 118, '제3회 물빛동 은행잎 축제', '#fbf6ec', '#2f7a55');
+  banner(pb, 2056, 2232, 116, '안개 잦은 골목 · 천천히 다니세요', '#fff3c4', '#c8392f');
+  cctv(pb, 2046, 94);
+  // 길가에 선 차들
+  deliveryBike(pb, 468, 226); truck(pb, 576, 232); compactCar(pb, 1192, 230); compactCar(pb, 2470, 230, '#c9d3dc'); compactCar(pb, 1760, 231, '#d9433b');
+  convexMirror(pb, 2592, 200);
   // 가로등
   lamp(pb, 350, 200, 56); lamp(pb, 812, 152, 44, -1); lamp(pb, 1236, 200, 56); lamp(pb, 1796, 200, 54, -1); lamp(pb, 2170, 200, 58); lamp(pb, 2700, 200, 56, -1);
   META.lamps.find(l => Math.abs(l.x - 2176.5) < 2).flicker = true;
@@ -404,13 +416,13 @@ function buildProps(pb) {
   potPlant(pb, 650, 198, 2); potPlant(pb, 668, 194, 1); { const x = 682, y = Math.round(groundAt(682).y); pb.ellipse(x, y - 2, 6, 3, '#c8392f'); pb.hl(x - 6, x + 5, y - 4, '#e05a4a'); for (let i = -4; i <= 4; i += 2) { pb.px(x + i, y - 5, '#79a356'); pb.px(x + i + 1, y - 6, '#9cc46a'); } }
   railing(pb, 646, 758, 9); railing(pb, 888, 1040, 9);
   // 공사 표지
-  { const x = 1046, yb = 205; pb.vl(x, yb - 22, yb, '#55595c'); pb.poly([[x, yb - 36], [x + 11, yb - 18], [x - 11, yb - 18]], '#e8c33e'); pb.poly([[x, yb - 33], [x + 8, yb - 20], [x - 8, yb - 20]], '#2b2b2b'); pb.poly([[x, yb - 31], [x + 6, yb - 21], [x - 6, yb - 21]], '#e8c33e'); pb.text('!', x, yb - 30, F7, '#2b2b2b', 'center'); }
+  { const x = 1046, yb = 205; pb.vl(x, yb - 22, yb, '#55595c'); pb.poly([[x, yb - 37], [x + 12, yb - 17], [x - 12, yb - 17]], '#c8392f'); pb.poly([[x, yb - 33], [x + 8.5, yb - 19], [x - 8.5, yb - 19]], '#f2c94c'); pb.text('!', x, yb - 30, F7, '#2b2b2b', 'center'); }
   cone(pb, 1056, 207); cone(pb, 1158, 200);
-  // 운하 앞
+  // 개천 앞
   sign(pb, 1258, 160, 28, 10, '물빛천', '#2f5f8c', '#ffffff', { font: F7, screws: false }); pb.vl(1271, 170, 200, '#55595c');
   { const x = 1282, y = 176; pb.circle(x, y, 6, '#c8392f'); pb.circle(x, y, 4.5, '#ffffff'); pb.line(x - 3, y + 3, x + 3, y - 3, '#c8392f'); pb.px(x - 1, y - 1, '#3f7fbf'); pb.px(x, y, '#3f7fbf'); pb.vl(x, y + 6, 200, '#55595c'); pb.rect(x - 8, y + 8, 17, 7, '#f4efe6'); pb.text('수영금지', x, y + 8, F7, '#c8392f', 'center'); }
   reeds(pb, 1276, 1296, 200, 511); reeds(pb, 1724, 1748, 200, 512);
-  // 운하 관리소 앞
+  // 빗물펌프장 앞
   potPlant(pb, 1820, 200, 1);
   // 물빛동
   bicycle(pb, 2652, 200, '#c8392f'); potPlant(pb, 2770, 200, 2); potPlant(pb, 2862, 200, 1); potPlant(pb, 2870, 200, 2);

@@ -2,7 +2,7 @@
 /* =========================================================
    게임 진행: 입력 · 물리 · 카메라 · 대사 · 생물 · 배달 · 그리기
    ========================================================= */
-const GRAV = 640, WALK = 82, JUMP = 228, SWIM = 98, LEAP = 252, SLIDE_BOOST = 122, SLOPE_ACC = 440, MAXV = 300, AIR_ACC = 380;
+const GRAV = 640, WALK = 78, JUMP = 228, SWIM = 98, LEAP = 252, SLIDE_BOOST = 122, SLOPE_ACC = 440, MAXV = 300, AIR_ACC = 380;
 const G = { mode: 'boot', t: 0, fade: 0, shake: 0, stamps: 0, deaths: 0, cam: { x: 0, y: -6 }, L: {}, sp: null, hint: {}, playT: 0, msg: null, intro: null, introI: 0 };
 const P = { x: 118, y: 200, vx: 0, vy: 0, face: 1, onGround: true, slide: false, slideCd: 0, inWater: false, leap: 0, coyote: 0, phase: 0, squash: 0, ang: 0, idle: 0, idleW: 0, floating: false, read: 0, stepT: 0, puddleT: 0, leapt: false };
 const K = { left: false, right: false, up: false, down: false, act: false, jumpBuf: 0, actBuf: 0 };
@@ -35,15 +35,16 @@ const INTRO = [
 ];
 const HINTS = [
   { id: 'go', who: 'pigeon', t: '→ 키로 걸어가. 점프는 Space야!', when: () => G.playT > .4 },
+  { id: 'run', who: 'pigeon', t: '방향키를 계속 누르면 네 발로 달려. 달리다 ↓를 누르면 배로 쭉 미끄러지고!', when: () => G.playT > 5 && P.x > 250 && P.x < 620 },
   { id: 'hill', who: 'pigeon', t: '계단 골목이야. 꼭대기 전망대에서 동네가 한눈에 보여.', when: () => P.x > 650 && P.x < 760 },
-  { id: 'slide', who: 'pigeon', t: '내리막에서 ↓를 누르면 배로 쭉 미끄러질 수 있어!', when: () => P.x > 886 && P.x < 990 },
-  { id: 'gap', who: 'pigeon', t: '공사장 구멍이다! 미끄러진 속도 그대로 점프해서 건너.', when: () => P.x > 990 && P.x < 1062 && P.onGround },
+  { id: 'slide', who: 'pigeon', t: '내리막이다! ↓를 누르면 배로 쭉 미끄러져.', when: () => P.x > 886 && P.x < 990 },
+  { id: 'gap', who: 'pigeon', t: '공사장 구멍이다! 달리다 미끄러진 속도 그대로 점프해. 모자라면 가장자리를 붙잡을 수 있어.', when: () => P.x > 990 && P.x < 1062 && P.onGround },
   { id: 'canal', who: 'otter', t: '수영 금지...? 나는 수달인데.', when: () => P.x > 1258 && P.x < 1292 && P.onGround },
   { id: 'swim', who: 'pigeon', t: '물속에선 방향키로 헤엄쳐. 가만히 있으면 둥둥 떠서 쉴 수도 있어.', when: () => P.inWater },
   { id: 'dive', who: 'pigeon', t: '바닥 깊은 곳에 빨간 밸브가 보여. 돌려 볼까?', when: () => P.inWater && P.x > 1470 && !ST.shell },
-  { id: 'valve', who: 'pigeon', t: '끼이익! 관리소 셔터가 올라가는 소리야.', when: () => ST.shell, prio: 1 },
+  { id: 'valve', who: 'pigeon', t: '끼이익! 빗물펌프장 셔터가 올라가는 소리야.', when: () => ST.shell, prio: 1 },
   { id: 'leap', who: 'pigeon', t: '물 위에서 Space를 누르면 휙 뛰어올라 둑에 오를 수 있어.', when: () => P.inWater && P.x > 1640 && !P.leapt },
-  { id: 'gate', who: 'otter', t: '셔터가 꽉 닫혀 있네. 운하에 뭔가 장치가 있었던 것 같은데.', when: () => P.x > 1790 && P.x < 1834 && ST.gateOpen < .05 },
+  { id: 'gate', who: 'otter', t: '셔터가 꽉 닫혀 있네. 개천 바닥에 뭔가 장치가 있었던 것 같은데.', when: () => P.x > 1790 && P.x < 1834 && ST.gateOpen < .05 },
   { id: 'fog', who: 'pigeon', t: '안개 골목이야. 맨홀에서 안개가 뿜어져. "!"가 뜨면 기다렸다 지나가.', when: () => P.x > 1880 && P.x < 1960 },
   { id: 'house', who: 'pigeon', t: '저기 파란 대문! 문 옆 우편함에 E 키로 편지를 넣어 줘.', when: () => P.x > 2700 },
 ];
@@ -70,7 +71,9 @@ function advanceIntro() {
 
 /* ---------- 시작과 재시작 ---------- */
 function resetRun() {
-  Object.assign(P, { x: 118, y: 200, vx: 0, vy: 0, face: 1, onGround: true, slide: false, slideCd: 0, inWater: false, leap: 0, coyote: 0, phase: 0, squash: 0, ang: 0, idle: 0, idleW: 0, floating: false, read: 0, leapt: false });
+  Object.assign(P, { x: 118, y: 200, vx: 0, vy: 0, face: 1, onGround: true, slide: false, slideCd: 0, inWater: false, leap: 0, coyote: 0, phase: 0, squash: 0, ang: 0, idle: 0, idleW: 0, floating: false, read: 0, leapt: false,
+    act: '', at: 0, holdT: 0, running: false, runJump: false, fromWater: false, wet: 0, shakePending: false, tailSw: 0, tailV: 0, bagA: 0, bagV: 0, capDy: 0, capV: 0, pvx: 0, bend: 0, surf: false, foot: 0, idlePose: '' });
+  FX.decals.length = 0;
   Object.assign(ST, { shell: false, gateOpen: 0, gateOpening: false, valveRot: 0, deliver: null });
   ST.cps = LV.cps.map((c, i) => ({ x: c.x, on: i === 0 })); ST.stamps = LV.stamps.map(s => ({ x: s.x, y: s.y, got: false }));
   G.stamps = 0; G.deaths = 0; G.playT = 0; G.hint = {}; G.fade = 0;
@@ -88,7 +91,7 @@ function restart() { $('end').hidden = true; resetRun(); G.mode = 'play'; G.cam.
 function setupCritters() {
   CR.pigeons.length = 0; CR.ducks.length = 0; CR.fish.length = 0;
   const w0 = META.wires[0], wB = META.wires.find(w => w.x0 > 2230 && w.x0 < 2260);
-  for (const x of [262, 292, 336, 374, 406]) CR.pigeons.push({ hx: x, w: w0, x, y: wireY(w0, x), st: 'sit', vx: 0, vy: 0, face: hash1(x) < .5 ? 1 : -1, t: hash1(x * 3) * 5, back: 0 });
+  for (const x of [256, 286, 322, 352, 380]) CR.pigeons.push({ hx: x, w: w0, x, y: wireY(w0, x), st: 'sit', vx: 0, vy: 0, face: hash1(x) < .5 ? 1 : -1, t: hash1(x * 3) * 5, back: 0 });
   if (wB) for (const x of [2300, 2336, 2440]) CR.pigeons.push({ hx: x, w: wB, x, y: wireY(wB, x), st: 'sit', vx: 0, vy: 0, face: -1, t: hash1(x) * 5, back: 0 });
   for (const [x, f, m] of [[1376, 1, true], [1402, -1, false], [1626, -1, true]]) CR.ducks.push({ x, face: f, male: m, st: 'idle', vx: 0, t: hash1(x) * 9, quack: 0 });
   for (let i = 0; i < 9; i++) CR.fish.push({ x: 1340 + hash1(i * 7) * 340, y: 244 + hash1(i * 13) * 70, face: hash1(i) < .5 ? 1 : -1, sp: 10 + hash1(i * 5) * 12, t: hash1(i * 9) * 9, col: i % 3 === 0 ? ['#e8823a', '#f6b06a'] : ['#9fb4bc', '#dce8ec'] });
@@ -123,35 +126,68 @@ function stepCritters(dt) {
 }
 
 /* ---------- 물리 ---------- */
+const RUN = 136, RUN_DELAY = .3, SKID = 1000;
+function setAct(a) { P.act = a; P.at = 0; }
 function respawn(reason) {
   G.deaths++; G.fade = 1; SFX.hurt();
   let cp = ST.cps[0]; for (const c of ST.cps) if (c.on) cp = c;
-  Object.assign(P, { x: cp.x + 6, y: groundAt(cp.x + 6).y, vx: 0, vy: 0, onGround: true, slide: false, inWater: false, floating: false, leap: 0 });
+  Object.assign(P, { x: cp.x + 6, y: groundAt(cp.x + 6).y, vx: 0, vy: 0, onGround: true, slide: false, inWater: false, floating: false, leap: 0, act: '', at: 0, runJump: false, fromWater: false, holdT: 0, running: false, pvx: 0 });
   setUnderwater(false);
   say('pigeon', reason === 'fog' ? '앗, 안개에 밀려났어! "!" 신호를 보고 다시 가 보자.' : '괜찮아, 우체통 표시에서 다시 해 보자!', { secs: 3 });
 }
-function startJump() { P.vy = -JUMP; P.onGround = false; P.slide = false; P.squash = 0; SFX.jump(); burst(P.x, P.y, 4, { kind: 'dot', col: '#d9cfbd', vx: 20, vy0: -6, vy1: -24, g: 60 }); }
+function startJump() {
+  const fast = Math.abs(P.vx) > 104 || P.slide;
+  P.vy = -(fast ? JUMP * .95 : JUMP); P.onGround = false; P.runJump = fast; P.slide = false; P.squash = 0; P.capV -= 26;
+  if (P.act !== 'mantle') setAct('');
+  SFX.jump(); burst(P.x, P.y, 4, { kind: 'dot', col: '#d9cfbd', vx: 20, vy0: -6, vy1: -24, g: 60 });
+}
+function tryMantle(dir) {
+  for (const L of LV.ledges) {
+    const ax = L.x - L.dir * 7;
+    if (!(dir === L.dir || Math.sign(P.vx) === L.dir)) continue;
+    if (Math.abs(P.x - ax) > 7 || P.y < L.y + 2 || P.y > L.y + 22 || P.vy < -90) continue;
+    setAct('mantle'); P.mL = L; P.face = L.dir; P.vx = 0; P.vy = 0; P.x = ax; P.y = L.y + 17; P.runJump = false; P.fromWater = false; P.slide = false;
+    SFX.grab(); if (!G.hint.mantle) { G.hint.mantle = 1; say('otter', '영차!', { secs: 1.4 }); }
+    return true;
+  }
+  return false;
+}
+function footstep(spd) {
+  if (spd > 104) { SFX.runStep(); if (Math.random() < .6) burst(P.x - P.face * 6, P.y, 2, { kind: 'dot', col: '#d9cfbd', vx: 14, vy0: -6, vy1: -20, g: 60 }); } else SFX.step();
+  if (inPuddle(P.x)) { SFX.puddle(); burst(P.x, P.y, 3, { kind: 'dot', col: '#b9d4dc', vx: 20, vy0: -20, vy1: -50, g: 300 }); }
+  if (P.wet > 1.5) { P.foot ^= 1; FX.decals.push({ x: Math.round(P.x + P.face * (P.foot ? 2 : -1)), y: Math.round(P.y), t: 0, max: 6 }); if (FX.decals.length > 60) FX.decals.shift(); }
+}
 function step(dt) {
   G.t += dt; if (K.jumpBuf > 0) K.jumpBuf -= dt; if (K.actBuf > 0) K.actBuf -= dt;
   if (G.fade > 0) G.fade = Math.max(0, G.fade - dt * 1.5); if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 2.2);
   if (P.squash > 0) P.squash = Math.max(0, P.squash - dt * 6); if (P.slideCd > 0) P.slideCd -= dt; if (P.leap > 0) P.leap -= dt;
   if (ST.gateOpening && ST.gateOpen < 1) ST.gateOpen = Math.min(1, ST.gateOpen + dt * .55);
   if (ST.shell) ST.valveRot += dt * Math.max(0, 6 - ST.valveRot * .4);
-  stepCritters(dt); ambientParticles(dt); updateMsg(dt);
+  stepCritters(dt); ambientParticles(dt); updateMsg(dt); stepSprings(dt);
+  for (let i = FX.decals.length - 1; i >= 0; i--) { FX.decals[i].t += dt; if (FX.decals[i].t > FX.decals[i].max) FX.decals.splice(i, 1); }
   if (G.mode === 'deliver') { stepDeliver(dt); return; }
-  if (G.mode !== 'play') { P.idle += dt; P.read = lerp(P.read, (P.idle % 10 > 6 && P.idle % 10 < 9) ? 1 : 0, dt * 5); return; }
+  if (G.mode !== 'play') { stepIdle(dt, true); return; }
   G.playT += dt;
   const dir = (K.right ? 1 : 0) - (K.left ? 1 : 0), Wt = LV.water;
+  const px = P.x, py = P.y;
+  if (P.act === 'mantle') {
+    P.at += dt; const L = P.mL, u = clamp((P.at - .12) / .34, 0, 1), ax = L.x - L.dir * 7;
+    P.y = lerp(L.y + 17, L.y, smooth(u)); P.x = lerp(ax, L.x + L.dir * 6, u * u);
+    if (P.at >= .48) { setAct(''); P.onGround = true; P.y = groundAt(P.x).y; P.squash = .45; P.capV += 18; SFX.step(); }
+  } else {
   const cy = P.y - 6, wasW = P.inWater;
   P.inWater = inWaterX(P.x) && (wasW ? cy > Wt.s - 3 : cy > Wt.s + 3);
   if (P.inWater !== wasW) {
     const fast = Math.abs(P.vy) > 120; SFX.splash(fast ? 1 : .45); setUnderwater(P.inWater);
     burst(P.x, Wt.s, fast ? 16 : 7, { kind: 'dot', col: '#d6eef2', vx: 50, vy0: -60, vy1: -130, g: 380, s: 1 });
-    if (!P.inWater) P.floating = false;
+    if (P.inWater) { P.runJump = false; P.fromWater = false; P.slide = false; if (P.act !== 'mantle') setAct(''); P.wet = 9; }
+    else { P.floating = false; P.wet = 9; P.shakePending = true; }
   }
-  const px = P.x, py = P.y;
   if (P.inWater) {
-    P.onGround = false; P.slide = false; if (dir) P.face = dir;
+    P.onGround = false; P.slide = false;
+    if (dir && dir !== P.face && !P.floating) P.bend = 1;
+    if (dir) P.face = dir;
+    P.bend = Math.max(0, (P.bend || 0) - dt * 3.5);
     const ty = (K.down ? 1 : 0) - (K.up ? 1 : 0), idle = !dir && !ty;
     if (idle) P.idleW += dt; else P.idleW = 0;
     if (P.idleW > 1.1 && P.y - 6 <= Wt.s + 10 && !P.floating) { P.floating = true; addRipple(P.x); }
@@ -164,33 +200,51 @@ function step(dt) {
       P.vx += (tvx - P.vx) * k; P.vy += (tvy - P.vy) * k; P.x += P.vx * dt; P.y += P.vy * dt;
       if (P.leap <= 0 && P.y - 6 < Wt.s + 2) { P.y = Wt.s + 8; if (P.vy < 0) P.vy = 0; }
     }
+    P.surf = !P.floating && P.y - 6 < Wt.s + 5;
     if (K.jumpBuf > 0 && P.y - 6 < Wt.s + 14 && P.leap <= 0) {
-      K.jumpBuf = 0; P.vy = -LEAP; P.vx = P.vx || P.face * 40; P.leap = .3; P.floating = false; P.leapt = true; SFX.leap();
+      K.jumpBuf = 0; P.vy = -LEAP; P.vx = P.vx || P.face * 40; P.leap = .3; P.floating = false; P.leapt = true; P.fromWater = true; SFX.leap();
       burst(P.x, Wt.s, 12, { kind: 'dot', col: '#e6f6f8', vx: 60, vy0: -80, vy1: -160, g: 380 }); addRipple(P.x);
     }
     const g = groundAt(P.x);
     if (g && P.y > g.y) { if (py <= g.y + 5) { P.y = g.y; if (P.vy > 0) P.vy = 0; } else { P.x = px; P.vx = 0; } }
     const tAng = clamp(Math.atan2(P.vy, Math.abs(P.vx) + 30), -.7, .7); P.ang = P.floating ? 0 : lerp(P.ang, tAng, Math.min(1, dt * 6));
-    if (Math.random() < dt * 1.6 && !P.floating) addP({ kind: 'bubble', x: P.x + P.face * 12, y: P.y - 9, vx: rnd(-4, 4), vy: -18, max: 2.5 });
+    if (Math.random() < dt * 1.6 && !P.floating && !P.surf) addP({ kind: 'bubble', x: P.x + P.face * 12, y: P.y - 9, vx: rnd(-4, 4), vy: -18, max: 2.5 });
     P.phase += dt * (1 + Math.hypot(P.vx, P.vy) / 60);
-    if (P.y - 6 < Wt.s + 4 && Math.abs(P.vx) > 30 && Math.random() < dt * 8) burst(P.x - P.face * 10, Wt.s, 1, { kind: 'dot', col: '#e6f6f8', vx: 10, vy0: -20, vy1: -40, g: 300 });
+    if (P.surf && Math.abs(P.vx) > 30 && Math.random() < dt * 9) burst(P.x - P.face * 12, Wt.s, 1, { kind: 'dot', col: '#e6f6f8', vx: 10, vy0: -20, vy1: -40, g: 300 });
+    if (P.surf && Math.abs(P.vx) > 30 && Math.random() < dt * 2.5) addRipple(P.x - P.face * 8);
   } else if (P.onGround) {
     const g0 = groundAt(P.x), slope = g0 ? g0.slope : 0;
+    if (P.act === 'land' || P.act === 'getup' || P.act === 'bump') { P.at += dt; if (P.at > (P.act === 'land' ? .16 : P.act === 'getup' ? .2 : .3)) setAct(''); }
+    if (P.act === 'shake') {
+      P.at += dt; const n = Math.random() < dt * 120 ? 2 : 0; for (let i = 0; i < n; i++) { const a = rnd(-Math.PI * 1.05, .05); addP({ kind: 'dot', x: P.x + rnd(-4, 4), y: P.y - rnd(6, 18), vx: Math.cos(a) * rnd(50, 110), vy: Math.sin(a) * rnd(40, 90), g: 320, col: pick(['#e6f6f8', '#ffffff', '#a9d4e2']), max: rnd(.4, .7), s: Math.random() < .35 ? 2 : 1 }); }
+      if (P.at > .75 || dir) { setAct(''); P.wet = Math.min(P.wet, 1.6); }
+    }
+    if (P.shakePending && !dir && !P.slide && P.act === '' && Math.abs(P.vx) < 10) { P.shakePending = false; setAct('shake'); SFX.shake(); if (!G.hint.shake) { G.hint.shake = 1; say('otter', '부르르르!', { secs: 1.4 }); } }
     if (P.slide) {
+      if (P.act === 'dive') { P.at += dt; if (P.at > .14) setAct(''); }
       P.vx += slope * SLOPE_ACC * dt; P.vx *= 1 - (K.down ? .28 : 1.5) * dt;
       if (K.jumpBuf > 0) { K.jumpBuf = 0; startJump(); }
-      else if (Math.abs(P.vx) < 34 || (!K.down && Math.abs(P.vx) < 70)) { P.slide = false; P.slideCd = .25; }
+      else if (Math.abs(P.vx) < 34 || (!K.down && Math.abs(P.vx) < 70)) { P.slide = false; P.slideCd = .25; setAct('getup'); }
       if (Math.random() < dt * 16) addP({ kind: 'dot', x: P.x - Math.sign(P.vx) * 12, y: P.y - 1, vx: -Math.sign(P.vx) * rnd(5, 20), vy: rnd(-20, -5), g: 60, col: '#d9cfbd', max: .4 });
       if (Math.abs(P.vx) > 150 && Math.random() < dt * 12) addP({ kind: 'speed', x: P.x - Math.sign(P.vx) * rnd(16, 30), y: P.y - rnd(3, 12), vx: -Math.sign(P.vx) * 40, max: .25, len: 5 + Math.floor(Math.random() * 5) });
     } else {
-      if (dir) P.face = dir;
-      const up = dir * slope < -.2, sp = WALK * (up ? .85 : 1), acc = dir ? 720 : 640;
-      P.vx += clamp(dir * sp - P.vx, -acc * dt, acc * dt);
-      if (K.down && P.slideCd <= 0 && (Math.abs(P.vx) > 14 || slope * P.face > .15)) {
-        P.slide = true; const f = P.vx ? Math.sign(P.vx) : P.face; P.face = f; P.vx = f * Math.max(Math.abs(P.vx) * 1.15, SLIDE_BOOST);
-        SFX.slide(); burst(P.x, P.y, 6, { kind: 'dot', col: '#d9cfbd', vx: 30, vy0: -10, vy1: -40, g: 80 });
-      } else if (K.jumpBuf > 0) { K.jumpBuf = 0; startJump(); }
-      P.stepT -= dt * Math.abs(P.vx) / WALK; if (Math.abs(P.vx) > 20 && P.stepT <= 0) { P.stepT = .27; SFX.step(); if (inPuddle(P.x)) { SFX.puddle(); burst(P.x, P.y, 3, { kind: 'dot', col: '#b9d4dc', vx: 20, vy0: -20, vy1: -50, g: 300 }); } }
+      if (dir && P.act !== 'getup' && P.act !== 'skid') P.holdT += dt; else if (!dir) P.holdT = 0;
+      if (P.act !== 'skid' && dir && Math.sign(P.vx) === -dir && Math.abs(P.vx) > 96) { setAct('skid'); SFX.skid(); }
+      if (P.act === 'skid') {
+        P.at += dt; P.vx -= Math.sign(P.vx) * SKID * dt;
+        if (Math.random() < dt * 40) addP({ kind: 'dot', x: P.x + Math.sign(P.vx) * 6, y: P.y - 1, vx: Math.sign(P.vx) * rnd(10, 40), vy: rnd(-30, -8), g: 120, col: '#d9cfbd', max: .45 });
+        if (Math.abs(P.vx) < 18 || P.at > .4) { setAct(''); P.vx = 0; P.holdT = 0; if (dir) P.face = dir; }
+      } else {
+        if (dir && P.act !== 'getup') P.face = dir;
+        const run = P.holdT > RUN_DELAY, up = dir * slope < -.2, sp = (run ? RUN : WALK) * (up ? .85 : 1);
+        const acc = !dir ? 640 : (Math.abs(P.vx) < WALK ? 720 : 300), target = P.act === 'getup' ? 0 : dir * sp;
+        P.vx += clamp(target - P.vx, -acc * dt, acc * dt);
+        if (K.down && P.slideCd <= 0 && (Math.abs(P.vx) > 14 || slope * P.face > .15) && P.act !== 'getup') {
+          P.slide = true; setAct('dive'); const f = P.vx ? Math.sign(P.vx) : P.face; P.face = f; P.vx = f * Math.max(Math.abs(P.vx) * 1.12, SLIDE_BOOST); P.holdT = 0;
+          SFX.slide(); burst(P.x, P.y, 6, { kind: 'dot', col: '#d9cfbd', vx: 30, vy0: -10, vy1: -40, g: 80 });
+        } else if (K.jumpBuf > 0) { K.jumpBuf = 0; startJump(); }
+        const spd = Math.abs(P.vx); if (spd > 20) { P.stepT -= dt * spd / WALK; if (P.stepT <= 0) { P.stepT = spd > 104 ? .62 : .27; footstep(spd); } }
+      }
     }
     P.vx = clamp(P.vx, -MAXV, MAXV);
     if (P.onGround) {
@@ -198,25 +252,35 @@ function step(dt) {
       if (g) { const dy = g.y - P.y, steep = g.slope * Math.sign(P.vx) < -1.2; if (steep && dy < -1) { P.x = px; P.vx = 0; } else if (dy <= 6) P.y = g.y; else { P.onGround = false; P.slide = false; P.coyote = .1; } }
       else { P.onGround = false; P.slide = false; P.coyote = .1; }
     }
-    P.phase += dt * Math.abs(P.vx) / WALK * 9.5;
+    const spd = Math.abs(P.vx);
+    if (!P.running && spd > 108) P.running = true; else if (P.running && spd < 96) P.running = false;
+    P.phase += dt * (P.running ? spd / RUN * 13 : spd / WALK * 9.5);
   } else {
-    P.vy = Math.min(420, P.vy + GRAV * dt);
-    if (P.coyote > 0) { P.coyote -= dt; if (K.jumpBuf > 0 && P.vy >= 0) { K.jumpBuf = 0; startJump(); } }
-    if (!K.up && P.vy < -90 && P.leap <= 0) P.vy *= 1 - 7 * dt;
-    if (dir) { if (Math.abs(P.vx) < WALK || Math.sign(P.vx) !== dir) P.vx += dir * AIR_ACC * dt; P.face = dir; } else P.vx *= 1 - .3 * dt;
-    P.x += P.vx * dt; P.y += P.vy * dt;
-    let g = groundAt(P.x);
-    if (g && P.y > g.y + 3 && py > g.y + 6) { P.x = px; P.vx *= -.1; g = groundAt(P.x); }
-    if (g && P.vy >= 0 && py <= g.y + 6 && P.y >= g.y) {
-      const hard = P.vy > 200; P.y = g.y; P.onGround = true; P.squash = hard ? 1 : .5; P.vy = 0;
-      if (hard) { SFX.land(); burst(P.x, P.y, 6, { kind: 'dot', col: '#d9cfbd', vx: 30, vy0: -6, vy1: -30, g: 80 }); }
+    if (!P.fromWater && tryMantle(dir)) { /* 가장자리를 잡음 */ }
+    else {
+      P.vy = Math.min(420, P.vy + GRAV * dt);
+      if (P.coyote > 0) { P.coyote -= dt; if (K.jumpBuf > 0 && P.vy >= 0) { K.jumpBuf = 0; startJump(); } }
+      if (!K.up && P.vy < -90 && P.leap <= 0) P.vy *= 1 - 7 * dt;
+      if (dir) { if (Math.abs(P.vx) < (P.runJump ? RUN : WALK) || Math.sign(P.vx) !== dir) P.vx += dir * AIR_ACC * dt; P.face = dir; } else P.vx *= 1 - .3 * dt;
+      P.x += P.vx * dt; P.y += P.vy * dt;
+      if (P.fromWater && P.vy > 0 && tryMantle(dir)) { /* 물에서 뛰어올라 둑을 잡음 */ }
+      else {
+        let g = groundAt(P.x);
+        if (g && P.y > g.y + 3 && py > g.y + 6) { P.x = px; P.vx *= -.1; g = groundAt(P.x); }
+        if (g && P.vy >= 0 && py <= g.y + 6 && P.y >= g.y) {
+          const hard = P.vy > 230; P.y = g.y; P.onGround = true; P.squash = hard ? 1 : .5; P.capV += hard ? 30 : 14; P.vy = 0; P.runJump = false; P.fromWater = false;
+          if (hard) { SFX.land(); setAct('land'); burst(P.x, P.y, 6, { kind: 'dot', col: '#d9cfbd', vx: 30, vy0: -6, vy1: -30, g: 80 }); } else SFX.step();
+        }
+      }
     }
   }
+  }
+  if (P.wet > 0) { P.wet -= dt * (P.running ? 1.6 : P.inWater ? 0 : 1); if (!P.inWater && Math.random() < dt * Math.min(5, P.wet) * .9) addP({ kind: 'dot', x: P.x + rnd(-5, 5) + P.face * 2, y: P.y - rnd(4, 16), vx: rnd(-4, 4), vy: 10, g: 420, col: '#cfe8f2', max: .5 }); }
   if (P.x < LV.x0) { P.x = LV.x0; P.vx = 0; } if (P.x > LV.x1) { P.x = LV.x1; P.vx = 0; }
   if (P.y > 360) respawn('pit');
   // 셔터
   const a = LV.arch, gx0 = a.x0 + 3, gx1 = a.x1 - 3;
-  if (ST.gateOpen < .9 && P.x + 5 > gx0 && P.x - 5 < gx1 && P.y > a.top) { P.x = px < (gx0 + gx1) / 2 ? gx0 - 5 : gx1 + 5; P.vx = 0; }
+  if (ST.gateOpen < .9 && P.x + 5 > gx0 && P.x - 5 < gx1 && P.y > a.top) { const hitV = Math.abs(P.vx); P.x = px < (gx0 + gx1) / 2 ? gx0 - 5 : gx1 + 5; P.vx = 0; if (hitV > 50 && P.onGround && P.act === '') { setAct('bump'); SFX.bump(); P.holdT = 0; } }
   // 밸브
   const v = LV.valve; if (!ST.shell && P.inWater && Math.hypot(P.x - v.x, P.y - 6 - (v.y - 16)) < 16) { ST.shell = true; SFX.valve(); setTimeout(() => SFX.shutter(), 700); ST.gateOpening = true; G.shake = .5; burst(v.x, v.y - 16, 14, { kind: 'spark', col: '#fff3b0', vx: 50, vy0: -10, vy1: -60, g: -10, l: 1.5 }); }
   // 우표
@@ -227,30 +291,47 @@ function step(dt) {
   // 체크포인트
   for (const c of ST.cps) if (!c.on && P.x > c.x) { c.on = true; SFX.check(); const gy = groundAt(c.x).y; burst(c.x, gy - 15, 10, { kind: 'spark', col: '#ffe48a', vx: 30, vy0: -20, vy1: -60, g: 30, l: 1.2 }); }
   // 맨홀 안개
-  for (const vt of LV.vents) { const s = ventState(vt, G.t); if (s.k === 'active' && Math.abs(P.x - vt.x) < 17 && P.y > 94 && P.y <= 206) { SFX.fog(); respawn('fog'); break; } }
+  for (const vt of LV.vents) { const s = ventState(vt, G.t); if (s.k === 'active' && Math.abs(P.x - vt.x) < 17 && P.y > 94 && P.y <= 206 && P.act !== 'mantle') { SFX.fog(); respawn('fog'); break; } }
   // 힌트
   if (!G.msg) for (const h of HINTS) { if (G.hint[h.id] || !h.when()) continue; G.hint[h.id] = 1; say(h.who, h.t); break; }
   else for (const h of HINTS) if (h.prio && !G.hint[h.id] && h.when()) { G.hint[h.id] = 1; say(h.who, h.t); }
-  // 걷기 외 자세 값
-  const idleNow = P.onGround && !P.slide && Math.abs(P.vx) < 8; if (idleNow) P.idle += dt; else P.idle = 0;
-  P.read = lerp(P.read, (P.idle > 5 && P.idle % 10 > 5 && P.idle % 10 < 8.5) ? 1 : 0, Math.min(1, dt * 5));
+  stepIdle(dt, false);
   // 배달
-  G.nearDoor = P.onGround && Math.abs(P.x - (LV.postbox.x - 10)) < 26;
+  G.nearDoor = P.onGround && P.act !== 'mantle' && Math.abs(P.x - (LV.postbox.x - 10)) < 26;
   if (G.nearDoor && K.actBuf > 0) { K.actBuf = 0; startDeliver(); }
+}
+/* 가만히 있을 때: 두리번 · 세수 · 편지 읽기 */
+function stepIdle(dt, force) {
+  const idleNow = force || (P.onGround && !P.slide && Math.abs(P.vx) < 8 && P.act === '' && !K.down);
+  if (idleNow) P.idle += dt; else P.idle = 0;
+  const it = P.idle % 18;
+  P.idlePose = P.idle < 3.5 ? '' : (it >= 3.5 && it < 6.5) ? 'periscope' : (it >= 8 && it < 9.8) ? 'groom' : '';
+  P.read = lerp(P.read, (P.idle > 3.5 && it >= 11 && it < 14.5) ? 1 : 0, Math.min(1, dt * 5));
+}
+/* 꼬리 · 가방 · 모자가 늦게 따라오는 움직임 */
+function stepSprings(dt) {
+  const acc = clamp((P.vx - (P.pvx || 0)) / dt, -3000, 3000); P.pvx = P.vx;
+  const fwd = acc * P.face, air = P.onGround || P.inWater ? 0 : P.vy;
+  const tT = clamp(-fwd * .0016 - air * .004, -2.6, 2.6);
+  P.tailV += (tT - P.tailSw) * 90 * dt; P.tailV *= 1 - 9 * dt; P.tailSw += P.tailV * dt;
+  const bT = clamp(-fwd * .0005 + air * .0009, -.45, .45);
+  P.bagV += (bT - P.bagA) * 120 * dt; P.bagV *= 1 - 7 * dt; P.bagA += P.bagV * dt;
+  P.capV += -P.capDy * 160 * dt; P.capV *= 1 - 10 * dt; P.capDy += P.capV * dt;
 }
 function inPuddle(x) { for (const p of META.puddles) if (x > p.x0 && x < p.x1) return true; return false; }
 function addRipple(x) { addP({ kind: 'ripple', x, y: LV.water.s, max: 1.2, layer: 'ripple' }); }
 
-/* ---------- 배달 장면 ---------- */
-function startDeliver() { G.mode = 'deliver'; ST.deliver = { t: 0, thrown: false, yay: false, bell: false, done: false }; P.vx = 0; P.slide = false; P.face = 1; K.left = K.right = K.up = K.down = false; }
+/* ---------- 배달 장면: 가방에서 꺼내 우편함에 넣고 초인종 ---------- */
+function startDeliver() { G.mode = 'deliver'; ST.deliver = { t: 0, ph: 'walk', thrown: false, bell: false, yay: false, done: false }; P.vx = 0; P.slide = false; P.face = 1; setAct(''); K.left = K.right = K.up = K.down = false; }
 function stepDeliver(dt) {
   const d = ST.deliver; d.t += dt;
-  const tx = LV.postbox.x - 14; P.x = lerp(P.x, tx, Math.min(1, dt * 4)); P.phase += dt * 6;
-  if (d.t > 1.15 && !d.thrown) { d.thrown = true; SFX.clunk(); burst(LV.postbox.x, LV.postbox.y + 10, 12, { kind: 'spark', col: '#fff3b0', vx: 30, vy0: -20, vy1: -60, g: 30, l: 1.2 }); }
-  if (d.t > 1.7 && !d.bell) { d.bell = true; SFX.bell(); }
-  if (d.t > 2.3 && !d.yay) { d.yay = true; SFX.yay(); P.vy = -120; P.onGround = false; }
-  if (!P.onGround) { P.vy += GRAV * dt; P.y += P.vy * dt; if (P.y >= 200) { P.y = 200; P.onGround = true; P.squash = .6; } }
-  if (d.t > 3.6 && !d.done) { d.done = true; showEnd(); }
+  const tx = LV.postbox.x - 14, dx = tx - P.x; P.x += clamp(dx, -60 * dt, 60 * dt); P.walking = Math.abs(dx) > .6; if (P.walking) P.phase += dt * 9.5;
+  d.ph = P.walking && d.t < .6 ? 'walk' : d.t < .95 ? 'reach' : d.t < 1.3 ? 'hold' : d.t < 1.62 ? 'insert' : d.t < 2.25 ? 'hold2' : d.t < 2.9 ? 'yay' : 'wave';
+  if (d.t > 1.62 && !d.thrown) { d.thrown = true; SFX.clunk(); burst(LV.postbox.x, LV.postbox.y + 10, 12, { kind: 'spark', col: '#fff3b0', vx: 30, vy0: -20, vy1: -60, g: 30, l: 1.2 }); }
+  if (d.t > 1.9 && !d.bell) { d.bell = true; SFX.bell(); }
+  if (d.t > 2.25 && !d.yay) { d.yay = true; SFX.yay(); P.vy = -120; P.onGround = false; }
+  if (!P.onGround) { P.vy += GRAV * dt; P.y += P.vy * dt; if (P.y >= 200) { P.y = 200; P.onGround = true; P.squash = .6; P.capV += 20; } }
+  if (d.t > 3.8 && !d.done) { d.done = true; showEnd(); }
 }
 function showEnd() {
   G.mode = 'end'; $('hud').classList.remove('on');
@@ -289,13 +370,32 @@ function resize() {
 addEventListener('resize', resize);
 
 function poseState() {
-  const s = { t: G.t, blink: (G.t % 3.7) < .12, squash: P.squash };
-  if (G.mode === 'deliver') { s.mode = 'deliver'; s.yay = ST.deliver.yay; s.thrown = ST.deliver.thrown; s.noLetter = true; return s; }
-  if (P.inWater) { s.mode = P.floating ? 'float' : 'swim'; s.angle = P.ang; s.moving = Math.hypot(P.vx, P.vy) > 25; return s; }
-  if (P.slide) { const g = groundAt(P.x); s.mode = 'slide'; s.angle = Math.atan(g ? g.slope : 0) * P.face; return s; }
-  if (!P.onGround) { s.mode = P.vy < 0 ? 'jump' : 'fall'; return s; }
-  if (Math.abs(P.vx) > 12) { s.mode = 'walk'; s.phase = P.phase; return s; }
-  s.mode = 'idle'; s.read = P.read; return s;
+  const s = { t: G.t, blink: (G.t % 3.7) < .12, squash: P.squash, tailSw: P.tailSw || 0, bagA: P.bagA || 0, capDy: P.capDy || 0, wet: P.wet > 0 ? Math.min(1, P.wet / 3) : 0 };
+  if (G.mode === 'deliver') {
+    const d = ST.deliver; if (d.ph === 'walk') { s.mode = 'walk'; s.phase = P.phase; return s; }
+    s.mode = 'deliver'; s.dph = d.ph === 'hold2' ? 'hold' : d.ph; s.thrown = d.thrown; s.noLetter = d.t > .95; if (d.ph === 'hold2') s.thrown = true; return s;
+  }
+  if (P.act === 'mantle') { const L = P.mL; s.mode = 'hang'; s.k = clamp(P.at / .48, 0, 1); s.lx = (L.x - P.x) * P.face; s.ly = L.y - P.y; return s; }
+  if (P.inWater) { s.mode = P.floating ? 'float' : (P.surf ? 'surface' : 'swim'); s.angle = P.surf ? 0 : P.ang; s.moving = Math.hypot(P.vx, P.vy) > 25; s.bend = P.bend || 0; s.rub = P.floating && (G.t % 6) < 1.6; return s; }
+  if (P.slide) { const g = groundAt(P.x); s.angle = Math.atan(g ? g.slope : 0) * P.face; if (P.act === 'dive') { s.mode = 'dive'; s.k = clamp(P.at / .14, 0, 1); } else s.mode = 'slide'; return s; }
+  if (P.act === 'getup') { s.mode = 'getup'; s.k = clamp(P.at / .2, 0, 1); return s; }
+  if (!P.onGround) {
+    if (P.fromWater) { s.mode = 'leap'; s.angle = clamp(Math.atan2(P.vy, Math.abs(P.vx) + 20), -.9, .9); s.moving = true; return s; }
+    if (P.runJump) { s.mode = 'runjump'; s.angle = clamp(P.vy / 520, -.4, .5); return s; }
+    s.mode = P.vy < 0 ? 'jump' : 'fall'; return s;
+  }
+  if (P.act === 'skid') { s.mode = 'skid'; return s; }
+  if (P.act === 'shake') { s.mode = 'shake'; s.at = P.at; return s; }
+  if (P.act === 'bump') { s.mode = 'bump'; return s; }
+  if (P.act === 'land') { s.mode = 'land'; s.squash = Math.max(P.squash, .7); return s; }
+  if (P.running) { const g = groundAt(P.x); s.mode = 'run'; s.phase = P.phase; s.angle = Math.atan(g ? g.slope : 0) * P.face * .8; return s; }
+  if (Math.abs(P.vx) > 10) { s.mode = 'walk'; s.phase = P.phase; return s; }
+  if (K.down && G.mode === 'play') { s.mode = 'sniff'; return s; }
+  s.mode = P.idlePose || 'idle'; s.read = P.read; return s;
+}
+function drawDecals(g, cx, cy) {
+  for (const d of FX.decals) { const X = d.x - cx, Y = d.y - cy; if (X < -4 || X > VW + 4) continue; g.globalAlpha = .55 * (1 - d.t / d.max); g.fillStyle = '#4e463f'; g.fillRect(X, Y + 1, 2, 1); g.fillRect(X + 1, Y + 2, 1, 1); }
+  g.globalAlpha = 1;
 }
 function drawDynamicsBack(g, cx, cy) {
   const t = G.t;
@@ -385,9 +485,10 @@ function render() {
   waterBack(g, C2, t); g.drawImage(L.uw.cv, L.uw.x - cx, L.uw.y - cy);
   drawDynamicsBack(g, cx, cy);
   drawParts(g, C2, 'back');
+  drawDecals(g, cx, cy);
   drawOtter(g, P.x - cx, P.y - cy, P.face, poseState());
-  if (G.mode === 'deliver' && ST.deliver && !ST.deliver.thrown && ST.deliver.t > .6) {
-    const k = clamp((ST.deliver.t - .6) / .55, 0, 1), sx = P.x + 12, sy = P.y - 17, ex = LV.postbox.x, ey = LV.postbox.y + 11;
+  if (G.mode === 'deliver' && ST.deliver && !ST.deliver.thrown && ST.deliver.t > 1.3) {
+    const k = clamp((ST.deliver.t - 1.3) / .32, 0, 1), sx = P.x + 15, sy = P.y - 21, ex = LV.postbox.x, ey = LV.postbox.y + 11;
     const x = lerp(sx, ex, k) - cx, y = lerp(sy, ey, k) - Math.sin(k * Math.PI) * 10 - cy; g.fillStyle = '#f7f1e3'; g.fillRect(Math.round(x) - 3, Math.round(y) - 2, 6, 4); g.fillStyle = '#c9402f'; g.fillRect(Math.round(x) - 2, Math.round(y) - 2, 1, 1); g.fillRect(Math.round(x) + 1, Math.round(y) - 2, 1, 1); g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 1);
   }
   waterFront(g, C2, t);
@@ -414,7 +515,7 @@ function render() {
   SG.restore();
 }
 function updateCam(dt) {
-  let tx = P.x - VW * .42 + P.face * 22, ty = P.y - (P.inWater ? 172 : 205);
+  let tx = P.x - VW * .42 + P.face * (22 + Math.min(40, Math.abs(P.vx) * .24)), ty = P.y - (P.inWater ? 172 : 205);
   if (G.mode === 'title' || G.mode === 'intro' || G.mode === 'boot') { tx = -40; ty = -8; }
   tx = clamp(tx, LV.x0, LV.camMax); ty = clamp(ty, -80, 150);
   const k = 1 - Math.exp(-dt * 4.2); G.cam.x += (tx - G.cam.x) * k; G.cam.y += (ty - G.cam.y) * k * .85;
@@ -454,4 +555,4 @@ touchEl.querySelectorAll('.tb').forEach(b => {
 });
 resize();
 (window.FONTS_READY || Promise.resolve()).then(() => setTimeout(boot, 30));
-window.GAME = { G, P, K, ST, CR, setKey, step, startGame, restart, respawn };
+window.GAME = { G, P, K, ST, CR, VIEW, setKey, step, startGame, restart, respawn };

@@ -50,6 +50,11 @@ const SFX = {
   meow() { tone(620, .35, 'triangle', .06, 260); tone(880, .3, 'triangle', .05, -380, .18); },
   puddle() { noise(.12, .08, 2400, 'bandpass', 1.5); },
   talk() { tone(380 + Math.random() * 160, .045, 'square', .025); },
+  runStep() { _stepAlt ^= 1; noise(.035, .035, _stepAlt ? 2400 : 2000, 'bandpass', 1.6); noise(.03, .025, 2200, 'bandpass', 1.6, .06); },
+  skid() { noise(.32, .09, 3200, 'bandpass', 1.2); tone(520, .25, 'triangle', .03, -260); },
+  grab() { tone(260, .08, 'triangle', .07, 60); tone(330, .12, 'triangle', .06, 80, .2); noise(.06, .06, 900, 'lowpass', .7, .2); },
+  shake() { for (let i = 0; i < 8; i++) noise(.05, .05, 1800 + (i % 2) * 600, 'bandpass', 1.5, i * .08); },
+  bump() { noise(.08, .1, 600); tone(180, .12, 'square', .04, -60); },
   yay() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .35, 'triangle', .08, 0, i * .09)); },
 };
 /* 오르골 음악: C - Am - F - G 진행 위 5음계 */

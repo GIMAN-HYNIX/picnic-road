@@ -2,7 +2,7 @@
 /* =========================================================
    효과: 안개 · 물 · 빛 · 색 보정 · 파티클
    ========================================================= */
-const FX = { parts: [], glow: {}, waterPoly: null, weeds: [], neonCache: new Map() };
+const FX = { parts: [], glow: {}, waterPoly: null, weeds: [], neonCache: new Map(), decals: [] };
 
 function makeFogTex(w, h, seed, density, col, px = 6, py = 3) {
   const [c, g] = makeCanvas(w, h), img = g.createImageData(w, h), d = img.data, rgb = rgbOf(col);
@@ -39,7 +39,7 @@ function initFX() {
   FX.glow.amber = glowSprite(10, 'rgba(255,170,60,0.75)');
   FX.glow.green = glowSprite(10, 'rgba(255,230,120,0.7)');
   FX.glow.cyan = glowSprite(14, 'rgba(160,240,255,0.55)');
-  // 물 다각형 (운하 단면)
+  // 물 다각형 (개천 단면)
   const W = LV.water; let xl = null, xr = null;
   for (let x = W.x0; x <= W.x1; x++) { const g = groundAt(x); if (g && g.y > W.s) { if (xl === null) xl = x; xr = x; } }
   const pts = [[xl - 1, W.s], [xr + 1, W.s]]; for (let x = xr; x >= xl; x -= 2) pts.push([x, groundAt(x).y + 1]); pts.push([xl, groundAt(xl).y + 1]);

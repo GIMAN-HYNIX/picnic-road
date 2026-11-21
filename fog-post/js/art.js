@@ -218,6 +218,8 @@ function pole(pb, x, yb, top, o = {}) {
   if (o.trans) { const tx = x + 4, ty = top + 14; pb.rect(tx, ty, 6, 10, '#9aa09e'); pb.vl(tx + 4, ty, ty + 9, '#b9bebb'); pb.vl(tx, ty, ty + 9, '#7d8380'); pb.hl(tx, tx + 5, ty, '#c9ceca'); pb.hl(tx, tx + 5, ty + 4, '#7d8380'); }
   // 전단지
   if (o.flyer !== false) { const fy = yb - 34; pb.rect(x - 1, fy, 6, 8, '#f4f0e4'); pb.hl(x, x + 3, fy + 2, '#d0402f'); pb.hl(x, x + 4, fy + 4, '#888888'); pb.hl(x, x + 2, fy + 6, '#888888'); pb.rect(x, fy + 10, 5, 6, '#f2d27a'); pb.hl(x + 1, x + 3, fy + 12, '#5a4a2a'); }
+  // 전주 번호판
+  { const py = yb - 50; pb.rect(x - 1, py, 6, 7, '#f4f0e4'); pb.frame(x - 1, py, 6, 7, '#7a7f80'); pb.hl(x, x + 3, py + 2, '#3a3f44'); pb.hl(x, x + 2, py + 4, '#3a3f44'); }
   // 아래 노랑검정 띠
   for (let y = yb - 16; y < yb - 4; y++) for (let i = 0; i < 4; i++) pb.px(x + i, y, (Math.floor((y + i) / 2) % 2) ? '#e8c33e' : '#2b2b2b');
   pb.tintDith(x - 2, yb + 1, 8, 2, .3, .6);
@@ -412,7 +414,7 @@ function buildMid() {
     pb.vl(mx + 50, top + 4, top + 60, fogT('#55595c')); pb.rect(mx + 48, top + 60, 5, 3, fogT('#d9b04a')); pb.px(mx + 2, top - 10, '#e8644a'); META.craneLight = { x: mx + 2, y: top - 10 }; }
   // 아래 안개
   for (let y = 0; y < H; y++) { const f = clamp((y - 196) / 60, 0, 1) * .8; if (f <= 0) continue; for (let x = 0; x < W; x++) if (bay(x, y) < f && (pb.get(x, y) >>> 24)) pb.px(x, y, '#d7e0de'); }
-  // 돌다리 (운하 자리, 안개 위에 다시 그림)
+  // 돌다리 (개천 자리, 안개 위에 다시 그림)
   { const x0 = 676, x1 = 856, yT = 206; const cxm = (x0 + x1) / 2;
     // 다리 상판과 아치
     for (let x = x0; x <= x1; x++) for (let y = yT; y < 250; y++) {
@@ -428,4 +430,67 @@ function buildMid() {
   }
   for (let x = 640; x < 900; x++) for (let y = 196; y < 262; y++) if (bay(x, y) < clamp((y - 214) / 50, 0, .7) && (pb.get(x, y) >>> 24)) pb.px(x, y, '#d7e0de');
   return { cv: pb.canvas(), f: .36, fy: .2, y0: -40 };
+}
+
+/* ---------- 한국 거리 소품 ---------- */
+function stairHouse(pb, x, y, w, h) {   // 옥상 계단실
+  wallConcrete(pb, x, y, w, h, '#cbc6ba', x * 7 + y); pb.rect(x - 1, y - 2, w + 2, 2, '#4f9a6a'); pb.hl(x - 1, x + w, y - 2, '#6fbf85');
+  door(pb, x + 3, y + h - 12, 7, 12, '#6f8f8a', { wall: '#cbc6ba' }); pb.rect(x + w - 8, y + 3, 5, 4, '#7d8387'); for (let i = 0; i < 3; i++) pb.hl(x + w - 7, x + w - 5, y + 4 + i, '#5a6064');
+}
+function addrPlate(pb, x, y, num) {     // 파란 도로명주소판
+  const s = String(num), w = s.length * 4 + 5;
+  pb.rect(x, y, w, 8, '#2c5aa0'); pb.frame(x, y, w, 8, '#e8eef6'); pb.hl(x + 1, x + w - 2, y + 1, '#3d6db8');
+  for (let i = 0; i < s.length; i++) digit(pb, x + 3 + i * 4, y + 2, +s[i], '#ffffff');
+  pb.tintDith(x - 1, y + 8, w, 1, .3, .6);
+}
+function glassText(pb, cx, y, text, col = '#ffffff') { pb.text(text, cx, y, F7, col, 'center', '#3a4a52'); }
+function banner(pb, x0, x1, y, text, bg, fg) {   // 현수막
+  const h = 11; pb.line(x0 - 6, y - 4, x0, y, '#d9d6cf'); pb.line(x1 + 6, y - 4, x1, y, '#d9d6cf'); pb.line(x0 - 6, y + h + 4, x0, y + h, '#d9d6cf'); pb.line(x1 + 6, y + h + 4, x1, y + h, '#d9d6cf');
+  for (let x = x0; x <= x1; x++) { const sag = Math.round(Math.sin((x - x0) / (x1 - x0) * Math.PI) * 1.5); for (let j = 0; j < h; j++) pb.px(x, y + j + sag, j === 0 ? lt(bg, .2) : (j === h - 1 ? dk(bg, .18) : bg)); }
+  for (let x = x0; x <= x1; x += 18) pb.vl(x, y + 1, y + h - 2, dk(bg, .06));
+  pb.text(text, (x0 + x1) / 2, y + 1, F9, fg, 'center');
+}
+function exerciseGym(pb, x, yb) {       // 동네 야외 운동기구: 허리돌리기 + 윗몸일으키기
+  const Y = '#e8b33a', G2 = '#3f9a5a';
+  pb.vl(x, yb - 22, yb, Y); pb.vl(x + 1, yb - 22, yb, dk(Y, .2)); pb.vl(x + 16, yb - 22, yb, Y); pb.vl(x + 17, yb - 22, yb, dk(Y, .2)); pb.hl(x, x + 17, yb - 22, lt(Y, .2)); pb.hl(x, x + 17, yb - 21, Y);
+  pb.rect(x + 4, yb - 17, 10, 2, G2); pb.px(x + 4, yb - 16, '#2b2b2b'); pb.px(x + 13, yb - 16, '#2b2b2b');
+  pb.ellipse(x + 9, yb - 2, 6, 1.6, G2); pb.hl(x + 4, x + 14, yb - 3, lt(G2, .25)); pb.vl(x + 9, yb - 2, yb, '#5a6064');
+  const bx = x + 24; pb.line(bx, yb - 3, bx + 18, yb - 10, '#d9433b'); pb.line(bx, yb - 2, bx + 18, yb - 9, '#a8302a'); pb.vl(bx + 1, yb - 3, yb, '#5a6064'); pb.vl(bx + 17, yb - 9, yb, '#5a6064'); pb.rect(bx + 16, yb - 13, 3, 3, Y);
+}
+function wheel(pb, x, y, r) { pb.circle(x, y, r, '#1c1f22'); pb.circle(x, y, r * .5, '#8a9094'); pb.px(x - 1, y - 1, '#c9cfd2'); }
+function truck(pb, x, y) {              // 파란 1톤 트럭 (도로 위)
+  const B = '#2f63b8';
+  pb.rect(x + 34, y - 15, 15, 12, B); pb.hl(x + 34, x + 47, y - 15, lt(B, .3)); pb.rect(x + 46, y - 7, 4, 4, dk(B, .2));
+  pb.rect(x + 36, y - 13, 9, 5, '#9fc4dc'); pb.px(x + 43, y - 12, '#e6f2f8'); pb.px(x + 42, y - 11, '#e6f2f8'); pb.rect(x + 48, y - 8, 2, 2, '#ffe9a8');
+  pb.rect(x, y - 6, 34, 3, '#7d8387'); pb.hl(x, x + 33, y - 6, '#a2a8ac'); pb.rect(x, y - 9, 1, 3, '#7d8387'); pb.rect(x + 33, y - 9, 1, 3, '#7d8387');
+  for (let i = 0; i < 4; i++) { const cx = x + 2 + i * 8; pb.rect(cx, y - 13, 7, 7, '#c49a62'); pb.hl(cx, cx + 6, y - 13, '#ddb57c'); pb.vl(cx + 3, y - 13, y - 7, '#e9dcc0'); }
+  pb.rect(x + 3, y - 18, 6, 5, '#c49a62'); pb.hl(x + 3, x + 8, y - 18, '#ddb57c');
+  pb.rect(x - 1, y - 3, 52, 2, '#3a3f44'); wheel(pb, x + 8, y, 3.5); wheel(pb, x + 41, y, 3.5);
+  pb.tintDith(x - 2, y + 2, 56, 2, .35, .6);
+}
+function compactCar(pb, x, y, col = '#e9ecef') {   // 경차 (도로 위)
+  pb.poly([[x, y - 3], [x + 2, y - 9], [x + 8, y - 15], [x + 24, y - 15], [x + 30, y - 9], [x + 34, y - 7], [x + 34, y - 3]], col);
+  pb.hl(x + 8, x + 24, y - 15, lt(col, .3)); pb.poly([[x + 9, y - 13], [x + 15, y - 13], [x + 15, y - 9], [x + 5, y - 9]], '#7fa3b8'); pb.poly([[x + 17, y - 13], [x + 23, y - 13], [x + 28, y - 9], [x + 17, y - 9]], '#7fa3b8');
+  pb.px(x + 21, y - 12, '#e6f2f8'); pb.hl(x + 1, x + 33, y - 6, dk(col, .15)); pb.rect(x + 32, y - 8, 2, 2, '#ffe9a8'); pb.rect(x, y - 7, 2, 2, '#d9433b');
+  wheel(pb, x + 7, y - 1, 3.2); wheel(pb, x + 27, y - 1, 3.2); pb.tintDith(x - 1, y + 2, 37, 2, .35, .6);
+}
+function deliveryBike(pb, x, y) {       // 배달 오토바이
+  wheel(pb, x + 3, y - 1, 3); wheel(pb, x + 19, y - 1, 3);
+  pb.poly([[x + 4, y - 6], [x + 15, y - 6], [x + 18, y - 9], [x + 20, y - 9], [x + 20, y - 4], [x + 6, y - 3]], '#2b2f33'); pb.rect(x + 7, y - 8, 8, 2, '#1c1f22');
+  pb.line(x + 18, y - 9, x + 17, y - 14, '#55595c'); pb.hl(x + 15, x + 19, y - 14, '#2b2b2b');
+  bevelRect(pb, x, y - 16, 10, 8, '#c8392f'); pb.text('배달', x + 5, y - 15, F7, '#ffffff', 'center');
+}
+function trashBags(pb, x, yb) {         // 종량제 봉투
+  const bag = (cx, w, h) => { pb.ellipse(cx, yb - h / 2, w / 2, h / 2, '#e9ecef'); pb.ellipse(cx + 1, yb - h / 2 + 1, w / 2 - 1, h / 2 - 1.5, '#d6dadd'); pb.hl(cx - w / 2 + 2, cx + w / 2 - 2, yb - h / 2, '#5f8fc9'); pb.px(cx, yb - h, '#e9ecef'); pb.px(cx - 1, yb - h - 1, '#d6dadd'); pb.px(cx + 1, yb - h - 1, '#d6dadd'); };
+  bag(x + 4, 8, 8); bag(x + 11, 9, 10); bag(x + 7, 7, 6);
+  pb.rect(x + 16, yb - 10, 8, 10, '#3f7fbf'); pb.hl(x + 16, x + 23, yb - 10, '#6aa6d9'); pb.rect(x + 18, yb - 7, 4, 3, '#f4efe6');
+}
+function convexMirror(pb, x, yb) {      // 골목 반사경
+  pb.vl(x, yb - 52, yb, '#7a8084'); pb.vl(x + 1, yb - 52, yb, '#9aa0a4');
+  const cx = x + 1, cy = yb - 58; pb.circle(cx, cy, 7, '#e8642e'); pb.circle(cx, cy, 5.6, '#bcd2dc'); pb.ellipse(cx - 1.5, cy - 1.5, 2.6, 1.8, '#eef6f8'); pb.hl(cx - 4, cx + 3, cy + 2, '#8fa8b4'); pb.px(cx + 2, cy + 3, '#c8392f');
+  pb.rect(cx - 7, yb - 45, 15, 7, '#f2c94c'); pb.text('천천히', cx, yb - 45, F7, '#2b2b2b', 'center');
+}
+function cctv(pb, x, y) {
+  pb.hl(x, x + 7, y, '#5a6064'); pb.rect(x + 6, y - 2, 7, 4, '#d9dcd9'); pb.px(x + 12, y - 1, '#2b2f33'); pb.px(x + 12, y, '#5fd07a');
+  pb.rect(x - 4, y + 6, 18, 8, '#f2c94c'); pb.frame(x - 4, y + 6, 18, 8, '#2b2b2b'); pb.text('CCTV', x + 5, y + 6, F7, '#2b2b2b', 'center');
 }
