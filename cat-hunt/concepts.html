@@ -1,0 +1,338 @@
+<title>고양이 사냥 컨셉 10</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap">
+<style>
+/* 컨셉 비교 갤러리. 따뜻한 종이 바탕에 카드마다 자기 팔레트를 쓰도록 중립 톤으로 둠 */
+:root{
+  --bg:#f4efe6; --card:#fffdf8; --ink:#2b2420; --soft:#6f655b; --line:#e3dacb; --accent:#c8553d; --chip:#efe6d6;
+  --f-body:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif; --f-head:'Jua','Gowun Dodum',system-ui,sans-serif;
+}
+:root{color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1814;--card:#262019;--ink:#f1e9dc;--soft:#b3a794;--line:#3a3128;--accent:#f08a6c;--chip:#332b22;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1c1814;--card:#262019;--ink:#f1e9dc;--soft:#b3a794;--line:#3a3128;--accent:#f08a6c;--chip:#332b22;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-family:var(--f-head);font-weight:400;font-size:clamp(30px,5vw,46px);line-height:1.15;margin:0 0 8px;text-wrap:balance}
+.lead{margin:0 0 6px;color:var(--soft);max-width:44em}
+.how{display:flex;flex-wrap:wrap;gap:8px 16px;margin:18px 0 26px;padding:12px 16px;background:var(--chip);border-radius:12px;font-size:14px;color:var(--soft)}
+.how b{color:var(--ink);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.card svg.scene{display:block;width:100%;height:auto;aspect-ratio:360/260}
+.body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.name{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.no{font-family:var(--f-head);font-size:15px;color:#fff;background:var(--accent);border-radius:999px;padding:1px 10px 0}
+.name h2{font-family:var(--f-head);font-weight:400;font-size:24px;margin:0;line-height:1.2}
+.pitch{margin:0;font-size:15px}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}
+dt{color:var(--soft);white-space:nowrap}
+dd{margin:0;min-width:0}
+.pal{display:flex;gap:6px;align-items:center;margin-top:2px}
+.pal i{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.12);display:block}
+.pal span{font-size:12px;color:var(--soft);margin-left:4px}
+.end{margin-top:34px;padding:20px 22px;background:var(--card);border:1px solid var(--line);border-radius:18px}
+.end h3{font-family:var(--f-head);font-weight:400;font-size:24px;margin:0 0 8px}
+.end p{margin:0 0 8px;max-width:50em}
+</style>
+
+<div class="wrap">
+  <h1>고양이와 함께 사냥 · 컨셉 10가지</h1>
+  <p class="lead">주인공과 고양이가 한 팀이 되어 사냥하고, 수확하고, 쉬는 탑뷰 게임이에요. 세계관, 주인공, 고양이 모습을 10가지 방향으로 그려 봤어요. 마음에 드는 번호를 알려주세요. 섞어도 좋아요.</p>
+  <div class="how"><span><b>공통</b> 고양이는 명령 없이 알아서 도와요 (냥냥펀치, 할퀴기)</span><span><b>공통</b> 쓰러진 적 위에서 꾹꾹이 → 식빵 굽기 → 빵으로 수확</span><span><b>공통</b> 사냥 뒤 모닥불 곁에서 쓰다듬고 간식 먹기</span></div>
+  <div class="grid" id="grid"></div>
+  <section class="end" id="end"></section>
+</div>
+
+<script>
+/* ================= 그림 도구 ================= */
+const O = '#3a2a25';                       // 부드러운 갈색 외곽선
+const st = (w = 3) => `stroke="${O}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const uid = (() => { let n = 0; return p => p + (++n); })();
+
+/* ----- 고양이 (원점: 발 가운데, 위가 -y) ----- */
+function cat(c, o = {}) {
+  const f = c.fur, d = c.furDark, w = c.belly || '#fffaf0', e = c.eye || '#e8b23a', head = o.head;
+  const pat = c.pattern;
+  let s = '';
+  if (!head) {
+    s += `<path d="M20 -14 Q52 -12 46 -44 Q44 -54 34 -50" fill="none" stroke="${O}" stroke-width="12" stroke-linecap="round"/><path d="M20 -14 Q52 -12 46 -44 Q44 -54 34 -50" fill="none" stroke="${f}" stroke-width="7" stroke-linecap="round"/>`;
+    if (c.tailTip) s += `<path d="M44 -42 Q44 -54 34 -50" fill="none" stroke="${c.tailTip}" stroke-width="7" stroke-linecap="round"/>`;
+    s += `<ellipse cx="0" cy="-20" rx="24" ry="19" fill="${f}" ${st()}/>`;
+    s += `<ellipse cx="0" cy="-16" rx="14" ry="12" fill="${w}"/>`;
+    if (pat === 'stripes') for (const x of [-14, -6, 4, 12]) s += `<path d="M${x} -36 q2 5 0 11" stroke="${d}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    if (pat === 'patches') s += `<path d="M-22 -26 q8 -12 18 -8 q2 10 -10 14z" fill="${c.patch1}"/><path d="M8 -36 q12 -2 16 8 q-8 6 -16 -2z" fill="${c.patch2}"/>`;
+    if (pat === 'points') s += `<ellipse cx="0" cy="-22" rx="22" ry="16" fill="${f}" opacity=".0"/>`;
+    s += `<ellipse cx="-10" cy="-4" rx="8" ry="5.4" fill="${w}" ${st(2.4)}/><ellipse cx="10" cy="-4" rx="8" ry="5.4" fill="${w}" ${st(2.4)}/>`;
+  }
+  const hy = head ? -10 : -46;
+  s += `<path d="M-17 ${hy - 8} L-16 ${hy - 31} L-3 ${hy - 15}Z" fill="${f}" ${st()}/><path d="M17 ${hy - 8} L16 ${hy - 31} L3 ${hy - 15}Z" fill="${f}" ${st()}/>`;
+  s += `<path d="M-14 ${hy - 14} L-13.6 ${hy - 25} L-7 ${hy - 17}Z" fill="${c.ear || '#f4a6a6'}"/><path d="M14 ${hy - 14} L13.6 ${hy - 25} L7 ${hy - 17}Z" fill="${c.ear || '#f4a6a6'}"/>`;
+  s += `<ellipse cx="0" cy="${hy}" rx="21" ry="18.5" fill="${f}" ${st()}/>`;
+  s += `<ellipse cx="0" cy="${hy + 6}" rx="12" ry="9" fill="${w}"/>`;
+  if (pat === 'stripes') for (const x of [-6, 0, 6]) s += `<path d="M${x} ${hy - 17} v6" stroke="${d}" stroke-width="2.6" stroke-linecap="round"/>`;
+  if (pat === 'points') s += `<ellipse cx="0" cy="${hy + 4}" rx="10" ry="9" fill="${d}" opacity=".85"/>`;
+  if (pat === 'patches') s += `<path d="M-21 ${hy - 6} q4 -14 16 -12 q-2 10 -16 12z" fill="${c.patch1}"/>`;
+  if (pat === 'tux') s += `<path d="M0 ${hy - 8} q-6 10 -3 20 q3 2 6 0 q3 -10 -3 -20z" fill="${w}"/>`;
+  for (const sx of [-1, 1]) {
+    s += `<ellipse cx="${sx * 9}" cy="${hy - 1}" rx="4.2" ry="5.2" fill="${e}" stroke="${O}" stroke-width="1.6"/><ellipse cx="${sx * 9}" cy="${hy - .4}" rx="2" ry="4" fill="#1d120c"/><circle cx="${sx * 9 - 1.2}" cy="${hy - 3}" r="1.5" fill="#fff"/>`;
+    s += `<path d="M${sx * 13} ${hy + 6} l${sx * 11} -2 M${sx * 13} ${hy + 9} l${sx * 11} 2" stroke="${O}" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>`;
+    s += `<circle cx="${sx * 15}" cy="${hy + 6}" r="3.6" fill="#f08a8a" opacity=".45"/>`;
+  }
+  s += `<path d="M-3 ${hy + 5} h6 l-3 3.6z" fill="#e0707a"/><path d="M0 ${hy + 8.6} q-3 3.6 -6 1.4 M0 ${hy + 8.6} q3 3.6 6 1.4" fill="none" stroke="${O}" stroke-width="1.6" stroke-linecap="round"/>`;
+  if (c.collar) s += `<path d="M-13 ${hy + 14} q13 8 26 0" fill="none" stroke="${c.collar}" stroke-width="4" stroke-linecap="round"/>${c.bell ? `<circle cx="0" cy="${hy + 19}" r="4" fill="#f4c542" ${st(1.6)}/>` : ''}`;
+  if (c.wings && !head) s += `<path d="M-18 -26 q-20 -14 -26 -2 q8 2 8 8 q6 -2 8 4 q8 -2 10 -10z" fill="#fff" ${st(2.4)}/><path d="M18 -26 q20 -14 26 -2 q-8 2 -8 8 q-6 -2 -8 4 q-8 -2 -10 -10z" fill="#fff" ${st(2.4)}/>`;
+  if (c.hat) s += c.hat(hy);
+  return s;
+}
+/* ----- 주인공 (원점: 발 가운데) ----- */
+function hero(c, o = {}) {
+  const sk = c.skin || '#f6cdb0', hair = c.hair, top = c.top, bot = c.bottom, boots = c.boots || '#5a3a2a';
+  let s = '';
+  if (c.cape) s += c.cape;
+  if (c.backpack) s += c.backpack;
+  // 머리카락 뒤
+  const hs = c.hairStyle;
+  if (hs === 'bob') s += `<path d="M-38 -94 Q-42 -144 0 -146 Q42 -144 38 -94 L38 -72 Q0 -64 -38 -72z" fill="${hair}" ${st()}/>`;
+  if (hs === 'braid') s += `<path d="M-30 -80 Q-46 -50 -34 -24" fill="none" stroke="${O}" stroke-width="16" stroke-linecap="round"/><path d="M-30 -80 Q-46 -50 -34 -24" fill="none" stroke="${hair}" stroke-width="11" stroke-linecap="round"/><path d="M-37 -92 Q-40 -140 0 -142 Q40 -140 37 -92 L30 -78 Q0 -70 -30 -78z" fill="${hair}" ${st()}/>`;
+  if (hs === 'buns') s += `<circle cx="-32" cy="-136" r="14" fill="${hair}" ${st()}/><circle cx="32" cy="-136" r="14" fill="${hair}" ${st()}/><path d="M-37 -92 Q-40 -142 0 -144 Q40 -142 37 -92 L34 -78 Q0 -70 -34 -78z" fill="${hair}" ${st()}/>`;
+  if (hs === 'pony') s += `<path d="M26 -124 Q64 -126 52 -80 Q48 -66 38 -72 Q44 -96 28 -108z" fill="${hair}" ${st()}/><path d="M-37 -92 Q-40 -142 0 -144 Q40 -142 37 -92 L30 -78 Q0 -70 -30 -78z" fill="${hair}" ${st()}/>`;
+  if (hs === 'short') s += `<path d="M-36 -96 Q-40 -142 0 -144 Q40 -142 36 -96 L34 -82 Q0 -78 -34 -82z" fill="${hair}" ${st()}/>`;
+  if (hs === 'dangi') s += `<path d="M-30 -80 Q-44 -46 -32 -14" fill="none" stroke="${O}" stroke-width="16" stroke-linecap="round"/><path d="M-30 -80 Q-44 -46 -32 -14" fill="none" stroke="${hair}" stroke-width="11" stroke-linecap="round"/><path d="M-36 -22 l-8 20 M-30 -18 l-2 20" stroke="#d9433b" stroke-width="5" stroke-linecap="round"/><path d="M-37 -92 Q-40 -142 0 -144 Q40 -142 37 -92 L30 -78 Q0 -70 -30 -78z" fill="${hair}" ${st()}/>`;
+  // 다리와 신발
+  if (c.outfit !== 'chima' && c.outfit !== 'robe') {
+    s += `<rect x="-16" y="-34" width="12" height="28" rx="5.5" fill="${bot}" ${st()}/><rect x="4" y="-34" width="12" height="28" rx="5.5" fill="${bot}" ${st()}/>`;
+    s += `<ellipse cx="-10" cy="-5" rx="10.5" ry="6.6" fill="${boots}" ${st()}/><ellipse cx="10" cy="-5" rx="10.5" ry="6.6" fill="${boots}" ${st()}/>`;
+  } else {
+    s += `<ellipse cx="-10" cy="-4" rx="9" ry="5.4" fill="#fff" ${st(2.4)}/><ellipse cx="10" cy="-4" rx="9" ry="5.4" fill="#fff" ${st(2.4)}/>`;
+  }
+  // 몸
+  if (c.outfit === 'chima') {
+    s += `<path d="M-20 -62 Q-34 -36 -38 -12 Q0 -2 38 -12 Q34 -36 20 -62z" fill="${bot}" ${st()}/><path d="M-12 -56 q-4 22 -8 42 M0 -56 v46 M12 -56 q4 22 8 42" stroke="${c.skirtLine || 'rgba(255,255,255,.35)'}" stroke-width="2.4" fill="none"/>`;
+    s += `<path d="M-22 -80 Q-24 -62 -20 -58 L20 -58 Q24 -62 22 -80 Q0 -86 -22 -80z" fill="${top}" ${st()}/><path d="M-4 -82 l-4 24 M4 -82 l10 24" stroke="${c.accent}" stroke-width="3.6" fill="none" stroke-linecap="round"/>`;
+  } else if (c.outfit === 'robe') {
+    s += `<path d="M-22 -80 Q-30 -40 -34 -10 Q0 -2 34 -10 Q30 -40 22 -80 Q0 -88 -22 -80z" fill="${top}" ${st()}/><path d="M-4 -80 L-8 -12" stroke="${c.accent}" stroke-width="3" fill="none"/><path d="M-24 -60 q24 10 48 0" stroke="${c.accent}" stroke-width="5" fill="none"/>`;
+  } else if (c.outfit === 'overalls') {
+    s += `<path d="M-22 -80 Q-26 -50 -22 -34 L22 -34 Q26 -50 22 -80 Q0 -86 -22 -80z" fill="${c.shirt}" ${st()}/><path d="M-20 -58 L20 -58 L22 -34 L-22 -34z" fill="${top}" ${st()}/><path d="M-14 -58 L-12 -80 M14 -58 L12 -80" stroke="${O}" stroke-width="3"/><path d="M-14 -58 L-12 -78 M14 -58 L12 -78" stroke="${top}" stroke-width="5" stroke-linecap="round"/><circle cx="-13" cy="-62" r="2.4" fill="#f4c542"/><circle cx="13" cy="-62" r="2.4" fill="#f4c542"/>`;
+  } else {
+    s += `<path d="M-23 -82 Q-30 -56 -26 -34 L26 -34 Q30 -56 23 -82 Q0 -88 -23 -82z" fill="${top}" ${st()}/>`;
+    if (c.coatLine) s += `<path d="M0 -84 V-34" stroke="${c.coatLine}" stroke-width="2.4"/><circle cx="6" cy="-62" r="2.4" fill="${c.accent}"/><circle cx="6" cy="-50" r="2.4" fill="${c.accent}"/>`;
+  }
+  if (c.belt) s += c.belt;
+  // 팔 (왼쪽 아래, 오른쪽은 도구)
+  s += `<path d="M-21 -76 Q-38 -62 -34 -44" fill="none" stroke="${O}" stroke-width="14" stroke-linecap="round"/><path d="M-21 -76 Q-38 -62 -34 -44" fill="none" stroke="${c.sleeve || top}" stroke-width="9" stroke-linecap="round"/><circle cx="-34" cy="-41" r="6.6" fill="${sk}" ${st(2.4)}/>`;
+  if (o.arms) s += cat(o.catColors, { arms: 1 });
+  const prop = c.prop || '';
+  s += `<path d="M21 -76 Q40 -66 38 -50" fill="none" stroke="${O}" stroke-width="14" stroke-linecap="round"/><path d="M21 -76 Q40 -66 38 -50" fill="none" stroke="${c.sleeve || top}" stroke-width="9" stroke-linecap="round"/>`;
+  if (prop) s += `<g transform="translate(40 -46)">${prop}</g>`;
+  s += `<circle cx="38" cy="-47" r="6.6" fill="${sk}" ${st(2.4)}/>`;
+  if (c.scarf) s += c.scarf;
+  // 머리
+  s += `<ellipse cx="0" cy="-100" rx="35" ry="33" fill="${sk}" ${st()}/>`;
+  // 앞머리
+  if (hs === 'bob' || hs === 'braid' || hs === 'buns' || hs === 'pony' || hs === 'dangi') s += `<path d="M-35 -104 Q-31 -138 0 -136 Q31 -138 35 -104 Q24 -120 10 -112 Q-2 -124 -16 -111 Q-28 -112 -35 -104z" fill="${hair}" ${st(2.6)}/>`;
+  if (hs === 'short') s += `<path d="M-35 -102 Q-30 -138 0 -137 Q30 -138 35 -102 Q20 -112 6 -108 Q-8 -118 -20 -108 Q-30 -108 -35 -102z" fill="${hair}" ${st(2.6)}/>`;
+  for (const sx of [-1, 1]) {
+    s += `<ellipse cx="${sx * 13}" cy="-97" rx="3.8" ry="5.2" fill="#2a1814"/><circle cx="${sx * 13 - 1.2}" cy="-99.4" r="1.6" fill="#fff"/><circle cx="${sx * 24}" cy="-88" r="5.6" fill="#f08a78" opacity=".5"/>`;
+  }
+  s += `<path d="M-4 -87 q4 4 8 0" fill="none" stroke="#7a3a30" stroke-width="2.4" stroke-linecap="round"/>`;
+  if (c.head) s += c.head;
+  return s;
+}
+function pair(cfg) {
+  const H = cfg.hero, C = cfg.cat, mode = cfg.carry;
+  let g = '';
+  const hx = mode === 'beside' ? 120 : 150, hy = 228;
+  if (cfg.stage) g += cfg.stage(hx, hy);
+  g += `<ellipse cx="${hx}" cy="${hy}" rx="38" ry="8" fill="rgba(0,0,0,.18)"/>`;
+  if (mode === 'beside') g += `<ellipse cx="240" cy="${hy}" rx="30" ry="6" fill="rgba(0,0,0,.18)"/><g transform="translate(240 ${hy}) scale(1.05)">${cat(C)}</g>`;
+  g += `<g transform="translate(${hx} ${hy})">`;
+  g += hero(H);
+  if (mode === 'bag') {
+    const bc = H.bagC || '#b88548';
+    g += `<g transform="translate(-52 -66) scale(.92)">${cat(C, { head: 1 })}</g><path d="M-70 -56 Q-52 -66 -34 -56 L-32 -34 Q-52 -26 -72 -34z" fill="${bc}" ${st()}/><path d="M-70 -56 Q-52 -66 -34 -56" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="3" stroke-linecap="round"/><circle cx="-52" cy="-44" r="3.2" fill="#f4c542" ${st(1.6)}/>`;
+  }
+  if (mode === 'shoulder') g += `<g transform="translate(-47 -62) scale(.66)">${cat(C)}</g>`;
+  if (mode === 'arms') g += `<g transform="translate(0 -36) scale(.72)">${cat(C)}</g><circle cx="-34" cy="-41" r="6.6" fill="${H.skin || '#f6cdb0'}" ${st(2.4)}/><circle cx="34" cy="-41" r="6.6" fill="${H.skin || '#f6cdb0'}" ${st(2.4)}/>`;
+  if (mode === 'head') g += `<g transform="translate(0 -128) scale(.6) rotate(-4)">${cat(C, { lying: 1 })}</g>`;
+  g += `</g>`;
+  return g;
+}
+/* ================= 무대 (배경) ================= */
+const sky = (id, a, b) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+const S = {};
+S.autumn = id => `<defs>${sky(id, '#cfe0dc', '#f6e0bd')}</defs><rect width="360" height="260" fill="url(#${id})"/><path d="M0 170 Q70 140 140 165 T290 150 T360 165 V260 H0z" fill="#b6c8a8"/><circle cx="292" cy="62" r="24" fill="#fff6dc" opacity=".8"/>
+  ${[[34, 160, 1.1], [318, 170, 1], [262, 178, .8]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})"><rect x="-5" y="-20" width="10" height="50" rx="3" fill="#6a4a30"/><circle cx="0" cy="-48" r="30" fill="#e8892b"/><circle cx="-18" cy="-34" r="20" fill="#f2b73a"/><circle cx="18" cy="-36" r="21" fill="#d9532f"/><circle cx="2" cy="-60" r="16" fill="#f7cb55"/></g>`).join('')}
+  <rect y="205" width="360" height="60" fill="#8fae63"/><path d="M0 205 Q90 198 180 206 T360 204" fill="none" stroke="#a9c57a" stroke-width="4"/>${Array.from({ length: 26 }, (_, i) => `<ellipse cx="${(i * 47) % 350 + 6}" cy="${215 + (i * 13) % 40}" rx="4" ry="2.2" fill="${['#e8892b', '#f2b73a', '#d9532f'][i % 3]}" transform="rotate(${i * 40} ${(i * 47) % 350 + 6} ${215 + (i * 13) % 40})"/>`).join('')}`;
+S.spring = id => `<defs>${sky(id, '#fde6ee', '#fff7ef')}</defs><rect width="360" height="260" fill="url(#${id})"/><path d="M0 150 Q60 118 120 146 T250 138 T360 150 V260H0z" fill="#e5efe0"/>
+  ${[[40, 150, 1.15], [310, 156, 1.05]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})"><path d="M0 40 Q-4 0 -14 -26 M-2 8 Q14 -8 26 -22" stroke="#6a4a3a" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="0" cy="-44" r="34" fill="#f9b6ca"/><circle cx="-26" cy="-26" r="24" fill="#fbd0dd"/><circle cx="26" cy="-28" r="25" fill="#f49ab4"/><circle cx="4" cy="-62" r="18" fill="#fde0e8"/></g>`).join('')}
+  <rect y="182" width="360" height="30" fill="#d9d2c6"/>${Array.from({ length: 9 }, (_, i) => `<rect x="${i * 42 - 10}" y="184" width="38" height="12" rx="5" fill="#ebe5da" stroke="#bdb5a6" stroke-width="2"/><rect x="${i * 42 + 10}" y="198" width="38" height="12" rx="5" fill="#e3dcd0" stroke="#bdb5a6" stroke-width="2"/>`).join('')}
+  <rect y="210" width="360" height="52" fill="#bfdca6"/>${Array.from({ length: 30 }, (_, i) => `<ellipse cx="${(i * 53) % 350 + 4}" cy="${150 + (i * 29) % 100}" rx="3.6" ry="2" fill="#f9b6ca" opacity=".9" transform="rotate(${i * 50} ${(i * 53) % 350 + 4} ${150 + (i * 29) % 100})"/>`).join('')}`;
+S.winter = id => `<defs>${sky(id, '#cfe3f2', '#f3f8fc')}</defs><rect width="360" height="260" fill="url(#${id})"/><path d="M0 160 Q80 130 160 156 T360 150 V260H0z" fill="#e6f0f8"/>
+  ${[[50, 175, 1.1], [305, 170, 1], [338, 182, .8]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})"><rect x="-4" y="0" width="8" height="26" fill="#6a4a30"/><path d="M0 -70 L-26 -22 H26z" fill="#2f5a4a"/><path d="M0 -44 L-32 8 H32z" fill="#376a58"/><path d="M0 -70 L-12 -50 q12 6 24 0z M0 -44 L-16 -22 q16 8 32 0z" fill="#fff"/></g>`).join('')}
+  <g transform="translate(262 160)"><rect x="-26" y="-6" width="52" height="34" fill="#c9a77c" stroke="#6a4a30" stroke-width="2"/><path d="M-34 -4 L0 -34 L34 -4z" fill="#f4f8fb" stroke="#b9c8d4" stroke-width="2"/><rect x="-6" y="8" width="12" height="20" fill="#7a5134"/><rect x="12" y="2" width="9" height="9" fill="#ffd978"/><rect x="14" y="-30" width="8" height="14" fill="#8a6a50"/></g>
+  <path d="M0 212 Q90 200 180 210 T360 206 V260H0z" fill="#fbfdff"/><path d="M0 230 Q100 222 200 230 T360 226" fill="none" stroke="#dbe8f2" stroke-width="3"/>${Array.from({ length: 36 }, (_, i) => `<circle cx="${(i * 41) % 360}" cy="${(i * 29) % 230}" r="${1.4 + (i % 3) * .7}" fill="#fff"/>`).join('')}`;
+S.witch = id => `<defs>${sky(id, '#241a4a', '#5b3d8f')}<radialGradient id="${id}m"><stop offset="0" stop-color="#fff6cc"/><stop offset="1" stop-color="#f3dc8c"/></radialGradient></defs><rect width="360" height="260" fill="url(#${id})"/>
+  ${Array.from({ length: 22 }, (_, i) => `<circle cx="${(i * 67) % 360}" cy="${(i * 37) % 150}" r="${1 + (i % 3) * .6}" fill="#fff6d8"/>`).join('')}<circle cx="280" cy="56" r="30" fill="url(#${id}m)"/><circle cx="270" cy="48" r="5" fill="#e8d28a"/><circle cx="292" cy="66" r="7" fill="#e8d28a"/>
+  ${[[30, 170, 1.2], [90, 180, .9], [330, 176, 1.1]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#1a1433"><rect x="-5" y="-10" width="10" height="42"/><path d="M0 -74 L-24 -16 H24z"/><path d="M0 -48 L-30 8 H30z"/></g>`).join('')}
+  <rect y="208" width="360" height="52" fill="#2e3550"/><path d="M0 208 Q90 200 180 208 T360 206" fill="none" stroke="#454f72" stroke-width="3"/>
+  ${[[250, 224], [300, 238], [70, 236], [330, 218]].map(([x, y]) => `<g transform="translate(${x} ${y})"><rect x="-2" y="-8" width="4" height="9" fill="#d8f5e8"/><ellipse cx="0" cy="-10" rx="9" ry="5.6" fill="#7dffc0"/><circle cx="-3" cy="-11" r="1.4" fill="#fff"/><ellipse cx="0" cy="-2" rx="16" ry="6" fill="#7dffc0" opacity=".25"/></g>`).join('')}${Array.from({ length: 12 }, (_, i) => `<circle cx="${(i * 71) % 350 + 8}" cy="${170 + (i * 23) % 60}" r="2" fill="#fff3a8"/><circle cx="${(i * 71) % 350 + 8}" cy="${170 + (i * 23) % 60}" r="6" fill="#fff3a8" opacity=".25"/>`).join('')}`;
+S.sea = id => `<defs>${sky(id, '#bfe6f2', '#fbf1d8')}</defs><rect width="360" height="260" fill="url(#${id})"/><circle cx="64" cy="54" r="22" fill="#fff4c8"/><rect y="112" width="360" height="62" fill="#4fb3c9"/><rect y="112" width="360" height="12" fill="#7fd0de"/>${Array.from({ length: 11 }, (_, i) => `<path d="M${i * 34 - 6} ${130 + (i % 3) * 14} q8 -8 16 0 q8 -8 16 0" fill="none" stroke="#e8fbff" stroke-width="3" stroke-linecap="round"/>`).join('')}
+  <path d="M0 172 Q120 164 240 176 T360 172 V262H0z" fill="#f3e0b2"/><path d="M0 172 Q120 164 240 176 T360 172" fill="none" stroke="#fff" stroke-width="5" opacity=".8"/>
+  <g transform="translate(300 196)"><ellipse cx="0" cy="8" rx="34" ry="14" fill="#8a9099"/><ellipse cx="-6" cy="-6" rx="24" ry="16" fill="#a3a9b2"/><ellipse cx="-12" cy="-12" rx="9" ry="5" fill="#c3c8cf"/></g>
+  <g transform="translate(40 226)"><path d="M0 0 q-12 -16 0 -22 q12 6 0 22z" fill="#f6b8c4" stroke="#c97b8c" stroke-width="2"/></g><g transform="translate(330 238)"><path d="M0 0 q-12 -16 0 -22 q12 6 0 22z" fill="#ffd9a0" stroke="#c9944c" stroke-width="2"/></g>
+  <path d="M250 70 q8 -8 16 0 q8 -8 16 0" fill="none" stroke="#fff" stroke-width="3"/><path d="M210 90 q6 -6 12 0 q6 -6 12 0" fill="none" stroke="#fff" stroke-width="2.4"/>`;
+S.minhwa = id => `<defs>${sky(id, '#f4e8cc', '#efe0bd')}</defs><rect width="360" height="260" fill="url(#${id})"/><circle cx="270" cy="62" r="30" fill="#d9483a"/><path d="M0 150 Q50 90 110 130 Q150 70 200 120 Q260 80 300 130 Q330 110 360 126 V200H0z" fill="#8fb3a4" opacity=".9"/><path d="M0 170 Q70 120 140 160 Q200 120 270 158 T360 150 V210H0z" fill="#b6d0bc"/>
+  <g stroke="#5a7a6a" stroke-width="2" fill="none"><path d="M0 150 Q50 90 110 130 Q150 70 200 120 Q260 80 300 130 Q330 110 360 126"/><path d="M0 170 Q70 120 140 160 Q200 120 270 158 T360 150"/></g>
+  <g transform="translate(46 170)"><path d="M0 50 Q-8 10 -2 -30 Q6 -60 -6 -84" stroke="#4a3a2e" stroke-width="7" fill="none" stroke-linecap="round"/>${[[-30, -66], [28, -60], [-24, -92], [20, -88], [0, -110]].map(([x, y]) => `<path d="M${x - 24} ${y + 10} Q${x} ${y - 14} ${x + 24} ${y + 10}" fill="#3f7a5a" stroke="#2c5a42" stroke-width="2"/>`).join('')}</g>
+  ${[[170, 82], [92, 60]].map(([x, y]) => `<g transform="translate(${x} ${y})" fill="#fff" stroke="#c9b88c" stroke-width="2"><circle r="8"/><circle cx="12" cy="3" r="6"/><circle cx="-11" cy="4" r="6"/></g>`).join('')}
+  <rect y="208" width="360" height="52" fill="#cbd9ac"/><path d="M0 208 Q90 200 180 208 T360 206" fill="none" stroke="#a9bb86" stroke-width="3"/><rect x="316" y="224" width="22" height="22" fill="#d9483a"/><path d="M322 230 h10 M322 236 h10 M327 230 v12" stroke="#fff" stroke-width="2.4"/>`;
+S.market = id => `<defs>${sky(id, '#101531', '#2c2352')}</defs><rect width="360" height="260" fill="url(#${id})"/>
+  ${[[18, '#ff5fa2'], [128, '#4fe0f2'], [238, '#ffc94f']].map(([x, c]) => `<g transform="translate(${x} 96)"><rect x="0" y="40" width="104" height="72" fill="#1b2142" stroke="${c}" stroke-width="2" opacity=".95"/><path d="M-6 40 L8 12 H96 L110 40z" fill="${c}" opacity=".85"/>${Array.from({ length: 5 }, (_, i) => `<path d="M${i * 22 + 4} 40 q9 10 18 0" fill="#fff" opacity=".6"/>`).join('')}<circle cx="20" cy="-6" r="7" fill="#ff4a4a"/><circle cx="84" cy="-6" r="7" fill="#ff4a4a"/><rect x="14" y="62" width="76" height="8" fill="${c}" opacity=".5"/><ellipse cx="52" cy="50" rx="40" ry="10" fill="${c}" opacity=".18"/></g>`).join('')}
+  <rect y="206" width="360" height="56" fill="#1a2140"/>${[[60, '#ff5fa2'], [170, '#4fe0f2'], [290, '#ffc94f']].map(([x, c]) => `<ellipse cx="${x}" cy="236" rx="42" ry="7" fill="${c}" opacity=".25"/>`).join('')}
+  ${Array.from({ length: 46 }, (_, i) => `<path d="M${(i * 31) % 360} ${(i * 53) % 240} l-4 14" stroke="#cfe7ff" stroke-width="1.4" opacity=".55"/>`).join('')}
+  <g fill="#fff" opacity=".5"><circle cx="72" cy="94" r="7"/><circle cx="82" cy="84" r="9"/><circle cx="226" cy="90" r="6"/><circle cx="234" cy="80" r="8"/></g>`;
+S.farm = id => `<defs>${sky(id, '#d4efff', '#eefaff')}</defs><rect width="360" height="260" fill="url(#${id})"/>${[[70, 54, 1], [270, 40, .8]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#fff"><circle r="14"/><circle cx="18" cy="4" r="12"/><circle cx="-16" cy="6" r="11"/><circle cx="4" cy="-10" r="10"/></g>`).join('')}
+  <path d="M0 150 Q90 116 180 144 T360 136 V260H0z" fill="#bfe8a6"/><path d="M0 180 Q100 150 200 176 T360 168 V260H0z" fill="#a3dc8a"/>
+  <g transform="translate(296 146)"><path d="M-14 40 L-9 0 H9 L14 40z" fill="#f2e6d0" stroke="#b9a98a" stroke-width="2"/><path d="M-12 -2 L0 -16 L12 -2z" fill="#d9644a"/><g transform="translate(0 -4)">${[0, 90, 180, 270].map(a => `<rect x="-2" y="-36" width="4" height="34" fill="#fff" stroke="#b9a98a" stroke-width="1.5" transform="rotate(${a + 20})"/>`).join('')}</g></g>
+  <rect y="208" width="360" height="54" fill="#8fd078"/>${Array.from({ length: 9 }, (_, i) => `<rect x="${i * 44 + 6}" y="194" width="6" height="26" rx="2" fill="#f4ead6" stroke="#b9a98a" stroke-width="1.6"/>`).join('')}<rect y="200" width="360" height="5" fill="#f4ead6" stroke="#b9a98a" stroke-width="1.6"/><rect y="210" width="360" height="5" fill="#f4ead6" stroke="#b9a98a" stroke-width="1.6"/>
+  ${Array.from({ length: 22 }, (_, i) => `<circle cx="${(i * 59) % 350 + 6}" cy="${222 + (i * 17) % 34}" r="2.6" fill="${['#fff', '#ffd54a', '#ff9ab3'][i % 3]}"/>`).join('')}`;
+S.desert = id => `<defs>${sky(id, '#ffd49a', '#fff0d2')}</defs><rect width="360" height="260" fill="url(#${id})"/><circle cx="268" cy="70" r="38" fill="#fff2c4" opacity=".9"/><circle cx="268" cy="70" r="26" fill="#ffe08a"/>
+  <path d="M0 150 Q80 112 170 146 T360 138 V260H0z" fill="#efc17a"/><path d="M0 178 Q100 148 200 176 T360 170 V260H0z" fill="#e5a95a"/>
+  <g transform="translate(300 176)"><rect x="-6" y="-44" width="12" height="52" rx="6" fill="#4f9a5a" stroke="#2c5a34" stroke-width="2"/><path d="M-6 -20 q-14 0 -14 -14 v-6 M6 -26 q14 0 14 -12" fill="none" stroke="#4f9a5a" stroke-width="9" stroke-linecap="round"/></g>
+  <g transform="translate(40 190)"><path d="M0 18 Q-4 -20 4 -46" stroke="#7a5a3a" stroke-width="7" fill="none" stroke-linecap="round"/>${[-50, -20, 10, 40, 70].map(a => `<path d="M4 -46 q${Math.cos(a * .0175) * 30} ${-6 + Math.sin(a * .0175) * 20} ${Math.cos(a * .0175) * 36} ${Math.sin(a * .0175) * 24 + 6}" fill="none" stroke="#3f8a4a" stroke-width="7" stroke-linecap="round"/>`).join('')}</g>
+  <rect y="212" width="360" height="50" fill="#f0c984"/><ellipse cx="250" cy="238" rx="56" ry="11" fill="#5fc4c9" stroke="#fff" stroke-width="2" opacity=".95"/><path d="M0 212 Q90 204 180 212 T360 210" fill="none" stroke="#fbe0a8" stroke-width="3"/>`;
+S.sky = id => `<defs>${sky(id, '#86cdf3', '#eaf8ff')}</defs><rect width="360" height="260" fill="url(#${id})"/>
+  ${[[60, 70, 1], [270, 50, 1.2], [320, 150, .8], [30, 160, .9], [190, 120, .7]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#fff" opacity=".95"><ellipse rx="34" ry="12"/><circle cx="-10" cy="-8" r="13"/><circle cx="10" cy="-12" r="16"/></g>`).join('')}
+  <g transform="translate(290 96)"><ellipse rx="26" ry="10" fill="#7fc36a"/><path d="M-26 0 Q0 46 26 0z" fill="#8a7a6a"/><rect x="-2" y="-22" width="4" height="14" fill="#6a4a30"/><circle cy="-30" r="12" fill="#5fae5a"/></g>
+  <g transform="translate(60 100)"><ellipse rx="40" ry="14" rx="40" fill="#e8dcc6" stroke="#b9a98a" stroke-width="2"/><path d="M-26 -8 Q0 -40 26 -8z" fill="#d9644a"/><rect x="-14" y="-14" width="28" height="10" fill="#f4ead6"/></g>
+  <path d="M70 228 q-22 0 -32 -14 q-6 -12 6 -14 H280 q14 2 8 14 q-10 14 -32 14z" fill="#7fc36a"/><path d="M40 214 Q160 250 290 214 Q282 244 250 258 H80 Q50 244 40 214z" fill="#8a7a6a"/><path d="M40 212 H290" stroke="#a6d98a" stroke-width="6" stroke-linecap="round"/>`;
+
+/* ================= 컨셉 10 ================= */
+const hat = {
+  witch: `<path d="M-48 -126 Q0 -150 48 -126 Q0 -118 -48 -126z" fill="#3b2a66" ${st()}/><path d="M-30 -130 Q-20 -176 14 -196 Q10 -166 30 -130z" fill="#4b3480" ${st()}/><path d="M-30 -134 Q0 -126 30 -134" stroke="#f4c542" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M14 -196 q14 6 18 20 q-10 -6 -22 -2" fill="#4b3480" ${st(2.6)}/>`,
+  straw: `<ellipse cx="0" cy="-128" rx="58" ry="14" fill="#f0cf7a" ${st()}/><path d="M-30 -128 Q-28 -158 0 -158 Q28 -158 30 -128z" fill="#f6dd8e" ${st()}/><path d="M-30 -134 Q0 -126 30 -134" stroke="#d9644a" stroke-width="6" fill="none"/>`,
+  strawSea: `<ellipse cx="0" cy="-126" rx="62" ry="15" fill="#f0cf7a" ${st()}/><path d="M-32 -126 Q-30 -160 0 -160 Q30 -160 32 -126z" fill="#f6dd8e" ${st()}/><path d="M-32 -130 Q0 -122 32 -130" stroke="#3f7fbf" stroke-width="6" fill="none"/><path d="M-26 -140 l52 0 M-22 -148 l44 0" stroke="#d9b45a" stroke-width="2"/>`,
+  fur: `<path d="M-36 -122 Q-38 -150 0 -152 Q38 -150 36 -122 Q0 -112 -36 -122z" fill="#f4efe6" ${st()}/><circle cx="0" cy="-158" r="12" fill="#f4efe6" ${st()}/><rect x="-37" y="-130" width="74" height="16" rx="8" fill="#e8dcc8" ${st(2.6)}/>`,
+  goggles: `<path d="M-37 -112 Q-38 -148 0 -150 Q38 -148 37 -112 Q0 -122 -37 -112z" fill="#7a4a2a" ${st()}/><path d="M-37 -118 Q-52 -108 -48 -92 M37 -118 Q52 -108 48 -92" stroke="#7a4a2a" stroke-width="10" fill="none" stroke-linecap="round"/><g transform="translate(0 -122)"><rect x="-26" y="-9" width="52" height="18" rx="9" fill="#e8c46a" ${st(2.6)}/><circle cx="-14" cy="0" r="9" fill="#bfe8f4" ${st(2.6)}/><circle cx="14" cy="0" r="9" fill="#bfe8f4" ${st(2.6)}/><circle cx="-17" cy="-3" r="3" fill="#fff"/><circle cx="11" cy="-3" r="3" fill="#fff"/></g>`,
+  turban: `<path d="M-38 -112 Q-40 -150 0 -154 Q40 -150 38 -112 Q0 -124 -38 -112z" fill="#e8dfc8" ${st()}/><path d="M-36 -122 Q0 -142 36 -122 M-34 -134 Q0 -152 34 -134" stroke="#b9a98a" stroke-width="2.6" fill="none"/><circle cx="0" cy="-130" r="7" fill="#d9483a" ${st(2.4)}/><g transform="translate(0 -104)"><rect x="-28" y="-7" width="56" height="14" rx="7" fill="#c9a24a" ${st(2.6)} opacity=".0"/></g>`,
+  rainhood: `<path d="M-44 -86 Q-50 -156 0 -158 Q50 -156 44 -86 L38 -78 Q0 -72 -38 -78z" fill="#f2c42e" ${st()}/><path d="M-36 -104 Q-30 -136 0 -134 Q30 -136 36 -104" fill="none" stroke="#c99a1c" stroke-width="3"/>`,
+  ribbon: `<path d="M26 -134 l22 -14 l-4 20 l-18 0z M26 -134 l22 14 l-4 -20" fill="#e8527a" ${st(2.6)}/><circle cx="26" cy="-134" r="5" fill="#f08aa8" ${st(2.4)}/>`,
+  gat: `<ellipse cx="0" cy="-130" rx="52" ry="12" fill="#2a2a32" ${st()} opacity=".95"/><path d="M-24 -130 Q-24 -166 0 -166 Q24 -166 24 -130z" fill="#34343e" ${st()}/><path d="M-26 -122 Q-30 -100 -34 -96 M26 -122 Q30 -100 34 -96" stroke="#d9483a" stroke-width="3"/>`,
+  cap: `<path d="M-36 -118 Q-36 -156 0 -156 Q36 -156 36 -118 Q0 -128 -36 -118z" fill="#f2b84a" ${st()}/><path d="M12 -128 Q50 -128 54 -116 Q30 -118 12 -118z" fill="#e0a032" ${st()}/><circle cx="0" cy="-158" r="5" fill="#fff" ${st(2)}/>`,
+};
+const props = {
+  broom: `<g transform="rotate(14)"><rect x="-2.6" y="-66" width="5.2" height="104" rx="2.6" fill="#a0723c" ${st(2.4)}/><path d="M-12 34 L12 34 L20 70 Q0 80 -20 70z" fill="#e0c060" ${st()}/><path d="M-12 44 l-2 22 M0 44 v26 M12 44 l2 22" stroke="#b8942f" stroke-width="2"/><rect x="-10" y="30" width="20" height="7" rx="3" fill="#c9503a" ${st(2.4)}/></g>`,
+  fan: `<g transform="rotate(-12) translate(0 -36)"><path d="M0 40 L-40 -4 Q0 -34 40 -4z" fill="#fbe6ee" ${st()}/><path d="M0 40 L-20 -14 M0 40 L0 -22 M0 40 L20 -14" stroke="#e8809c" stroke-width="2.4"/><circle cx="0" cy="40" r="4" fill="#8a5a3a" ${st(2)}/><path d="M-30 6 q6 -10 14 -6 M14 0 q8 -8 16 -2" stroke="#f08aa8" stroke-width="3" fill="none"/></g>`,
+  shovel: `<g transform="rotate(10)"><rect x="-2.6" y="-60" width="5.2" height="96" rx="2.6" fill="#8a6038" ${st(2.4)}/><path d="M-16 30 L16 30 L12 64 Q0 72 -12 64z" fill="#9fb0bc" ${st()}/><rect x="-8" y="-66" width="16" height="7" rx="3" fill="#8a6038" ${st(2.4)}/></g>`,
+  net: `<g transform="rotate(8)"><rect x="-2.6" y="-30" width="5.2" height="80" rx="2.6" fill="#a0723c" ${st(2.4)}/><circle cx="0" cy="-48" r="22" fill="none" stroke="${O}" stroke-width="7"/><circle cx="0" cy="-48" r="22" fill="rgba(255,255,255,.35)" stroke="#e8c46a" stroke-width="3.6"/><path d="M-16 -56 l32 16 M-20 -44 l40 0 M-16 -32 l32 -16 M-6 -68 v40 M6 -68 v40" stroke="#c9a24a" stroke-width="1.6" opacity=".8"/></g>`,
+  umbrella: `<g transform="rotate(20) translate(0 -20)"><rect x="-2.4" y="-8" width="4.8" height="62" rx="2.4" fill="#8a8f98" ${st(2)}/><path d="M-50 -8 Q0 -70 50 -8 Q38 -14 25 -8 Q12 -14 0 -8 Q-12 -14 -25 -8 Q-38 -14 -50 -8z" fill="rgba(190,230,255,.7)" ${st()}/><path d="M0 -50 V-8 M-24 -40 L-12 -8 M24 -40 L12 -8" stroke="#8fb8d8" stroke-width="2"/><path d="M0 54 q0 10 -9 10" fill="none" stroke="${O}" stroke-width="4" stroke-linecap="round"/></g>`,
+  crook: `<g transform="rotate(6)"><rect x="-2.6" y="-50" width="5.2" height="100" rx="2.6" fill="#9a6a3a" ${st(2.4)}/><path d="M0 -50 q0 -24 -22 -24 q-16 0 -16 14" fill="none" stroke="${O}" stroke-width="9" stroke-linecap="round"/><path d="M0 -50 q0 -24 -22 -24 q-16 0 -16 14" fill="none" stroke="#9a6a3a" stroke-width="5" stroke-linecap="round"/></g>`,
+  lantern: `<g transform="translate(0 -8)"><path d="M0 -40 V-10" stroke="${O}" stroke-width="3"/><rect x="-12" y="-10" width="24" height="30" rx="6" fill="#ffd978" ${st()}/><path d="M-12 0 h24 M-4 -10 v30 M4 -10 v30" stroke="#c9944c" stroke-width="2"/><ellipse cx="0" cy="5" rx="30" ry="30" fill="#ffd978" opacity=".18"/><rect x="-9" y="-14" width="18" height="5" rx="2" fill="#6a4a30" ${st(2)}/></g>`,
+  rod: `<g transform="rotate(-20) translate(0 -30)"><rect x="-2" y="-52" width="4" height="104" rx="2" fill="#8a6038" ${st(2.2)}/><path d="M0 -52 q36 -8 40 20 v32" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M40 -4 q-4 8 0 10 q4 -2 0 -10" fill="#d9483a"/></g>`,
+  staffScroll: `<g transform="rotate(8)"><rect x="-2.6" y="-60" width="5.2" height="104" rx="2.6" fill="#7a5a3a" ${st(2.4)}/><circle cx="0" cy="-66" r="9" fill="#e8c46a" ${st(2.6)}/><circle cx="0" cy="-66" r="3.6" fill="#d9483a"/></g>`,
+  wrench: `<g transform="rotate(24) translate(0 -14)"><rect x="-3.4" y="-40" width="6.8" height="86" rx="3.4" fill="#8a8f98" ${st(2.4)}/><path d="M-12 -40 q-4 -18 12 -22 v12 h0 v-12 q16 4 12 22z" fill="#a3a9b2" ${st(2.6)}/></g>`,
+};
+const concepts = [
+  {
+    name: '단풍 숲 약초꾼', carry: 'shoulder', stage: null, bg: S.autumn,
+    hero: { hair: '#6a3f26', hairStyle: 'bob', top: '#2f7a6a', bottom: '#5a4a40', accent: '#f2c450', outfit: 'coat', coatLine: '#1f5a4c', prop: props.broom, scarf: `<path d="M-24 -78 Q0 -66 24 -78 L26 -68 Q0 -56 -26 -68z" fill="#f2b83a" ${st()}/><path d="M12 -70 l8 22 l-12 2z" fill="#f2b83a" ${st()}/>`, backpack: `<rect x="-34" y="-74" width="20" height="34" rx="8" fill="#b85a3f" ${st()}/>` },
+    cat: { fur: '#eaa04a', furDark: '#b8621f', pattern: 'stripes', eye: '#7fc46a', collar: '#c8553d', bell: 1 },
+    pitch: '안개 낀 늦가을 숲. 낙엽을 쓸듯 대빗자루를 휘두르는 따뜻하고 포근한 사냥.',
+    rows: [['주인공', '머플러를 두른 단발 약초꾼. 대빗자루로 쓸듯이 공격해요.'], ['고양이', '치즈 태비 "보리". 어깨 위에서 졸다가 틈을 보면 휙.'], ['전투', '빗자루 쓸기 3연타 → 보리가 냥냥펀치로 마무리'], ['수확·안식', '쓰러진 도토리 요정 위에서 꾹꾹이 → 도토리 식빵. 모닥불 곁 군고구마.']],
+    pal: ['#2f7a6a', '#f2b83a', '#eaa04a', '#d9532f', '#cfe0dc'], keys: '포근 · 낙엽 · 모닥불',
+  },
+  {
+    name: '벚꽃 돌담길 마을지기', carry: 'beside', bg: S.spring,
+    hero: { hair: '#2f2220', hairStyle: 'dangi', top: '#fbd0dc', bottom: '#7fb0d8', accent: '#e8527a', outfit: 'chima', prop: props.fan, head: hat.ribbon.replace('M26 -134', 'M-26 -134').replace(/l22 -14 l-4 20 l-18 0z/, 'l-22 -14 l4 20 l18 0z'), skirtLine: 'rgba(255,255,255,.4)' },
+    cat: { fur: '#ffffff', furDark: '#d9d2c6', belly: '#fff', eye: '#7fb8e8', ear: '#f9b6ca', collar: '#e8527a', bell: 1, pattern: 'plain', tailTip: '#f9c9d6' },
+    pitch: '꽃잎이 흩날리는 봄 돌담길. 한복 치마가 살랑이는 단아한 마을지기.',
+    rows: [['주인공', '개량한복에 댕기머리. 부채를 펼치면 꽃잎 바람이 불어요.'], ['고양이', '하얀 고양이 "솜이". 꽃잎을 쫓다가 적에게 폴짝.'], ['전투', '부채 바람으로 밀어내고 솜이가 앞발 도장 찍기'], ['수확·안식', '떡 반죽이 된 적을 꾹꾹이 → 쑥 인절미. 마루에서 꽃차 한 잔.']],
+    pal: ['#fbd0dc', '#7fb0d8', '#e8527a', '#bfdca6', '#fde6ee'], keys: '단아 · 봄 · 한복',
+  },
+  {
+    name: '눈 내린 산골 짐꾼', carry: 'arms', bg: S.winter,
+    hero: { hair: '#4a3022', hairStyle: 'pony', top: '#d9533f', bottom: '#4a5a78', accent: '#fff', outfit: 'coat', coatLine: '#a23a2c', prop: props.shovel, head: hat.fur, scarf: `<path d="M-26 -78 Q0 -64 26 -78 L28 -66 Q0 -52 -28 -66z" fill="#fff" ${st()}/>`, sleeve: '#d9533f' },
+    cat: { fur: '#b9bcc4', furDark: '#8a8e98', belly: '#f4f6fa', eye: '#e8b23a', pattern: 'plain', ear: '#f4b0b8' },
+    pitch: '눈이 소복한 산골 마을. 솜 점퍼를 입고 고양이를 꼭 안고 걷는 겨울 사냥.',
+    rows: [['주인공', '빨간 솜 점퍼와 털모자. 눈삽으로 적을 퍼 올려요.'], ['고양이', '회색 장모 "구름". 대부분 품에 안겨 따뜻하게 지내요.'], ['전투', '눈삽으로 띄우면 구름이 품에서 튀어나와 연속 할퀴기'], ['수확·안식', '눈사람 반죽 위 꾹꾹이 → 붕어빵. 아궁이 앞에서 호빵 나눠 먹기.']],
+    pal: ['#d9533f', '#4a5a78', '#b9bcc4', '#f3f8fc', '#2f5a4a'], keys: '포근 · 눈 · 아궁이',
+  },
+  {
+    name: '견습 마녀의 달밤 산책', carry: 'shoulder', bg: S.witch,
+    hero: { hair: '#c9a0f0', hairStyle: 'twin', top: '#4b3480', bottom: '#2f2a52', accent: '#f4c542', outfit: 'robe', prop: props.broom, head: hat.witch, hairStyleAlt: 1, cape: `<path d="M-26 -82 Q-44 -40 -38 -10 L-10 -16 Q-14 -50 -4 -82z" fill="#2f2260" ${st()}/>` },
+    cat: { fur: '#2c2838', furDark: '#1a1626', belly: '#3c3750', eye: '#ffcf3a', ear: '#8a5a8a', pattern: 'plain', collar: '#f4c542', bell: 1 },
+    pitch: '보랏빛 달밤의 숲. 견습 마녀와 검은 고양이가 반짝이는 버섯 사이를 누벼요.',
+    rows: [['주인공', '뾰족모자와 망토의 견습 마녀. 마법 빗자루를 휘둘러요.'], ['고양이', '검은 고양이 "먹물". 노란 눈이 번쩍 하면 할퀴기.'], ['전투', '빗자루로 별가루를 흩뿌려 멈추면 먹물이 발톱 한 방'], ['수확·안식', '마법 반죽 위 꾹꾹이 → 별빛 카스텔라. 가마솥 수프와 담요.']],
+    pal: ['#4b3480', '#c9a0f0', '#f4c542', '#2c2838', '#7dffc0'], keys: '신비 · 달밤 · 반딧불',
+  },
+  {
+    name: '바닷가 해녀와 조수 웅덩이', carry: 'bag', bg: S.sea,
+    hero: { hair: '#2a2420', hairStyle: 'short', top: '#3f7fbf', bottom: '#2a4a78', accent: '#fff', outfit: 'coat', coatLine: '#2a5a96', prop: props.net, head: hat.strawSea, backpack: `<path d="M-38 -76 Q-52 -40 -36 -36 Q-20 -34 -22 -76z" fill="#c9a24a" ${st()}/><path d="M-44 -66 l16 10 M-44 -54 l16 10 M-36 -74 l6 36" stroke="#a07a2c" stroke-width="2" opacity=".7"/>` },
+    cat: { fur: '#f4efe6', furDark: '#d9892f', patch1: '#e08a35', patch2: '#2c2838', pattern: 'patches', eye: '#7fb8e8', ear: '#f4b0b8' },
+    pitch: '파도 소리가 들리는 바닷가. 망태기에 고양이를 태우고 갯벌을 누비는 해녀.',
+    rows: [['주인공', '밀짚모자 해녀. 뜰채로 적을 건져 올려요.'], ['고양이', '삼색 "미역". 망태기 속에서 얼굴만 빼꼼.'], ['전투', '뜰채로 물웅덩이에 가두면 미역이 폴짝 뛰어내려 펀치'], ['수확·안식', '말랑한 반죽 꾹꾹이 → 조개 빵. 바위 위에서 구운 쥐포 나누기.']],
+    pal: ['#3f7fbf', '#c9a24a', '#f4efe6', '#4fb3c9', '#f3e0b2'], keys: '청량 · 파도 · 갯벌',
+  },
+  {
+    name: '민화 속 산신령 견습', carry: 'beside', bg: S.minhwa,
+    hero: { hair: '#2a2a32', hairStyle: 'short', top: '#9fd0d8', bottom: '#5fa0a8', accent: '#d9483a', outfit: 'robe', prop: props.staffScroll, head: hat.gat, sleeve: '#bfe0e4' },
+    cat: { fur: '#f0a23a', furDark: '#2c2430', pattern: 'stripes', belly: '#fff6e0', eye: '#e8c23a', ear: '#d98a8a' },
+    pitch: '고운 색감의 민화를 걷는 이야기. 호랑이 줄무늬 아기 고양이가 동행해요.',
+    rows: [['주인공', '도포 자락과 갓을 쓴 산신령 견습생. 지팡이로 구름을 일으켜요.'], ['고양이', '호랑이 무늬 "범이". 작아도 호랑이처럼 으르렁 앞발.'], ['전투', '지팡이로 구름 걸음 → 범이가 호랑이 발톱 할퀴기'], ['수확·안식', '반죽 위 꾹꾹이 → 약과. 소나무 아래 차 한 잔과 달 구경.']],
+    pal: ['#9fd0d8', '#d9483a', '#f0a23a', '#3f7a5a', '#f4e8cc'], keys: '민화 · 고운 색 · 전통',
+  },
+  {
+    name: '비 오는 밤 야시장', carry: 'arms', bg: S.market,
+    hero: { hair: '#2a2240', hairStyle: 'bob', top: '#f2c42e', bottom: '#2f3a5a', accent: '#fff', outfit: 'coat', coatLine: '#c99a1c', prop: props.umbrella, head: hat.rainhood, sleeve: '#f2c42e', boots: '#d9533f' },
+    cat: { fur: '#26242e', furDark: '#12101a', belly: '#fffaf0', eye: '#7fe8d0', ear: '#f4a6a6', pattern: 'tux', collar: '#ff5fa2', bell: 1 },
+    pitch: '네온이 번지는 비 오는 포장마차 골목. 노란 우비와 턱시도 고양이.',
+    rows: [['주인공', '노란 우비와 투명 우산. 우산을 펼쳐 막고 튕겨내요.'], ['고양이', '턱시도 "버찌". 우산 아래 품에서 뛰어나와 한 방.'], ['전투', '우산으로 공격을 받아치면 버찌가 빈틈에 냥냥펀치'], ['수확·안식', '반죽 위 꾹꾹이 → 호떡. 포장마차 의자에서 어묵 국물.']],
+    pal: ['#f2c42e', '#ff5fa2', '#4fe0f2', '#26242e', '#101531'], keys: '네온 · 비 · 포장마차',
+  },
+  {
+    name: '파스텔 초원 목동', carry: 'head', bg: S.farm,
+    hero: { hair: '#8a5a32', hairStyle: 'braid', top: '#8fd0a8', bottom: '#4f7aa8', shirt: '#fff6e6', accent: '#f4c542', outfit: 'overalls', prop: props.crook, head: hat.straw, sleeve: '#fff6e6' },
+    cat: { fur: '#fffaf0', furDark: '#d9c9ac', patch1: '#6a4a38', patch2: '#c9a070', pattern: 'patches', eye: '#7fc46a', ear: '#f4b0b8', collar: '#e8527a', bell: 1 },
+    pitch: '풍차가 도는 파스텔 초원. 밀짚모자 위에서 낮잠 자는 고양이와 소풍 같은 사냥.',
+    rows: [['주인공', '멜빵바지 목동. 갈고리 지팡이로 적을 걸어 당겨요.'], ['고양이', '젖소 무늬 "우유". 모자 위에서 자다가 깜짝 기습.'], ['전투', '지팡이로 걸어 넘어뜨리면 우유가 모자에서 점프 펀치'], ['수확·안식', '반죽 꾹꾹이 → 우유 식빵. 풀밭에 누워 구름 보며 낮잠.']],
+    pal: ['#8fd0a8', '#4f7aa8', '#fffaf0', '#bfe8a6', '#d4efff'], keys: '파스텔 · 풍차 · 낮잠',
+  },
+  {
+    name: '사막 오아시스 탐험가', carry: 'shoulder', bg: S.desert,
+    hero: { hair: '#3a2a22', hairStyle: 'short', top: '#e8dfc8', bottom: '#8a5a3a', accent: '#d9483a', outfit: 'coat', coatLine: '#b9a98a', prop: props.wrench, head: hat.turban, sleeve: '#e8dfc8', scarf: `<path d="M-26 -78 Q0 -66 26 -78 L28 -68 Q0 -56 -28 -68z" fill="#d9483a" ${st()}/><path d="M14 -68 q10 10 6 26 l-12 2z" fill="#d9483a" ${st()}/>` },
+    cat: { fur: '#efe0c0', furDark: '#6a4a3a', belly: '#f8ecd2', eye: '#6fb8f0', ear: '#6a4a3a', pattern: 'points', collar: '#f4c542' },
+    pitch: '모래 언덕과 푸른 오아시스. 터번과 샴 고양이가 유적을 누비는 탐험.',
+    rows: [['주인공', '긴 스카프와 터번의 탐험가. 렌치로 유적 장치를 두드려요.'], ['고양이', '샴 고양이 "모래". 어깨에서 먼 곳을 살피다 기습.'], ['전투', '렌치로 모래 폭풍을 일으켜 멈추면 모래가 발톱 한 번'], ['수확·안식', '반죽 꾹꾹이 → 대추야자 빵. 오아시스 그늘에서 차 한 잔.']],
+    pal: ['#e8dfc8', '#d9483a', '#efe0c0', '#e5a95a', '#5fc4c9'], keys: '모험 · 오아시스 · 유적',
+  },
+  {
+    name: '구름섬 비행사', carry: 'bag', bg: S.sky,
+    hero: { hair: '#c0402f', hairStyle: 'pony', top: '#9a6a3c', bottom: '#4a4a62', accent: '#f4c542', outfit: 'coat', coatLine: '#6a4a2a', prop: props.wrench, head: hat.goggles, sleeve: '#9a6a3c', backpack: `<rect x="-40" y="-82" width="22" height="40" rx="8" fill="#7a5a3a" ${st()}/><g transform="translate(-50 -66)"><rect x="-3" y="-14" width="5" height="28" rx="2" fill="#c9cfd8" ${st(2)}/><path d="M-1 -14 l-12 -10 M-1 14 l-12 10" stroke="${O}" stroke-width="3"/></g>` },
+    cat: { fur: '#f4f6fb', furDark: '#c9d3e8', belly: '#ffffff', eye: '#7fb8f0', ear: '#f4b0c4', pattern: 'plain', wings: 1, collar: '#7fb8f0', bell: 1 },
+    pitch: '떠다니는 구름섬을 오가는 하늘 마을. 작은 날개가 달린 고양이와 함께 날아다녀요.',
+    rows: [['주인공', '고글과 낡은 프로펠러 배낭의 비행사. 렌치로 공기 폭풍을 일으켜요.'], ['고양이', '솜털 날개 "구름이". 배낭에서 얼굴만 내밀다가 날아오름.'], ['전투', '렌치로 띄우면 구름이 날개로 활공 → 급강하 할퀴기'], ['수확·안식', '구름 반죽 꾹꾹이 → 구름빵. 섬 끝 그네에서 노을 보며 쉬기.']],
+    pal: ['#9a6a3c', '#f4f6fb', '#7fb8f0', '#86cdf3', '#f4c542'], keys: '청량 · 하늘 · 모험',
+  },
+];
+// 쌍 둥이 묶음머리 처리
+function fixBuns(c) { if (c.hero.hairStyle === 'twin') c.hero.hairStyle = 'buns'; }
+concepts.forEach(fixBuns);
+
+/* ================= 그리기 ================= */
+const grid = document.getElementById('grid');
+concepts.forEach((c, i) => {
+  const id = 'g' + i;
+  const svg = `<svg class="scene" viewBox="0 0 360 260" role="img" aria-label="${c.name} 컨셉 그림"><g>${c.bg(id)}</g>${pair({ hero: c.hero, cat: c.cat, carry: c.carry })}</svg>`;
+  const rows = c.rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+  const pal = c.pal.map(p => `<i style="background:${p}"></i>`).join('') + `<span>${c.keys}</span>`;
+  const el = document.createElement('article'); el.className = 'card';
+  el.innerHTML = `${svg}<div class="body"><div class="name"><span class="no">${i + 1}</span><h2>${c.name}</h2></div><p class="pitch">${c.pitch}</p><dl>${rows}</dl><div class="pal">${pal}</div></div>`;
+  grid.appendChild(el);
+});
+document.getElementById('end').innerHTML = `<h3>어떻게 고를까요</h3><p>마음에 드는 번호를 <b>2~3개</b> 알려주세요. 합쳐도 돼요. 예를 들어 "주인공은 2번, 고양이는 5번, 배경은 1번"처럼요.</p><p>고르면 그 조합으로 <b>탑뷰 전투 데모</b>를 만들어요. 고양이가 어깨, 품, 가방, 모자 위에서 오가는 동작과 냥냥펀치, 꾹꾹이 수확, 모닥불 쉼터까지 넣을게요.</p><p style="color:var(--soft);font-size:14px">참고: 이 그림은 컨셉 비교용 일러스트예요. 게임 화면은 같은 느낌을 살려 다시 그려요.</p>`;
+</script>
