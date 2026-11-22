@@ -20,17 +20,18 @@ const stubble = (lim, xmax = 99) => (x, y) => (y > lim && x < xmax && hash2(Math
 
 /* ---------- 사냥꾼: 앞 ---------- */
 function hunterFront(R, s) {
-  const walk = !!s.walk, sw = walk ? Math.sin(s.p * TAU) : 0;
-  const lL = Math.max(0, sw) * 2.4, lR = Math.max(0, -sw) * 2.4;
-  const bob = walk ? (Math.abs(sw) < .38 ? -1 : 0) : (s.breath || 0), as = sw * 1.8;
+  const walk = !!s.walk, sw = walk ? Math.sin(s.p * TAU) : 0, cr = s.crouch || 0, lk = (s.look || 0) * 1.7;
+  const lL = Math.max(0, sw) * 2.4 * (1 - cr * .35), lR = Math.max(0, -sw) * 2.4 * (1 - cr * .35);
+  const bob = (walk ? (Math.abs(sw) < .38 ? -1 : 0) : (s.breath || 0)) + cr * 4.6, as = sw * 1.8 * (1 - cr * .5);
   R.push(); R.translate(0, bob);   // 등 뒤 총: 왼쪽 어깨 위로 총구, 오른쪽 엉덩이 뒤로 개머리판
   R.K2(-9.6, -40, -12.6, -63, 1.05, .95, HP.STEEL, { g: 'barrel' });
   R.P([[9.8, -28], [14.8, -24.2], [13.4, -19.4], [9.2, -23]], HP.STOCK, { g: 'stock' });
   R.pop();
   for (const [x, l] of [[-4.6, lL], [4.6, lR]]) {
     const g = x < 0 ? 'L' : 'R';
-    R.K2(x, -21, x * 1.05, -9.6 - l, 3.7, 3.3, HP.PANT, { g: 'leg' + g });
-    R.K2(x * 1.05, -10.6 - l, x * 1.1, -3.8 - l, 3.4, 3.6, HP.BOOT, { g: 'boot' + g, ol: 2 });
+    const kx = x * (1.05 + cr * .22);
+    R.K2(x, -21 + cr * 4.6, kx, -9.6 - l, 3.7, 3.3, HP.PANT, { g: 'leg' + g });
+    R.K2(kx, -10.6 - l, x * 1.1, -3.8 - l, 3.4, 3.6, HP.BOOT, { g: 'boot' + g, ol: 2 });
     R.E(x * 1.12, -2.8 - l, 4.3, 2.8, 0, HP.BOOT, { g: 'boot' + g, ol: 2 });
     R.DL(x * 1.12 - 3.4, -.6 - l, x * 1.12 + 3.4, -.6 - l, HP.SOLE);
     R.stamp(x * 1.1, -7.6 - l, ['l.l', '.l.'], { l: HP.LACE }, 1, 0);
@@ -65,12 +66,13 @@ function hunterFront(R, s) {
   R.P([[-6.4, -56.6], [6.4, -56.6], [7, -50.6], [6.6, -45.8], [4.2, -43], [-4.2, -43], [-6.6, -45.8], [-7, -50.6]], HP.SK, R.pat({ g: 'face', lt: [-.1, .95], rs: 0, alts: [HP.STB], alt: stubble(-48.4) }));
   R.P([[-7, -55.4], [-5.6, -55.4], [-5.8, -50.6], [-7.2, -51.4]], HP.HAIR, { g: 'burnL' });
   R.P([[7, -55.4], [5.6, -55.4], [5.8, -50.6], [7.2, -51.4]], HP.HAIR, { g: 'burnR' });
-  R.P([[-1.2, -51], [1.2, -51], [2.7, -46.8], [1.9, -45.4], [-1.9, -45.4], [-2.7, -46.8]], HP.SK, { g: 'nose', side: .62 });
-  R.stamp(-1, -46, ['n.n'], { n: '#7a3a30' });
-  if (s.blink) { R.stamp(-3.6, -50, ['LLL'], { L: INK }, 1); R.stamp(3.6, -50, ['LLL'], { L: INK }, 1); }
-  else { R.stamp(-3.6, -50.4, ['LLL', '.P.'], { L: INK, P: '#1a1214' }, 1); R.stamp(3.6, -50.4, ['LLL', '.P.'], { L: INK, P: '#1a1214' }, 1); }
-  R.stamp(-3.8, -52.6, ['HHHH.', '.HHHH'], { H: HP.HAIR[0] }, 2, 0); R.stamp(3.8, -52.6, ['.HHHH', 'HHHH.'], { H: HP.HAIR[0] }, 2, 0);
-  R.DL(-2.2, -44.2, 2.2, -44.2, HP.MOUTH);
+  R.P([[-1.2 + lk, -51], [1.2 + lk, -51], [2.7 + lk * 1.2, -46.8], [1.9 + lk * 1.2, -45.4], [-1.9 + lk * 1.2, -45.4], [-2.7 + lk * 1.2, -46.8]], HP.SK, { g: 'nose', side: .62 });
+  R.stamp(-1 + lk * 1.2, -46, ['n.n'], { n: '#7a3a30' });
+  const pupil = lk > .6 ? '..P' : lk < -.6 ? 'P..' : '.P.';
+  if (s.blink) { R.stamp(-3.6 + lk, -50, ['LLL'], { L: INK }, 1); R.stamp(3.6 + lk, -50, ['LLL'], { L: INK }, 1); }
+  else { R.stamp(-3.6 + lk, -50.4, ['LLL', pupil], { L: INK, P: '#1a1214' }, 1); R.stamp(3.6 + lk, -50.4, ['LLL', pupil], { L: INK, P: '#1a1214' }, 1); }
+  R.stamp(-3.8 + lk, -52.6, ['HHHH.', '.HHHH'], { H: HP.HAIR[0] }, 2, 0); R.stamp(3.8 + lk, -52.6, ['.HHHH', 'HHHH.'], { H: HP.HAIR[0] }, 2, 0);
+  R.DL(-2.2 + lk, -44.2, 2.2 + lk, -44.2, HP.MOUTH);
   hatFront(R, 1);
   R.pop();
 }
@@ -83,13 +85,13 @@ function hatFront(R, side) {
 }
 /* ---------- 사냥꾼: 뒤 ---------- */
 function hunterBack(R, s) {
-  const walk = !!s.walk, sw = walk ? Math.sin(s.p * TAU) : 0;
-  const lL = Math.max(0, -sw) * 2.4, lR = Math.max(0, sw) * 2.4;
-  const bob = walk ? (Math.abs(sw) < .38 ? -1 : 0) : (s.breath || 0), as = sw * 1.8;
+  const walk = !!s.walk, sw = walk ? Math.sin(s.p * TAU) : 0, cr = s.crouch || 0;
+  const lL = Math.max(0, -sw) * 2.4 * (1 - cr * .35), lR = Math.max(0, sw) * 2.4 * (1 - cr * .35);
+  const bob = (walk ? (Math.abs(sw) < .38 ? -1 : 0) : (s.breath || 0)) + cr * 4.6, as = sw * 1.8 * (1 - cr * .5);
   for (const [x, l] of [[-4.6, lL], [4.6, lR]]) {
-    const g = x < 0 ? 'L' : 'R';
-    R.K2(x, -21, x * 1.05, -9.6 - l, 3.7, 3.3, HP.PANT, { g: 'leg' + g });
-    R.K2(x * 1.05, -10.6 - l, x * 1.1, -3.8 - l, 3.4, 3.6, HP.BOOT, { g: 'boot' + g, ol: 2 });
+    const g = x < 0 ? 'L' : 'R', kx = x * (1.05 + cr * .22);
+    R.K2(x, -21 + cr * 4.6, kx, -9.6 - l, 3.7, 3.3, HP.PANT, { g: 'leg' + g });
+    R.K2(kx, -10.6 - l, x * 1.1, -3.8 - l, 3.4, 3.6, HP.BOOT, { g: 'boot' + g, ol: 2 });
     R.E(x * 1.12, -2.6 - l, 4, 2.6, 0, HP.BOOT, { g: 'boot' + g, ol: 2 });
     R.DL(x * 1.12 - 3.2, -.4 - l, x * 1.12 + 3.2, -.4 - l, HP.SOLE);
   }
@@ -125,18 +127,19 @@ function hunterBack(R, s) {
 }
 /* ---------- 사냥꾼: 옆 (오른쪽을 봄) ---------- */
 function hunterSide(R, s) {
-  const walk = !!s.walk, sw = walk ? Math.sin(s.p * TAU) : 0, cw = walk ? Math.cos(s.p * TAU) : 0;
-  const bob = walk ? (Math.abs(sw) < .38 ? -1 : 0) : (s.breath || 0), st = 5.4;
+  const walk = !!s.walk, sw = walk ? Math.sin(s.p * TAU) : 0, cw = walk ? Math.cos(s.p * TAU) : 0, cr = s.crouch || 0;
+  const bob = (walk ? (Math.abs(sw) < .38 ? -1 : 0) : (s.breath || 0)) + cr * 4.4, st = 5.4 * (1 - cr * .25);
+  const lean = () => { if (cr) { R.translate(0, -21); R.rotate(cr * .16); R.translate(cr * 1.2, 21); } };
   const leg = (fx, lift, near) => {
     const g = near ? 'legN' : 'legF', o = near ? { g, ol: 2 } : { g, b: -.18 };
-    R.K2(0, -21, fx * .55, -12.4 - lift * .4, 3.6, 3.3, HP.PANT, o);
-    R.K2(fx * .55, -12.4 - lift * .4, fx, -8.8 - lift, 3.3, 3.2, HP.PANT, o);
+    R.K2(0, -21 + cr * 4.4, fx * .55 + cr * 3.4, -12.4 - lift * .4 + cr * 1.4, 3.6, 3.3, HP.PANT, o);
+    R.K2(fx * .55 + cr * 3.4, -12.4 - lift * .4 + cr * 1.4, fx, -8.8 - lift, 3.3, 3.2, HP.PANT, o);
     const ob = near ? { g: g + 'b', ol: 2 } : { g: g + 'b', b: -.18 };
     R.K2(fx, -9.8 - lift, fx + .2, -4 - lift, 3.3, 3.5, HP.BOOT, ob);
     R.P([[fx - 3.4, -5.6 - lift], [fx + 2.6, -5.6 - lift], [fx + 6, -2.6 - lift], [fx + 6, -.2 - lift], [fx - 3.4, -.2 - lift]], HP.BOOT, ob);
     R.DL(fx - 3.4, -.4 - lift, fx + 5.8, -.4 - lift, HP.SOLE);
   };
-  R.push(); R.translate(0, bob);
+  R.push(); R.translate(0, bob); lean();
   R.K2(1, -42.4, 1 + sw * 3, -34, 3.3, 3, HP.JK, { g: 'armF', b: -.2 });
   R.K2(1 + sw * 3, -34, 1 + sw * 3.6, -28, 3, 2.8, HP.JK, { g: 'armF', b: -.2 });
   R.E(1.4 + sw * 3.6, -26.4, 2.5, 2.6, 0, HP.GLOVE, { g: 'handF', b: -.2 });
@@ -146,7 +149,7 @@ function hunterSide(R, s) {
   R.pop();
   leg(-sw * st, walk ? Math.max(0, -cw) * 2.2 : 0, false);
   leg(sw * st, walk ? Math.max(0, cw) * 2.2 : 0, true);
-  R.push(); R.translate(0, bob);
+  R.push(); R.translate(0, bob); lean();
   R.P([[-6.8, -24.6], [6.6, -24.6], [6.2, -18], [-6.6, -18]], HP.PANT, { g: 'hip' });
   R.P([[-6.6, -45.2], [5.2, -45.2], [8, -38], [7.6, -30], [6.8, -24.8], [-7, -24.8], [-7.8, -31], [-7.6, -39]], HP.JK, { g: 'jk', side: .66 });
   R.P([[1, -39.6], [6.8, -39.6], [6.8, -37.2], [1.2, -37.2]], HP.JKD, { g: 'poc', ol: 1, flat: 1 });
@@ -198,7 +201,8 @@ function catSideHi(R, s) {
   leg(4.6, p * TAU, false); leg(-4.4, p * TAU + Math.PI, false);
   R.K2(4.6, -9.6 + bob, 5.4, -12.6 + bob, 1, 1, CP.COL, { g: 'ccol' });
   R.stamp(5.6, -8.6 + bob, ['t'], { t: CP.TAG });
-  const hx = 7.6, hy = -12.4 + bob;
+  const sn = s.sniff ? 1 : 0, hx = 7.6 + sn * 1.6, hy = -12.4 + bob + sn * (4.6 + (s.nod || 0));
+  if (sn) R.K2(4.6, -9.6 + bob, hx - 1.4, hy - .4, 2.4, 2.2, CP.F, { g: 'cneck' });
   R.P([[hx - .6, hy - 2.4], [hx + .6, hy - 6.4], [hx + 2.4, hy - 2.6]], CP.F, { g: 'cearF', b: -.25 });
   R.E(hx, hy, 3.8, 3.3, 0, CP.F, R.pat({ g: 'ch', alts: [CP.S], alt: (x, y) => (y < hy - 1.6 && mod(Math.round(x - hx), 2) === 0 ? 0 : -1) }));
   R.P([[hx - 3.2, hy - 1.4], [hx - 2.8, hy - 5.4], [hx - 2, hy - 4.6], [hx - 1.6, hy - 5.8], [hx - .2, hy - 2]], CP.F, { g: 'cearN' });
@@ -384,31 +388,34 @@ function bakeChar(W, H, ox, oy, fn, seed) { const pb = hiBake(W, H, ox, oy, fn, 
 // 사냥꾼: SPR.hunter[dir][pose][frame]  dir: d u r l / pose: idle(0 숨 · 1 숨 들이쉼 · 2 눈 감음) walk(0..7)
 // 고양이: SPR.cat[dir][pose][frame]  dir: d u r l (sit · groom · loaf은 d만)
 const SPR = { hunter: {}, cat: {} };
+const HWALK = 12, CWALK = 12, CTROT = 8;
 function bakeSprites() {
   const H = SPR.hunter, Cc = SPR.cat;
   const views = { d: hunterFront, u: hunterBack, r: hunterSide };
+  const B = fn => bakeChar(HUNTER_W, HUNTER_H, HUNTER_OX, HUNTER_OY, fn, 3);
   for (const dir of ['d', 'u', 'r']) {
     const fn = views[dir];
-    H[dir] = { idle: [], walk: [] };
-    H[dir].idle.push(bakeChar(HUNTER_W, HUNTER_H, HUNTER_OX, HUNTER_OY, R => fn(R, { breath: 0 }), 3));
-    H[dir].idle.push(bakeChar(HUNTER_W, HUNTER_H, HUNTER_OX, HUNTER_OY, R => fn(R, { breath: -1 }), 3));
-    H[dir].idle.push(bakeChar(HUNTER_W, HUNTER_H, HUNTER_OX, HUNTER_OY, R => fn(R, { breath: 0, blink: true }), 3));
-    for (let f = 0; f < 8; f++) H[dir].walk.push(bakeChar(HUNTER_W, HUNTER_H, HUNTER_OX, HUNTER_OY, R => fn(R, { walk: true, p: f / 8 }), 3));
+    H[dir] = { idle: [], walk: [], sneak: [], look: [] };
+    H[dir].idle.push(B(R => fn(R, { breath: 0 })), B(R => fn(R, { breath: -1 })), B(R => fn(R, { breath: 0, blink: true })));
+    for (let f = 0; f < HWALK; f++) H[dir].walk.push(B(R => fn(R, { walk: true, p: f / HWALK })));
+    for (let f = 0; f < HWALK; f++) H[dir].sneak.push(B(R => fn(R, { walk: true, p: f / HWALK, crouch: 1 })));
+    if (dir === 'd') for (const lk of [-1, -.5, .5, 1]) H[dir].look.push(B(R => fn(R, { breath: 0, look: lk })));
   }
-  H.l = { idle: H.r.idle.map(mirrorCanvas), walk: H.r.walk.map(mirrorCanvas) };
+  H.l = { idle: H.r.idle.map(mirrorCanvas), walk: H.r.walk.map(mirrorCanvas), sneak: H.r.sneak.map(mirrorCanvas), look: [] };
   const cv = { d: catFrontHi, u: catBackHi, r: catSideHi };
+  const K = fn => bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, fn, 5);
   for (const dir of ['d', 'u', 'r']) {
     const fn = cv[dir];
-    Cc[dir] = { walk: [], trot: [], stand: [] };
-    for (let f = 0; f < 8; f++) Cc[dir].walk.push(bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => fn(R, { pose: 'walk', p: f / 8, tail: Math.sin(f / 8 * TAU) * .8 }), 5));
-    for (let f = 0; f < 6; f++) Cc[dir].trot.push(bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => fn(R, { pose: 'trot', p: f / 6, tail: Math.sin(f / 6 * TAU) * .6 }), 5));
-    Cc[dir].stand.push(bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => fn(R, { pose: 'stand', p: 0 }), 5));
-    Cc[dir].stand.push(bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => fn(R, { pose: 'stand', p: 0, blink: true }), 5));
+    Cc[dir] = { walk: [], trot: [], stand: [], sniff: [] };
+    for (let f = 0; f < CWALK; f++) Cc[dir].walk.push(K(R => fn(R, { pose: 'walk', p: f / CWALK, tail: Math.sin(f / CWALK * TAU) * .8 })));
+    for (let f = 0; f < CTROT; f++) Cc[dir].trot.push(K(R => fn(R, { pose: 'trot', p: f / CTROT, tail: Math.sin(f / CTROT * TAU) * .6 })));
+    for (const [tl, bl] of [[0, false], [0, true], [.6, false], [-.4, false]]) Cc[dir].stand.push(K(R => fn(R, { pose: 'stand', p: 0, blink: bl, tail: tl })));
+    if (dir === 'r') for (let f = 0; f < 4; f++) Cc[dir].sniff.push(K(R => fn(R, { pose: 'stand', p: 0, sniff: true, nod: [0, .8, 0, -.4][f], tail: [0, .3, .6, .3][f] })));
   }
-  Cc.l = { walk: Cc.r.walk.map(mirrorCanvas), trot: Cc.r.trot.map(mirrorCanvas), stand: Cc.r.stand.map(mirrorCanvas) };
-  Cc.sit = [0, 1, 2, 3].map(k => bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => catSitHi(R, { tail: [0, .6, 1, .4][k], blink: k === 3 }), 5));
-  Cc.sitEar = bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => catSitHi(R, { ear: 1 }), 5);
-  Cc.groom = [1, 2].map(g => bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => catSitHi(R, { groom: g }), 5));
-  Cc.loaf = [0, -1].map(b => bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => catLoafHi(R, { breath: b }), 5));
-  Cc.loafPeek = bakeChar(CAT_W, CAT_H, CAT_OX, CAT_OY, R => catLoafHi(R, { peek: true }), 5);
+  Cc.l = { walk: Cc.r.walk.map(mirrorCanvas), trot: Cc.r.trot.map(mirrorCanvas), stand: Cc.r.stand.map(mirrorCanvas), sniff: Cc.r.sniff.map(mirrorCanvas) };
+  Cc.sit = [0, 1, 2, 3, 4, 5].map(k => K(R => catSitHi(R, { tail: [0, .4, .8, 1, .6, .2][k], blink: k === 4 })));
+  Cc.sitEar = K(R => catSitHi(R, { ear: 1 }));
+  Cc.groom = [1, 2, 1, 2].map((g, k) => K(R => catSitHi(R, { groom: g, tail: k * .25 })));
+  Cc.loaf = [0, -1].map(b => K(R => catLoafHi(R, { breath: b })));
+  Cc.loafPeek = K(R => catLoafHi(R, { peek: true }));
 }
