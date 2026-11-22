@@ -1,0 +1,184 @@
+<title>모자 그늘 사냥꾼</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap">
+<style>
+  /* 레이아웃: 재단용 커팅 매트 위에 포스터 10장을 2열로 올려 둔 주인공 시안 보드 (앞선 시안 보드와 같은 틀) */
+  :root {
+    --bg: #e8ece6; --grid: #dbe1d9; --card: #fafbf7; --line: #cfd6cc;
+    --ink: #1f1a17; --muted: #59625b; --accent: #b4462a; --chip: #eef1eb; --floor: #6e5a40;
+    --display: 'Black Han Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --body: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #131917; --grid: #1b2320; --card: #1a211e; --line: #2c3632; --ink: #ece7de; --muted: #9ba49d; --accent: #f0794c; --chip: #222b27; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #131917; --grid: #1b2320; --card: #1a211e; --line: #2c3632; --ink: #ece7de; --muted: #9ba49d; --accent: #f0794c; --chip: #222b27; color-scheme: dark; }
+
+  body {
+    background-color: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding-block: 36px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header { display: grid; gap: 14px; margin-bottom: 28px; }
+  .eyebrow { font-size: 13px; letter-spacing: .08em; color: var(--accent); }
+  h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 5vw, 46px); line-height: 1.15; margin: 0; text-wrap: balance; }
+  .lede { max-width: 62ch; margin: 0; }
+  .rules { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 4px 0 0; list-style: none; }
+  .rules li { background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 13.5px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .note { font-size: 13.5px; color: var(--muted); margin: 0; max-width: 70ch; }
+  button { font: inherit; color: inherit; }
+  .toggle { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+  .toggle:hover { border-color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 500px), 1fr)); gap: 22px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; display: grid; min-width: 0; }
+  .poster { display: grid; place-items: center; padding: 0; border: 0; cursor: zoom-in; line-height: 0; }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; }
+  .info { padding: 16px 18px 18px; display: grid; gap: 12px; min-width: 0; }
+  .head { display: flex; align-items: baseline; gap: 10px; }
+  .num { font-family: var(--display); font-size: 15px; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .card h2 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.2; margin: 0; }
+  .point { margin: 0; font-size: 15.5px; }
+  .detail { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }
+  figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
+  figure canvas { border-radius: 4px; background: var(--floor); }
+  figcaption { font-size: 12px; color: var(--muted); }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 14px; }
+  dt { color: var(--muted); white-space: nowrap; }
+  dd { margin: 0; min-width: 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tag { font-size: 12.5px; border: 1px solid var(--line); background: var(--chip); border-radius: 4px; padding: 1px 8px; }
+  .sw { display: inline-flex; margin-left: auto; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  .sw i { width: 16px; height: 16px; display: block; }
+  footer { margin-top: 36px; display: grid; gap: 6px; }
+  footer h3 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
+  footer p { margin: 0; max-width: 66ch; }
+
+  .lb { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 11, .82); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  .lb-box { display: grid; gap: 12px; justify-items: center; max-width: 100%; }
+  .lb-row { display: flex; gap: 10px; align-items: center; color: #f3efe6; font-size: 15px; flex-wrap: wrap; justify-content: center; }
+  .lb-row b { font-family: var(--display); font-weight: 400; font-size: 20px; }
+  .lb button { background: #f3efe6; color: #1f1a17; border: 0; border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+  @media (max-width: 560px) { .info { padding: 14px; } .card h2 { font-size: 21px; } .detail { grid-template-columns: minmax(0, 1fr); } figure { justify-items: start; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">고양이와 함께하는 사냥 · 주인공 시안</div>
+    <h1>모자로 눈을 가린 사냥꾼 10명</h1>
+    <p class="lede">모두 무뚝뚝한 남자 사냥꾼이에요. 모자챙이 눈을 덮어서 코와 수염, 입으로만 표정이 드러나요. 다들 총 한 자루와 사냥칼을 챙겼고, 고양이 솔은 시안마다 다른 자리에 있어요. 카드 아래 작은 그림은 실제 게임 속 크기예요.</p>
+    <ul class="rules" aria-label="공통 규칙">
+      <li>모자챙으로 눈 가림</li><li>총 한 자루 + 사냥칼</li><li>무뚝뚝한 남자</li><li>에디토리얼 캐리커처</li><li>솔과 함께</li>
+    </ul>
+    <div class="bar">
+      <p class="note">고른 시안으로 게임 속 걷기 · 살금살금 · 두리번 움직임을 다시 만들어요. 솔이 앉는 자리는 시안마다 보여 주는 예시이고, 다른 시안의 자리와 바꿔도 돼요.</p>
+      <button class="toggle" id="play" type="button" aria-pressed="true">움직임 멈추기</button>
+    </div>
+  </header>
+  <main class="grid" id="grid" aria-live="polite"></main>
+  <footer>
+    <h3>고르는 법</h3>
+    <p>마음에 드는 번호를 알려 주세요. 섞어도 돼요. 예를 들어 "4번 모자에 7번 몸", "2번 사람에 9번처럼 솔은 모자 위"처럼요.</p>
+  </footer>
+</div>
+
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="크게 보기">
+  <div class="lb-box">
+    <canvas id="lbc" width="160" height="160"></canvas>
+    <div class="lb-row"><button type="button" id="prev" aria-label="이전 시안">이전</button><b id="lbt"></b><button type="button" id="next" aria-label="다음 시안">다음</button><button type="button" id="close">닫기</button></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/hires.js"></script>
+<script src="js/editorial.js"></script>
+<script src="js/hunter.js"></script>
+<script src="js/hunter-concepts.js"></script>
+<script>
+(function () {
+  const N = HCD.length, frames = HCD.map(() => []), minis = HCD.map(() => []), cards = [];
+  const grid = document.getElementById('grid');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let playing = !reduce, tick = 0, open = -1;
+
+  HCD.forEach((D, i) => {
+    const el = document.createElement('article'); el.className = 'card';
+    const num = String(i + 1).padStart(2, '0');
+    el.innerHTML = `
+      <button class="poster" type="button" style="background:${D.bg}" aria-label="${num}번 ${D.title} 크게 보기"><canvas width="160" height="160"></canvas></button>
+      <div class="info">
+        <div class="head"><span class="num">${num}</span><h2>${D.title}</h2></div>
+        <p class="point">${D.point}</p>
+        <div class="detail">
+          <figure><canvas class="mini" width="80" height="80" style="width:160px;height:160px" aria-label="${D.title} 게임 속 크기"></canvas><figcaption>게임 속 크기 (2배 확대)</figcaption></figure>
+          <dl><dt>사냥꾼</dt><dd>${D.hero}</dd><dt>총</dt><dd>${D.gun}</dd><dt>칼</dt><dd>${D.knife}</dd><dt>솔</dt><dd>${D.catPos}</dd></dl>
+        </div>
+        <div class="tags"><span class="tag">몸: ${D.body}</span><span class="sw" aria-label="색 조합">${D.swatch.map(c => `<i style="background:${c}"></i>`).join('')}</span></div>
+      </div>`;
+    grid.appendChild(el);
+    const cv = el.querySelector('.poster canvas'), mc = el.querySelector('.mini');
+    el.querySelector('.poster').addEventListener('click', () => openLb(i));
+    cards.push({ el, cv, g: cv.getContext('2d'), mg: mc.getContext('2d') });
+  });
+
+  // 정수 배율로만 키워서 픽셀이 고르게 보이게
+  function fit() {
+    for (const c of cards) {
+      const w = c.el.clientWidth || 320, s = Math.max(1, Math.min(3, Math.floor(w / 160)));
+      c.cv.style.width = (160 * s) + 'px'; c.cv.style.height = (160 * s) + 'px';
+    }
+  }
+  window.addEventListener('resize', fit); fit();
+
+  const bake = (i, f) => { if (!frames[i][f]) frames[i][f] = hcFrame(i, f).canvas(); return frames[i][f]; };
+  const bakeMini = (i, f) => { if (!minis[i][f]) minis[i][f] = hcFrame(i, f, true).canvas(); return minis[i][f]; };
+  for (let i = 0; i < N; i++) { cards[i].g.drawImage(bake(i, 0), 0, 0); cards[i].mg.drawImage(bakeMini(i, 0), 0, 0); }
+  const queue = []; for (let f = 1; f < HC_F; f++) for (let i = 0; i < N; i++) queue.push([i, f]);
+  (function work() {
+    const t0 = performance.now();
+    while (queue.length && performance.now() - t0 < 12) { const [i, f] = queue.shift(); bake(i, f); bakeMini(i, f); }
+    if (queue.length) setTimeout(work, 0);
+  })();
+
+  let last = 0;
+  function loop(ts) {
+    if (playing && ts - last > 125) {
+      last = ts; tick = (tick + 1) % HC_F;
+      for (let i = 0; i < N; i++) { const fr = frames[i][tick], mf = minis[i][tick]; if (fr) cards[i].g.drawImage(fr, 0, 0); if (mf) cards[i].mg.drawImage(mf, 0, 0); }
+      if (open >= 0) drawLb();
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  const playBtn = document.getElementById('play');
+  function setPlay(on) { playing = on; playBtn.textContent = on ? '움직임 멈추기' : '다시 움직이기'; playBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+  setPlay(playing);
+  playBtn.addEventListener('click', () => setPlay(!playing));
+
+  const lb = document.getElementById('lb'), lbc = document.getElementById('lbc'), lbg = lbc.getContext('2d'), lbt = document.getElementById('lbt');
+  let lastFocus = null;
+  function drawLb() { const fr = frames[open][playing ? tick : 0] || bake(open, 0); lbg.drawImage(fr, 0, 0); }
+  function sizeLb() { const m = Math.min(innerWidth - 32, innerHeight - 110), s = Math.max(1, Math.floor(m / 160)); lbc.style.width = (160 * s) + 'px'; lbc.style.height = (160 * s) + 'px'; }
+  function openLb(i) {
+    if (open < 0) lastFocus = document.activeElement;
+    open = i; lbt.textContent = `${String(i + 1).padStart(2, '0')} ${HCD[i].title}`;
+    sizeLb(); drawLb(); lb.hidden = false; document.getElementById('close').focus();
+  }
+  function closeLb() { lb.hidden = true; open = -1; if (lastFocus) lastFocus.focus(); }
+  document.getElementById('close').addEventListener('click', closeLb);
+  document.getElementById('prev').addEventListener('click', () => openLb((open + N - 1) % N));
+  document.getElementById('next').addEventListener('click', () => openLb((open + 1) % N));
+  lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+  window.addEventListener('resize', () => { if (open >= 0) sizeLb(); });
+  window.addEventListener('keydown', e => {
+    if (open < 0) return;
+    if (e.key === 'Escape') closeLb(); else if (e.key === 'ArrowLeft') openLb((open + N - 1) % N); else if (e.key === 'ArrowRight') openLb((open + 1) % N);
+  });
+})();
+</script>
