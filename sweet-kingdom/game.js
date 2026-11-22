@@ -1315,6 +1315,8 @@ const GIM = {
   roll: { name: '롤케이크', hint: '굴러오는 롤케이크를 피해요', desc: '굵은 줄 위로 거대한 롤케이크가 굴러가요. 나는 피하고, 줄 위의 적은 깔려서 크게 다쳐요.' },
   coat: { name: '설탕 코팅', hint: '반짝이는 적은 단단해요', desc: '적이 설탕 껍질을 두르고 나와요. 껍질이 깨질 때까지는 피해가 덜 들어가요.' },
   grid: { name: '와플 격자', hint: '격자 줄 사이 칸으로 피해요', desc: '내 주변에 와플 같은 가로세로 줄이 그어지고 곧 뜨거워져요. 줄과 줄 사이 빈칸으로 들어가요.' },
+  cookie: { name: '쿠키 틀', hint: '틀이 찍히면 가장자리로 비켜요', desc: '커다란 네모 쿠키 틀이 내 주위에 내려와요. 먼저 틀 테두리가 쾅 찍히고, 이어서 가운데가 꾹 눌려요. 테두리가 찍힌 뒤엔 가운데에서 벗어나요.' },
+  belt: { name: '컨베이어 벨트', hint: '벨트 위에선 옆으로 밀려요', desc: '사탕 공장 바닥에 컨베이어 벨트가 깔려 있어요. 벨트에 올라서면 화살표 쪽으로 쭉 밀려가요. 피할 때 타면 빨라요.' },
   pipe: { name: '생크림 짜기', hint: '줄지어 터지는 크림을 피해요', desc: '커다란 짤주머니가 내 옆을 지나가며 생크림을 한 줄로 짜요. 크림 방울이 차례로 터지니 줄 옆으로 비켜요.' },
   jelly: { name: '젤리 트램펄린', hint: '젤리를 밟으면 빨라져요', desc: '바닥에 말랑한 젤리 판이 깔려 있어요. 밟으면 통통 튀어서 아주 빨라져요. 피할 때 쓰면 좋지만 너무 빨라서 조심해요.' },
   slice: { name: '케이크 자르기', hint: '세 갈래 칼금 사이로 피해요', desc: '내 자리에서 케이크를 자르듯 세 갈래 칼금이 뻗어 나가요. 칼금 사이 빈 조각으로 비켜요.' },
@@ -1378,7 +1380,15 @@ const STAGES = [
   { n: '크림 보석 비', g: ['pipe', 'gemrain'] }, { n: '젤리 케이크 커팅', g: ['jelly', 'slice'] }, { n: '생크림 도넛', g: ['pipe', 'donut'] }, { n: '젤리 황금 젤리', g: ['jelly', 'goldrush'] }, { n: '여왕의 젤리 무도회', boss: 'queen', g: ['pipe'] },
   { n: '크림 롤케이크', g: ['pipe', 'roll'] }, { n: '젤리 차원문', g: ['jelly', 'portal'] }, { n: '생크림 한 줄', g: ['pipe'] }, { n: '단단한 젤리', g: ['jelly', 'coat'] }, { n: '초코 분수 대왕의 마지막 크림', boss: 'boss2', g: ['jelly'] },
   { n: '크림 그림자', g: ['pipe', 'stalker'] }, { n: '젤리 보석 비', g: ['jelly', 'gemrain'] }, { n: '마지막 짤주머니', g: ['pipe', 'bounty'] }, { n: '마지막 젤리', g: ['jelly', 'candles'] }, { n: '탄 설탕 마왕의 젤리', boss: 'boss3', g: ['pipe'] },
-  { n: '크림 탑 계단', g: ['pipe', 'giant'] }, { n: '젤리 왕좌 길', g: ['jelly', 'donut'] }, { n: '마지막 크림 장식', g: ['pipe', 'slice'] }, { n: '왕좌 앞 젤리', g: ['jelly'] }, { n: '이백팔십 번째 왕좌: 디저트 여왕의 크림 왕관', boss: 'queen', g: ['jelly'] }
+  { n: '크림 탑 계단', g: ['pipe', 'giant'] }, { n: '젤리 왕좌 길', g: ['jelly', 'donut'] }, { n: '마지막 크림 장식', g: ['pipe', 'slice'] }, { n: '왕좌 앞 젤리', g: ['jelly'] }, { n: '이백팔십 번째 왕좌: 디저트 여왕의 크림 왕관', boss: 'queen', g: ['jelly'] },
+  { n: '쿠키 굽는 날', g: ['cookie'] }, { n: '사탕 공장 벨트', g: ['belt'] }, { n: '쿠키 보석 비', g: ['cookie', 'gemrain'] }, { n: '벨트 위 현상범', g: ['belt', 'bounty'] }, { n: '초코 분수 대왕의 쿠키 공장', boss: 'boss2', g: ['cookie'] },
+  { n: '쿠키와 젤리', g: ['cookie', 'jelly'] }, { n: '벨트 위 황금 젤리', g: ['belt', 'goldrush'] }, { n: '거인의 쿠키 틀', g: ['cookie', 'giant'] }, { n: '벨트 와플', g: ['belt', 'grid'] }, { n: '마카롱 여왕의 포장 공장', boss: 'queen', g: ['belt'] },
+  { n: '코팅 쿠키', g: ['cookie', 'coat'] }, { n: '벨트 그림자', g: ['belt', 'stalker'] }, { n: '쿠키 현상범', g: ['cookie', 'bounty'] }, { n: '벨트 시럽 나선', g: ['belt', 'spiral'] }, { n: '탄 설탕 마왕의 쿠키', boss: 'boss3', g: ['cookie'] },
+  { n: '쿠키 황금 젤리', g: ['cookie', 'goldrush'] }, { n: '벨트 거인', g: ['belt', 'giant'] }, { n: '쿠키 차원문', g: ['cookie', 'portal'] }, { n: '벨트 위 촛불', g: ['belt', 'candles'] }, { n: '삼백 번째 왕좌: 디저트 여왕의 사탕 공장', boss: 'queen', g: ['belt'] },
+  { n: '쿠키 그림자', g: ['cookie', 'stalker'] }, { n: '단단한 벨트 사탕', g: ['belt', 'coat'] }, { n: '쿠키 와플', g: ['cookie', 'grid'] }, { n: '벨트 보석 비', g: ['belt', 'gemrain'] }, { n: '곰팡이 케이크의 벨트 공장', boss: 'boss', g: ['belt'] },
+  { n: '쿠키와 생크림', g: ['cookie', 'pipe'] }, { n: '벨트 위 젤리', g: ['belt', 'jelly'] }, { n: '쿠키 롤케이크', g: ['cookie', 'roll'] }, { n: '벨트 차원문', g: ['belt', 'portal'] }, { n: '초코 분수 대왕의 마지막 쿠키', boss: 'boss2', g: ['cookie'] },
+  { n: '쿠키 케이크 커팅', g: ['cookie', 'slice'] }, { n: '벨트 현상금 사냥', g: ['belt', 'bounty'] }, { n: '쿠키 시럽 나선', g: ['cookie', 'spiral'] }, { n: '벨트 위 생크림', g: ['belt', 'pipe'] }, { n: '탄 설탕 마왕의 마지막 벨트', boss: 'boss3', g: ['belt'] },
+  { n: '마지막 쿠키 틀', g: ['cookie', 'coat'] }, { n: '왕좌로 가는 벨트', g: ['belt', 'candles'] }, { n: '쿠키 탑 계단', g: ['cookie', 'giant'] }, { n: '왕좌 앞 벨트', g: ['belt'] }, { n: '삼백이십 번째 왕좌: 디저트 여왕의 쿠키 왕관', boss: 'queen', g: ['cookie'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1399,6 +1409,8 @@ function hazard(o) { B.haz.push(o); if (o.k === 'c') B.telegraphs.push({ k: 'cir
 const MINE_C = 170, mineHash = (i, j) => (Math.imul(i, 83492791) ^ Math.imul(j, 2971215073 | 0)) >>> 0;
 function minePos(i, j) { const h = mineHash(i, j); if (h % 3 !== 0 || (i === 0 && j === 0)) return null; return [(i + 0.5) * MINE_C + (h % 71) - 35, (j + 0.5) * MINE_C + ((h >> 8) % 71) - 35]; }
 function jellyAt(x, y) { const C = 200, cx = Math.floor(x / C), cy = Math.floor(y / C); for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) { const h = (Math.imul(i, 2654435761) ^ Math.imul(j, 40503)) >>> 0; if (h % 3 !== 0) continue; const mx = (i + 0.5) * C + (h % 51) - 25, my = (j + 0.5) * C + ((h >> 8) % 51) - 25; if (Math.abs(x - mx) < 50 && Math.abs(y - my) < 40) return h; } return 0; }      /* 젤리 판: 칸마다 정해진 자리 */
+const BELT_C = 260, BELT_H = 80;
+function beltAt(y) { const j = Math.floor(y / BELT_C); return y - j * BELT_C < BELT_H ? (((j % 2) + 2) % 2 ? 1 : -1) : 0; }      /* 컨베이어 벨트: 가로 줄마다 번갈아 왼쪽·오른쪽 */
 function mudAt(x, y) { const C = 230, cx = Math.floor(x / C), cy = Math.floor(y / C); for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) { const h = (Math.imul(i, 73856093) ^ Math.imul(j, 19349663)) >>> 0; if (h % 5 > 1) continue; const mx = (i + 0.5) * C + (h % 61) - 30, my = (j + 0.5) * C + ((h >> 8) % 61) - 30; if ((x - mx) ** 2 + (y - my) ** 2 < 66 * 66) return true; } return false; }
 function gimUpdate(dt) {
   const p = B.p, T = B.gt, every = (k, s) => { T[k] = (T[k] || 0) + dt; if (T[k] >= s) { T[k] -= s; return true; } return false; }, far = Math.hypot(vw, vh) / 2 + 40;
@@ -1428,6 +1440,8 @@ function gimUpdate(dt) {
     t.cd -= dt; if (t.cd <= 0) { t.cd = 3.2; const dx = p.x - t.x, dy = p.y - t.y - 10, m = Math.hypot(dx, dy) || 1; B.foeShots.push({ x: t.x, y: t.y - 10, vx: dx / m * 135, vy: dy / m * 135, r: 6, dmg: 1, life: 4 }); if (!headless) fxAdd({ k: 'flash', x: t.x, y: t.y - 10, r: 12, life: 0.1, max: 0.1, col: '#FF8FA8' }); } }
   if (G('mud')) B.spdK = mudAt(p.x, p.y) ? 0.5 : 1;
   if (G('jelly')) { const on = !!jellyAt(p.x, p.y); B.spdK = on ? 1.55 : 1; if (on && !T.jon && !headless) { fxAdd({ k: 'ring', x: p.x, y: p.y, r: 6, to: 34, life: 0.25, max: 0.25, col: '#B6F08A', w: 4 }); sfx.tap(); } T.jon = on; }      /* 젤리 위에서는 통통 빨라져요 */
+  if (G('belt')) { const b = beltAt(p.y); if (b) p.x += b * 95 * dt; }      /* 벨트 위에서는 옆으로 밀려요 */
+  if (G('cookie') && every('cok', 8)) { const cx = p.x, cy = p.y, h = 130; [[cx - h, cy - h, 0], [cx + h, cy - h, 1.5708], [cx + h, cy + h, 3.1416], [cx - h, cy + h, 4.7124]].forEach(([x, y, a]) => hazard({ k: 'l', x, y, a, len: 2 * h, w: 18, t: 1.3 })); hazard({ k: 'c', x: cx, y: cy, r: 90, t: 2.3 }); if (!headless) sfx.warn(); }      /* 쿠키 틀: 테두리 먼저, 가운데는 나중에 */
   if (G('pipe') && every('pip', 6)) { const a = Math.random() * 6.283, c = Math.cos(a), sn = Math.sin(a), off = (Math.random() < 0.5 ? -1 : 1) * rand(0, 40), sx = p.x - c * 300 - sn * off, sy = p.y - sn * 300 + c * off; for (let i = 0; i < 13; i++) hazard({ k: 'c', x: sx + c * i * 50, y: sy + sn * i * 50, r: 32, t: 1.1 + i * 0.08, cream: true }); if (!headless) sfx.warn(); }      /* 생크림 짜기: 한 줄로 차례차례 */
   if (G('cross') && every('cr', 4.4)) { hazard({ k: 'l', x: p.x - 560, y: p.y, a: 0, len: 1120, w: 22, t: 1.4 }); hazard({ k: 'l', x: p.x, y: p.y - 560, a: 1.5708, len: 1120, w: 22, t: 1.4 }); if (!headless) sfx.warn(); }
   if (G('sprinkle') && every('sp', 0.42)) { const a = Math.random() * 6.283, d = rand(30, 230); hazard({ k: 'c', x: p.x + Math.cos(a) * d + (p.moving ? p.dirX * 40 : 0), y: p.y + Math.sin(a) * d + (p.moving ? p.dirY * 40 : 0), r: 28, t: 0.95 }); }
@@ -1454,6 +1468,9 @@ function gimUpdate(dt) {
 /* 바닥에 그리는 기믹: 꿀 늪, 울타리, 소용돌이 */
 function gimGround() {
   const p = B.p;
+  if (G('belt')) { const x0 = X(p.x - vw), wd = Math.round(vw * 2 / WP) + 4, bh = BELT_H / WP; for (let j = Math.floor((p.y - vh) / BELT_C); j <= Math.floor((p.y + vh) / BELT_C); j++) { const y0 = Y(j * BELT_C), dir = ((j % 2) + 2) % 2 ? 1 : -1;      /* 벨트: 줄무늬와 흘러가는 화살표 */
+      R(INK, x0, y0 - 1, wd, bh + 2); R('#5A4A78', x0, y0, wd, bh); R('#7A6A9A', x0, y0 + 2, wd, 2); R('#7A6A9A', x0, y0 + bh - 4, wd, 2);
+      const off = ((Math.round(B.t * 95 / WP * dir) % 24) + 24) % 24, sx = Math.floor((p.x - vw) / WP / 24) * 24 - pcx; for (let x = sx - 24 + off; x < x0 + wd; x += 24) for (let k = 0; k < 6; k++) { const ax = x + (dir > 0 ? k : 5 - k); R('#FFD86B', ax, y0 + bh / 2 - 6 + k, 2, 2); R('#FFD86B', ax, y0 + bh / 2 + 4 - k, 2, 2); } } }
   if (G('jelly')) { const C = 200; for (let j = Math.floor((p.y - vh) / C); j <= Math.floor((p.y + vh) / C); j++) for (let i = Math.floor((p.x - vw) / C); i <= Math.floor((p.x + vw) / C); i++) { const h = (Math.imul(i, 2654435761) ^ Math.imul(j, 40503)) >>> 0; if (h % 3 !== 0) continue; const mx = X((i + 0.5) * C + (h % 51) - 25), my = Y((j + 0.5) * C + ((h >> 8) % 51) - 25), col = PASTEL[h % PASTEL.length], wob = Math.round(Math.sin(B.t * 6 + h) * 1);      /* 말랑한 젤리 판: 흔들리고 반짝여요 */
       R(INK, mx - 26, my - 21 + wob, 52, 42); R(col, mx - 25, my - 20 + wob, 50, 40); R('#FFFFFF', mx - 21, my - 16 + wob, 12, 3); R('#FFFFFF', mx - 21, my - 12 + wob, 3, 6); R('rgba(14,6,20,.25)', mx - 25, my + 14 + wob, 50, 6); } }
   if (G('mud')) { const C = 230; for (let j = Math.floor((p.y - vh) / C); j <= Math.floor((p.y + vh) / C); j++) for (let i = Math.floor((p.x - vw) / C); i <= Math.floor((p.x + vw) / C); i++) { const h = (Math.imul(i, 73856093) ^ Math.imul(j, 19349663)) >>> 0; if (h % 5 > 1) continue; const mx = (i + 0.5) * C + (h % 61) - 30, my = (j + 0.5) * C + ((h >> 8) % 61) - 30; putDisc(X(mx), Y(my), 33, 27, '#E0A020', 9); pcircle(X(mx), Y(my), 33, '#FFD86B'); } }
