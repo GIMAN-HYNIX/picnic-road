@@ -1,0 +1,163 @@
+<title>비 오는 숲 컨셉아트북</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap">
+<style>
+  /* 레이아웃: 비 오는 밤빛 한 가지 테마의 세로 스크롤 책. 표지 → 한 줄 컨셉 → 인물 → 사냥 → 비 규칙 → 빈칸 */
+  :root {
+    --bg: #1a222c; --panel: #232e3a; --line: #34424f; --ink: #e9e6dc; --muted: #9db0bf; --accent: #e0b032; --rain: #8fb0cc;
+    --display: 'Black Han Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --body: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
+  .wrap { max-width: 960px; margin: 0 auto; padding-block: 0 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  .cover { position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; padding: 40px 0 36px; }
+  .cover .art { position: relative; background: #56698a; line-height: 0; border-radius: 4px; }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; }
+  #rain { position: absolute; inset: 0; pointer-events: none; }
+  .eyebrow { font-size: 13px; letter-spacing: .1em; color: var(--accent); }
+  h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.12; margin: 8px 0 14px; }
+  .one { font-size: 18px; max-width: 34ch; }
+  .meta { margin-top: 16px; color: var(--muted); font-size: 14px; }
+  section { padding: 36px 0; border-top: 1px solid var(--line); display: grid; gap: 18px; }
+  .tag { font-size: 13px; letter-spacing: .08em; color: var(--accent); }
+  h2 { font-size: clamp(24px, 4vw, 32px); line-height: 1.2; }
+  .lead { max-width: 62ch; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+  .box h3 { font-size: 18px; }
+  .box p, .box li { font-size: 15px; color: var(--ink); }
+  .box ul { margin: 0; padding-left: 18px; }
+  .sheet { display: flex; flex-wrap: wrap; gap: 12px; }
+  .sheet figure { margin: 0; background: #56698a; border-radius: 4px; padding: 8px 8px 4px; display: grid; gap: 4px; justify-items: center; }
+  .sheet figcaption { font-size: 12px; color: #e8eef6; }
+  .chars { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: start; }
+  .steps { display: grid; gap: 10px; counter-reset: s; padding: 0; margin: 0; list-style: none; }
+  .steps li { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px 12px 52px; position: relative; min-width: 0; }
+  .steps li::before { counter-increment: s; content: counter(s); position: absolute; left: 14px; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #1a222c; font-family: var(--display); display: grid; place-items: center; font-size: 15px; }
+  .steps b { font-family: var(--display); font-weight: 400; color: var(--accent); }
+  .pal { display: flex; gap: 0; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); max-width: 420px; }
+  .pal i { flex: 1; height: 34px; }
+  .q { background: var(--panel); border: 1px dashed var(--accent); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; }
+  .q b { color: var(--accent); }
+  .todo { color: var(--muted); font-size: 14px; }
+  @media (max-width: 640px) { .cover, .chars { grid-template-columns: minmax(0, 1fr); } .cover .art { justify-self: start; } }
+  @media (prefers-reduced-motion: reduce) { #rain { display: none; } }
+</style>
+
+<div class="wrap">
+  <div class="cover">
+    <div class="art" id="art"><canvas id="hero" width="160" height="160"></canvas><canvas id="rain"></canvas></div>
+    <div>
+      <div class="eyebrow">컨셉아트북 · 초안 1</div>
+      <h1>비 오는 숲<br>우비 방랑자와 솔</h1>
+      <p class="one">비가 기본인 세계에서, 비를 걷으러 다니는 무뚝뚝한 사냥꾼과 우비 밑 고양이가 숲을 하나씩 개게 만드는 힐링 수집 모험.</p>
+      <p class="meta">그림은 모두 코드로 그린 에디토리얼 캐리커처 픽셀이에요. 이 책은 이야기하며 한 장씩 채워 가요.</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="tag">01 · 컨셉</div>
+    <h2>비를 걷는 사람</h2>
+    <p class="lead">이 세계의 숲에는 늘 비가 와요. 사냥꾼은 비를 따라온 게 아니라 비를 걷으러 다녀요. 숲 생물과 비가 만든 이상한 것들을 만나고, 기록하고, 모으면 그 자리의 비가 그치고 식물이 되살아나요. 지도가 조금씩 개는 게 진행도예요.</p>
+    <div class="cols">
+      <div class="box"><h3>힐링</h3><p>실패해도 벌이 없어요. 놓치면 비가 조금 세질 뿐이에요. 적은 죽지 않고 놀라 도망가거나 잠들어요.</p></div>
+      <div class="box"><h3>수집</h3><p>생물, 열매, 버섯, 돌을 모아요. 흔적을 읽고 찾는 과정이 재미예요.</p></div>
+      <div class="box"><h3>동행</h3><p>솔과 호흡을 맞추는 게 핵심이에요. 사냥꾼은 길을 만들고, 한 방은 솔이 해요.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02 · 인물</div>
+    <h2>우비 방랑자와 솔</h2>
+    <div class="chars">
+      <div class="art" style="background:#56698a;border-radius:4px;line-height:0"><canvas id="hero2" width="160" height="160"></canvas></div>
+      <div class="cols" style="grid-template-columns:1fr">
+        <div class="box"><h3>우비 방랑자</h3><p>몸을 덮는 세모 우비, 눈을 가린 노란 방수모, 덥수룩한 수염, 고무장화. 말이 없어요. 표정은 코와 입으로만 보여요.</p><ul><li>총: 위협과 신호용. 비 오는 날은 화약이 젖어요</li><li>사냥칼: 열매와 약초 손질, 길 내기</li></ul></div>
+        <div class="box"><h3>솔</h3><p>왼쪽 귀 끝이 찢어진 고등어 태비, 흰 양말, 빨간 목걸이. 비를 싫어해서 우비 밑이 기본 자리예요. 사냥감 위에서 식빵을 구워요.</p></div>
+      </div>
+    </div>
+    <div class="sheet" id="sol"></div>
+    <p class="todo">빈칸: 방랑자 3면도, 표정 시트(코와 입), 장비 상세, 솔 냥냥펀치와 할퀴기 자세</p>
+  </section>
+
+  <section>
+    <div class="tag">03 · 사냥</div>
+    <h2>한 번의 사냥</h2>
+    <ol class="steps">
+      <li><b>흔적 찾기</b> 진흙 발자국, 젖은 풀이 쓰러진 방향, 물방울 튀는 모양을 읽어요. 솔이 귀를 쫑긋해 방향을 알려 줘요.</li>
+      <li><b>살금살금 접근</b> 웅크리고 다가가요. 빗소리가 발소리를 가려 주지만 마른 가지는 소리가 커요.</li>
+      <li><b>솔이 먼저 움직임</b> 사냥꾼은 우비 밑에 숨고 솔이 풀숲으로 사라져요. 타이밍은 플레이어가 골라요.</li>
+      <li><b>냥냥펀치</b> 짧은 액션이에요. 사냥꾼은 우비 자락으로 길을 막고 시선을 끌어요.</li>
+      <li><b>식빵 굽기</b> 쓰러진 자리에서 솔이 식빵 자세로 쉬어요. 그 주변만 비가 그치고 채집 보상이 나와요.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="tag">04 · 비 규칙</div>
+    <h2>비가 시스템이 되는 부분</h2>
+    <div class="cols">
+      <div class="box"><h3>비의 세기</h3><ul><li>안개비, 보슬비, 장대비</li><li>세기마다 나타나는 생물이 달라요</li></ul></div>
+      <div class="box"><h3>그친 자리</h3><ul><li>사냥을 끝내면 그 주변이 개요</li><li>풀과 꽃이 돌아오고 지도가 밝아져요</li></ul></div>
+      <div class="box"><h3>우비</h3><ul><li>방수 능력치 장비</li><li>센 비 구역의 입장 조건</li></ul></div>
+      <div class="box"><h3>솔과 비</h3><ul><li>우비 밑에서 유대 게이지가 올라요</li><li>젖으면 기분이 떨어져요</li></ul></div>
+    </div>
+    <div class="pal" aria-label="비 오는 숲 색 조합"><i style="background:#56698a"></i><i style="background:#3e5a4a"></i><i style="background:#e0b032"></i><i style="background:#2a2e34"></i><i style="background:#8fb0cc"></i></div>
+    <p class="todo">빈칸: 시간대별 컬러 스크립트, 지역별 대표 그림, 맑게 갠 자리 대비 그림</p>
+  </section>
+
+  <section>
+    <div class="tag">05 · 같이 정할 것</div>
+    <h2>열린 질문</h2>
+    <div class="q"><b>1. 적의 정체</b><p>동물인가, 비가 만든 이상한 생물(물웅덩이 도깨비 같은)인가? 후자가 쓰러뜨리는 부담이 적고 디자인도 자유로워요.</p></div>
+    <div class="q"><b>2. 구조</b><p>비를 다 걷으면 끝나는 엔딩 여정인가, 끝없이 이어지는 수집형인가?</p></div>
+    <div class="q"><b>3. 돌아오는 곳</b><p>쉬어 가는 마을이나 오두막이 필요한가? 모은 걸 쓰는 곳(요리, 도감)을 둘까?</p></div>
+    <div class="q"><b>4. 비의 정체</b><p>끝까지 한 줄 힌트로만 둘까, 밝혀지는 이야기를 둘까?</p></div>
+  </section>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/hires.js"></script>
+<script src="js/editorial.js"></script>
+<script src="js/hunter.js"></script>
+<script src="js/hunter-concepts.js"></script>
+<script>
+(function () {
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const HID = 5; // 6번 우비 방랑자
+  const frames = []; for (let f = 0; f < HC_F; f++) frames.push(hcFrame(HID, f).canvas());
+  const c1 = document.getElementById('hero').getContext('2d'), c2 = document.getElementById('hero2').getContext('2d');
+  function fit() {
+    const w = Math.min(innerWidth - 32, 960), k = Math.max(1, Math.min(3, Math.floor((w < 640 ? w : 380) / 160)));
+    for (const id of ['hero', 'hero2']) { const c = document.getElementById(id); c.style.width = c.style.height = (160 * k) + 'px'; }
+    const r = document.getElementById('rain'), a = document.getElementById('hero'); r.width = 160 * k; r.height = 160 * k; r.style.width = r.style.height = (160 * k) + 'px'; rainK = k;
+  }
+  let rainK = 2; addEventListener('resize', fit); fit();
+  // 솔 시트
+  bakeSprites();
+  const S = SPR.cat, parts = [['앉기', S.sit[0]], ['귀 쫑긋', S.sitEar], ['그루밍', S.groom[0]], ['식빵', S.loaf[0]], ['걷기', S.r.walk[0]], ['종종걸음', S.r.trot[0]]];
+  const sol = document.getElementById('sol');
+  for (const [name, cv] of parts) {
+    const fig = document.createElement('figure'), c = document.createElement('canvas'); c.width = 40; c.height = 34; c.style.width = '160px'; c.style.height = '136px';
+    c.getContext('2d').drawImage(cv, 0, 0); const cap = document.createElement('figcaption'); cap.textContent = name; fig.append(c, cap); sol.appendChild(fig);
+  }
+  // 빗줄기 (그림 위, 픽셀 단위 선)
+  const rg = document.getElementById('rain').getContext('2d'), drops = []; for (let i = 0; i < 40; i++) drops.push({ x: Math.random() * 160, y: Math.random() * 160, v: 90 + Math.random() * 60 });
+  let tick = 0, last = 0, lt = 0;
+  function loop(ts) {
+    const dt = Math.min(.05, (ts - lt) / 1000 || 0); lt = ts;
+    if (!reduce) {
+      if (ts - last > 125) { last = ts; tick = (tick + 1) % HC_F; c1.drawImage(frames[tick], 0, 0); c2.drawImage(frames[tick], 0, 0); }
+      rg.clearRect(0, 0, rg.canvas.width, rg.canvas.height); rg.fillStyle = 'rgba(190,210,235,.55)';
+      for (const d of drops) { d.y += d.v * dt; d.x -= d.v * dt * .25; if (d.y > 160) { d.y = -8; d.x = Math.random() * 190; } rg.fillRect(Math.round(d.x) * rainK, Math.round(d.y) * rainK, rainK, 4 * rainK); }
+    }
+    requestAnimationFrame(loop);
+  }
+  c1.drawImage(frames[0], 0, 0); c2.drawImage(frames[0], 0, 0);
+  requestAnimationFrame(loop);
+})();
+</script>
