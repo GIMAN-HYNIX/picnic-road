@@ -4,169 +4,315 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap">
 <style>
-  /* 레이아웃: 비 오는 밤빛 한 가지 테마의 세로 스크롤 책. 표지 → 한 줄 컨셉 → 인물 → 사냥 → 비 규칙 → 빈칸 */
+  /* 레이아웃: 비 오는 밤의 세로 책 한 권. 장면 그림(도판)은 넓게, 글은 좁은 단에. 도판마다 번호와 색 메모를 붙인다.
+     한 가지 테마로 고정 (게임의 비 오는 밤 화면과 같은 바탕) */
   :root {
-    --bg: #1a222c; --panel: #232e3a; --line: #34424f; --ink: #e9e6dc; --muted: #9db0bf; --accent: #e0b032; --rain: #8fb0cc;
+    --bg: #161d26; --paper: #1e2731; --line: #334150; --ink: #ebe7dc; --muted: #a2b2c0; --hat: #e0b032; --rain: #8fb0cc; --plate: #56698a;
     --display: 'Black Han Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     --body: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     color-scheme: dark;
   }
-  body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
-  .wrap { max-width: 960px; margin: 0 auto; padding-block: 0 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-  h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; }
-  p { margin: 0; }
-  .cover { position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; padding: 40px 0 36px; }
-  .cover .art { position: relative; background: #56698a; line-height: 0; border-radius: 4px; }
-  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; }
-  #rain { position: absolute; inset: 0; pointer-events: none; }
-  .eyebrow { font-size: 13px; letter-spacing: .1em; color: var(--accent); }
-  h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.12; margin: 8px 0 14px; }
-  .one { font-size: 18px; max-width: 34ch; }
-  .meta { margin-top: 16px; color: var(--muted); font-size: 14px; }
-  section { padding: 36px 0; border-top: 1px solid var(--line); display: grid; gap: 18px; }
-  .tag { font-size: 13px; letter-spacing: .08em; color: var(--accent); }
-  h2 { font-size: clamp(24px, 4vw, 32px); line-height: 1.2; }
-  .lead { max-width: 62ch; }
-  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
-  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
-  .box h3 { font-size: 18px; }
-  .box p, .box li { font-size: 15px; color: var(--ink); }
-  .box ul { margin: 0; padding-left: 18px; }
-  .sheet { display: flex; flex-wrap: wrap; gap: 12px; }
-  .sheet figure { margin: 0; background: #56698a; border-radius: 4px; padding: 8px 8px 4px; display: grid; gap: 4px; justify-items: center; }
-  .sheet figcaption { font-size: 12px; color: #e8eef6; }
-  .chars { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: start; }
-  .steps { display: grid; gap: 10px; counter-reset: s; padding: 0; margin: 0; list-style: none; }
-  .steps li { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px 12px 52px; position: relative; min-width: 0; }
-  .steps li::before { counter-increment: s; content: counter(s); position: absolute; left: 14px; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #1a222c; font-family: var(--display); display: grid; place-items: center; font-size: 15px; }
-  .steps b { font-family: var(--display); font-weight: 400; color: var(--accent); }
-  .pal { display: flex; gap: 0; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); max-width: 420px; }
-  .pal i { flex: 1; height: 34px; }
-  .q { background: var(--panel); border: 1px dashed var(--accent); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; }
-  .q b { color: var(--accent); }
-  .todo { color: var(--muted); font-size: 14px; }
-  @media (max-width: 640px) { .cover, .chars { grid-template-columns: minmax(0, 1fr); } .cover .art { justify-self: start; } }
-  @media (prefers-reduced-motion: reduce) { #rain { display: none; } }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.75; word-break: keep-all; overflow-wrap: anywhere; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding-block: 0 88px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+  p, ul, ol, dl, figure { margin: 0; }
+  a { color: inherit; }
+  a:focus-visible, input:focus-visible { outline: 2px solid var(--hat); outline-offset: 3px; }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; height: auto; }
+  .art { position: relative; line-height: 0; background: var(--plate); }
+  .art > canvas { width: 100%; }
+  .art > canvas.rain { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .fix canvas { width: auto; }
+  .fix .art { width: fit-content; max-width: 100%; }
+
+  /* 표지 */
+  .cover { display: grid; gap: 22px; padding-top: 28px; }
+  .cover .art { border-radius: 3px; overflow: hidden; }
+  .cover-text { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: end; }
+  h1 { font-size: clamp(40px, 7.4vw, 76px); line-height: 1.04; margin-top: 6px; }
+  h1 small { display: block; font-size: .42em; color: var(--muted); margin-top: 10px; letter-spacing: .02em; }
+  .one { font-size: 18px; line-height: 1.7; max-width: 36ch; }
+  .meta { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  .toc { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 4px 20px; list-style: none; padding-left: 0; counter-reset: c; }
+  .toc li { counter-increment: c; font-size: 15px; }
+  .toc a { text-decoration: none; display: flex; gap: 10px; padding: 3px 0; }
+  .toc a::before { content: counter(c); font-family: var(--display); font-size: 15px; color: var(--rain); min-width: 1.4em; }
+  .toc a:hover { color: var(--hat); }
+
+  /* 장 */
+  section { padding-block: 76px 0; display: grid; gap: 22px; }
+  .sec { display: flex; gap: 14px; align-items: baseline; }
+  .no { font-family: var(--display); color: var(--rain); font-size: clamp(30px, 5vw, 44px); line-height: 1; opacity: .55; }
+  h2 { font-size: clamp(28px, 4.6vw, 40px); line-height: 1.15; }
+  .lead { max-width: 64ch; font-size: 17px; }
+  .terms { display: grid; max-width: 72ch; }
+  .terms > div { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 4px 18px; padding-block: 12px; border-top: 1px dotted var(--line); }
+  .terms dt { font-family: var(--display); font-size: 17px; color: var(--hat); line-height: 1.5; }
+  .terms dd { margin: 0; font-size: 15.5px; }
+  h3.sub { font-size: 21px; margin-top: 10px; }
+  .note { max-width: 64ch; font-size: 15.5px; }
+  .note b { color: var(--hat); font-weight: 400; font-family: var(--display); margin-right: 8px; }
+  figcaption, .cap { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+  figcaption b, .cap b { font-weight: 400; color: var(--ink); margin-right: 6px; }
+
+  /* 격자들 */
+  .grid { display: grid; gap: 14px; }
+  .g4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+  .g6 { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+  .tile { display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .tile .art { border-radius: 2px; justify-self: start; }
+  .tile .name { font-size: 15px; }
+  .tile .name span { color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .gear { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 14px; align-items: center; }
+  .gear .art { border-radius: 2px; }
+  .gear p { font-size: 14px; color: var(--muted); }
+  .gear h3 { font-size: 16px; }
+  .split { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .split > div:last-child { display: grid; gap: 12px; }
+  .hints { display: grid; gap: 8px; padding: 0; list-style: none; max-width: 60ch; }
+  .hints li { padding-left: 18px; position: relative; font-size: 15px; }
+  .hints li::before { content: ""; position: absolute; left: 2px; top: .72em; width: 7px; height: 7px; border-radius: 50%; background: var(--rain); }
+
+  /* 지도 */
+  .map { position: relative; }
+  .map .lab { position: absolute; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(12px, 2.2vw, 19px); color: #3a2a1e; white-space: nowrap; line-height: 1.1; text-shadow: 0 1px 0 rgba(230, 220, 192, .9); }
+
+  /* 지역 */
+  .region { display: grid; gap: 14px; padding-top: 10px; }
+  .region + .region { padding-top: 34px; }
+  .region-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  .region-head h3 { font-size: 26px; }
+  .region-head .rain-k { color: var(--rain); font-size: 14px; }
+  .region-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 28px; }
+  .facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 15px; }
+  .facts dt { color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips span { display: grid; gap: 3px; font-size: 11px; color: var(--muted); letter-spacing: .02em; }
+  .chips i { width: 44px; height: 22px; border-radius: 2px; border: 1px solid rgba(255, 255, 255, .08); }
+
+  /* 컬러 스크립트 */
+  .cs { display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+  .cs .h { font-size: 13px; color: var(--muted); }
+  .cs .rn { font-size: 14px; }
+  .ba { position: relative; }
+  .ba .art { overflow: hidden; }
+  .ba .top { position: absolute; inset: 0; }
+  .ba .top canvas { width: 100%; }
+  .ba .bar { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--hat); pointer-events: none; }
+  .ba-ctl { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .ba-ctl input { flex: 1; accent-color: var(--hat); min-width: 0; }
+
+  /* 몬스터 · 수집품 */
+  .mon .info { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .mon .info b { color: var(--ink); font-weight: 400; }
+  .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px 24px; }
+  .item { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: start; }
+  .item h3 { font-size: 17px; }
+  .item h3 span { font-family: var(--body); font-size: 12px; color: var(--muted); margin-left: 6px; }
+  .item p { font-size: 14px; line-height: 1.65; }
+  .item .art { border-radius: 2px; }
+
+  /* 텐트, 게임 화면 */
+  .legend { display: grid; gap: 6px; padding: 0; list-style: none; counter-reset: l; }
+  .legend li { counter-increment: l; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: 15px; }
+  .legend li::before { content: counter(l); width: 22px; height: 22px; border-radius: 50%; background: var(--hat); color: #1a1410; font-family: var(--display); font-size: 13px; display: grid; place-items: center; margin-top: 2px; }
+  .legend span { color: var(--muted); }
+  .hud { position: absolute; font-family: var(--body); line-height: 1.2; color: #f2eee4; background: rgba(18, 22, 30, .72); border: 1px solid rgba(255, 255, 255, .12); border-radius: 3px; padding: .35em .6em; font-size: clamp(10px, 1.7vw, 14px); display: flex; gap: .45em; align-items: center; }
+  .hud .drop { width: .5em; height: .75em; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: var(--rain); opacity: .35; }
+  .hud .drop.on { opacity: 1; }
+  .hud .pip { width: .6em; height: .6em; border-radius: 50%; background: var(--hat); }
+  .hud .pip.off { background: transparent; border: 1px solid var(--hat); }
+  .hud canvas { width: 7em; image-rendering: auto; border-radius: 2px; }
+  .done { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 22px 32px; }
+  .done ul { padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+  .end { margin-top: 48px; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .cover-text, .region-body, .split { grid-template-columns: minmax(0, 1fr); }
+    .terms > div { grid-template-columns: minmax(0, 1fr); }
+    .cs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .cs .rn { grid-column: 1 / -1; margin-top: 6px; }
+    .cs .h.e { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .art > canvas.rain { display: none; } }
 </style>
 
 <div class="wrap">
-  <div class="cover">
-    <div class="art" id="art"><canvas id="hero" width="160" height="160"></canvas><canvas id="rain"></canvas></div>
-    <div>
-      <div class="eyebrow">컨셉아트북 · 초안 2</div>
-      <h1>비 오는 숲<br>우비 방랑자와 솔</h1>
-      <p class="one">비가 기본인 세계에서, 비를 걷으러 다니는 무뚝뚝한 사냥꾼과 우비 밑 고양이가 숲을 하나씩 개게 만드는 힐링 수집 모험.</p>
-      <p class="meta">그림은 모두 코드로 그린 에디토리얼 캐리커처 픽셀이에요. 이 책은 이야기하며 한 장씩 채워 가요.</p>
-    </div>
-  </div>
-
-  <section>
-    <div class="tag">01 · 컨셉</div>
-    <h2>비를 걷는 사람</h2>
-    <p class="lead">이 세계의 숲에는 늘 비가 와요. 사냥꾼은 비를 따라온 게 아니라 비를 걷으러 다녀요. 숲 생물과 비가 만든 이상한 것들을 만나고, 기록하고, 모으면 그 자리의 비가 그치고 식물이 되살아나요. 지도가 조금씩 개는 게 진행도예요.</p>
-    <div class="cols">
-      <div class="box"><h3>힐링</h3><p>실패해도 벌이 없어요. 놓치면 비가 조금 세질 뿐이에요. 적은 죽지 않고 놀라 도망가거나 잠들어요.</p></div>
-      <div class="box"><h3>수집</h3><p>생물, 열매, 버섯, 돌을 모아요. 흔적을 읽고 찾는 과정이 재미예요.</p></div>
-      <div class="box"><h3>동행</h3><p>솔과 호흡을 맞추는 게 핵심이에요. 사냥꾼은 길을 만들고, 한 방은 솔이 해요.</p></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="tag">02 · 인물</div>
-    <h2>우비 방랑자와 솔</h2>
-    <div class="chars">
-      <div class="art" style="background:#56698a;border-radius:4px;line-height:0"><canvas id="hero2" width="160" height="160"></canvas></div>
-      <div class="cols" style="grid-template-columns:1fr">
-        <div class="box"><h3>우비 방랑자</h3><p>몸을 덮는 세모 우비, 눈을 가린 노란 방수모, 덥수룩한 수염, 고무장화. 말이 없어요. 표정은 코와 입으로만 보여요.</p><ul><li>총: 위협과 신호용. 비 오는 날은 화약이 젖어요</li><li>사냥칼: 열매와 약초 손질, 길 내기</li></ul></div>
-        <div class="box"><h3>솔</h3><p>왼쪽 귀 끝이 찢어진 고등어 태비, 흰 양말, 빨간 목걸이. 비를 싫어해서 우비 밑이 기본 자리예요. 사냥감 위에서 식빵을 구워요.</p></div>
+  <header class="cover">
+    <div class="art" data-k="cover" data-rain="120"></div>
+    <div class="cover-text">
+      <div>
+        <h1>비 오는 숲<small>우비 방랑자와 솔</small></h1>
+      </div>
+      <div>
+        <p class="one">비가 그치지 않는 숲. 말수 없는 방랑자와 고양이 솔이 물그림자를 달래며 빗물에 떠내려온 잊힌 물건을 주워 모아요.</p>
+        <p class="meta">2026년 11월에 엮은 컨셉아트북 1판이에요. 그림은 전부 코드로, 게임 화면과 같은 방식으로 칠했어요.</p>
       </div>
     </div>
-    <div class="sheet" id="sol"></div>
-    <p class="todo">빈칸: 방랑자 3면도, 표정 시트(코와 입), 장비 상세, 솔 냥냥펀치와 할퀴기 자세</p>
-  </section>
-
-  <section>
-    <div class="tag">03 · 사냥</div>
-    <h2>한 번의 사냥</h2>
-    <ol class="steps">
-      <li><b>흔적 찾기</b> 진흙 발자국, 젖은 풀이 쓰러진 방향, 물방울 튀는 모양을 읽어요. 솔이 귀를 쫑긋해 방향을 알려 줘요.</li>
-      <li><b>살금살금 접근</b> 웅크리고 다가가요. 빗소리가 발소리를 가려 주지만 마른 가지는 소리가 커요.</li>
-      <li><b>솔이 먼저 움직임</b> 사냥꾼은 우비 밑에 숨고 솔이 풀숲으로 사라져요. 타이밍은 플레이어가 골라요.</li>
-      <li><b>냥냥펀치</b> 짧은 액션이에요. 사냥꾼은 우비 자락으로 길을 막고 시선을 끌어요.</li>
-      <li><b>식빵 굽기</b> 쓰러진 자리에서 솔이 식빵 자세로 쉬어요. 그 주변만 비가 그치고 채집 보상이 나와요.</li>
+    <ol class="toc" aria-label="차례">
+      <li><a href="#concept">컨셉</a></li><li><a href="#world">세계관</a></li><li><a href="#story">이야기</a></li><li><a href="#wanderer">우비 방랑자</a></li>
+      <li><a href="#sol">솔</a></li><li><a href="#map">지도</a></li><li><a href="#regions">지역 다섯 곳</a></li><li><a href="#color">컬러 스크립트</a></li>
+      <li><a href="#shadows">물그림자</a></li><li><a href="#items">수집품</a></li><li><a href="#hunt">사냥</a></li><li><a href="#tent">텐트</a></li>
+      <li><a href="#screen">게임 화면</a></li><li><a href="#next">정한 것과 다음 단계</a></li>
     </ol>
+  </header>
+
+  <section id="concept">
+    <div class="sec"><span class="no">01</span><h2>비를 걷는 사람</h2></div>
+    <p class="lead">이 세계에는 늘 비가 와요. 그래도 방랑자는 비를 피해 다니지 않아요. 비 속에서 물그림자를 만나 달래 주고 그 몸에 품고 있던 물건을 주워요. 물건 하나가 돌아오면 그 자리의 비가 잠깐 그쳐요.</p>
+    <dl class="terms">
+      <div><dt>힐링</dt><dd>지는 일이 없어요. 놓치면 비가 조금 세질 뿐이에요. 물그림자는 쓰러지지 않고 물로 풀려요.</dd></div>
+      <div><dt>수집</dt><dd>물건마다 짧은 사연이 붙어 있어요. 주인이 같은 물건을 모으면 사연이 이어져요.</dd></div>
+      <div><dt>동행</dt><dd>방랑자가 길을 열고 마지막 한 방은 솔이 해요. 둘의 호흡이 이 게임의 손맛이에요.</dd></div>
+    </dl>
   </section>
 
-  <section>
-    <div class="tag">04 · 비 규칙</div>
-    <h2>비가 시스템이 되는 부분</h2>
-    <div class="cols">
-      <div class="box"><h3>비의 세기</h3><ul><li>안개비, 보슬비, 장대비</li><li>세기마다 나타나는 생물이 달라요</li></ul></div>
-      <div class="box"><h3>그친 자리</h3><ul><li>사냥을 끝내면 그 주변이 개요</li><li>풀과 꽃이 돌아오고 지도가 밝아져요</li></ul></div>
-      <div class="box"><h3>우비</h3><ul><li>방수 능력치 장비</li><li>센 비 구역의 입장 조건</li></ul></div>
-      <div class="box"><h3>솔과 비</h3><ul><li>우비 밑에서 유대 게이지가 올라요</li><li>젖으면 기분이 떨어져요</li></ul></div>
+  <section id="world">
+    <div class="sec"><span class="no">02</span><h2>잊힌 것들이 내리는 비</h2></div>
+    <p class="lead">누군가에게 잊힌 물건과 약속, 이름이 쌓이면 하늘이 무거워져서 비가 돼요. 그래서 이 세계의 비는 그치지 않아요. 빗물에 씻겨 숲으로 흘러나온 물건이 이 게임의 수집품이에요.</p>
+    <dl class="terms">
+      <div><dt>물그림자</dt><dd>잊힌 물건의 미련이 웅덩이에서 일어선 모습이에요. 몸이 물이라 품은 물건이 비쳐 보여요.</dd></div>
+      <div><dt>비가 그치는 법</dt><dd>미련을 풀어 주면 물그림자는 물로 돌아가고 물건이 남아요. 그 자리만 비가 그쳐요.</dd></div>
+      <div><dt>비의 세기</dt><dd>안개비, 보슬비, 장대비. 세기에 따라 나오는 물그림자가 달라요.</dd></div>
+    </dl>
+    <p class="note"><b>지킬 규칙</b> 방랑자의 과거는 끝까지 말하지 않아요. 수집품 사연이 가끔 건드리기만 해요.</p>
+  </section>
+
+  <section id="story">
+    <div class="sec"><span class="no">03</span><h2>세 막으로 보는 여정</h2></div>
+    <dl class="terms">
+      <div><dt>1막 젖은 길</dt><dd>방랑자와 솔은 처음부터 함께 걷고 있어요. 왜 같이 다니는지는 알려 주지 않아요. 물건을 모으다 보면 솔이 어떤 물건 앞에서만 오래 머무는 게 보여요.</dd></div>
+      <div><dt>2막 이름들</dt><dd>사연이 쌓이면서 비가 어디서 오는지 알게 돼요. 흩어진 물건 가운데 둘이 처음 만난 날의 조각이 섞여 있어요. 플레이어가 직접 맞춰야 보여요.</dd></div>
+      <div><dt>3막 가장 오래 잊힌 것</dt><dd>근원의 호수에서 비고래를 만나요. 가장 오래 잊힌 것의 미련을 풀어 줘요.</dd></div>
+          <div><dt>엔딩</dt><dd>비는 다 그치지 않아요. 가늘게 남은 비 속에서 둘은 텐트를 접고 다시 걸어요. 쓸쓸한데, 괜찮아요.</dd></div>
+      <div><dt>엔딩 뒤</dt><dd>남은 비가 새 물건을 계속 씻어 내려요. 이야기는 닫혀도 수집은 이어져요.</dd></div>
+    </dl>
+  </section>
+
+  <section id="wanderer">
+    <div class="sec"><span class="no">04</span><h2>우비 방랑자</h2></div>
+    <p class="lead">말이 없는 사람이에요. 눈은 노란 방수모 챙에 늘 가려 있어요. 표정은 코와 입, 모자챙의 기울기로만 보여 줘요. 우비 밑단 아래가 솔의 자리예요.</p>
+    <div class="grid g4" id="turn"></div>
+    <h3 class="sub">표정</h3>
+    <div class="grid g6" id="faces"></div>
+    <h3 class="sub">장비</h3>
+    <div class="grid g3" id="gear"></div>
+  </section>
+
+  <section id="sol">
+    <div class="sec"><span class="no">05</span><h2>솔</h2></div>
+    <p class="lead">왼쪽 귀 끝이 찢어진 고등어 태비. 흰 양말을 신었고 빨간 목걸이를 했어요. 비를 싫어해서 우비 밑이 제자리예요. 사냥에서 마지막 한 방을 맡아요.</p>
+    <div class="grid g6" id="poses"></div>
+    <div class="split">
+      <figure class="fix"><div class="art" data-k="tag" data-s="3"></div><figcaption><b>그림 5-10</b> 목걸이 태그</figcaption></figure>
+      <div>
+        <h3 class="sub" style="margin-top:0">평범한 잊힌 고양이</h3>
+        <p>솔은 특별한 존재가 아니에요. 누군가에게 잊힌 고양이예요. 다만 설명이 안 되는 구석을 몇 개 남겨 둬요. 답은 끝까지 안 줘요.</p>
+        <p>태그에 새긴 이름은 누가 긁어서 지웠어요. 이끼 폐허에서 줍는 밥그릇도 이름이 같은 식으로 긁혀 있어요.</p>
+        <p class="cap">단서 후보 (아직 정하지 않음)</p>
+        <ul class="hints">
+          <li>물그림자가 솔 앞에서는 얌전해져요.</li>
+          <li>비를 그렇게 싫어하면서 근원의 호수에서는 젖어도 가만히 있어요.</li>
+          <li>빛바랜 사진 속 고양이가 솔과 닮았는데, 사진 속 귀는 멀쩡해요.</li>
+        </ul>
+      </div>
     </div>
-    <div class="pal" aria-label="비 오는 숲 색 조합"><i style="background:#56698a"></i><i style="background:#3e5a4a"></i><i style="background:#e0b032"></i><i style="background:#2a2e34"></i><i style="background:#8fb0cc"></i></div>
-    <p class="todo">빈칸: 시간대별 컬러 스크립트, 지역별 대표 그림, 맑게 갠 자리 대비 그림</p>
   </section>
 
-  <section>
-    <div class="tag">05 · 세계관</div>
-    <h2>잊힌 것들이 내리는 비</h2>
-    <p class="lead">누군가에게 잊힌 물건, 약속, 이름이 쌓이면 하늘이 무거워져서 비로 내려요. 이 세계의 비가 그치지 않는 이유예요. 비에 씻겨 숲으로 흘러나온 잊힌 것들이 이 게임의 수집품이에요.</p>
-    <div class="cols">
-      <div class="box"><h3>수집품</h3><p>낡은 방울, 이름 없는 편지, 한 번도 불리지 않은 노래. 하나마다 서너 줄 이야기가 붙고, 같은 주인의 물건끼리 모으면 이야기가 이어져요.</p></div>
-      <div class="box"><h3>물그림자 (몬스터)</h3><p>잊힌 것의 미련이 물웅덩이에서 일어선 모습이에요. 그래서 낯선 괴물이 아니라 익숙한 동물 모양이에요.</p></div>
-      <div class="box"><h3>비가 그치는 법</h3><p>미련을 풀어 주면 물그림자가 물로 풀리고 수집품이 남아요. 그 자리의 비가 그쳐요.</p></div>
+  <section id="map">
+    <div class="sec"><span class="no">06</span><h2>이어진 지역 다섯 곳</h2></div>
+    <p class="lead">오픈월드 대신 크게 이어진 지역 다섯 곳으로 만들어요. 네 지역이 가운데 호수를 둘러싸고 있어서 호수는 처음부터 보이는데, 닿는 건 맨 마지막이에요.</p>
+    <figure><div class="art map" data-k="map" id="mapArt"></div><figcaption><b>그림 6-1</b> 빨간 점선이 길이에요. 1에서 4까지 차례로 열려요. 지나온 지역은 언제든 돌아가서 수집을 이어 가요. 강은 전부 호수로 흘러요.</figcaption></figure>
+  </section>
+
+  <section id="regions">
+    <div class="sec"><span class="no">07</span><h2>지역 다섯 곳</h2></div>
+    <p class="lead">지역마다 비의 결이 달라요. 대장 물그림자가 하나씩 버티고 있고 그 지역 수집품끼리는 사연이 이어져요.</p>
+    <div id="regionList"></div>
+  </section>
+
+  <section id="color">
+    <div class="sec"><span class="no">08</span><h2>비 올 때와 갠 뒤</h2></div>
+    <p class="lead">같은 자리를 비 올 때와 갠 뒤로 나눠 그렸어요. 비가 오면 색이 차갑게 가라앉아요. 그치면 그 지역만의 빛이 돌아오고 풀과 꽃이 살아나요. 진행할수록 지도가 이쪽 색으로 바뀌어 가요.</p>
+    <figure class="ba">
+      <div class="art" data-k="region:0:rain" id="baBase"><div class="top" id="baTop"></div><div class="bar" id="baBar"></div></div>
+      <div class="ba-ctl"><span>비</span><input type="range" id="baRange" min="0" max="100" value="50" aria-label="비 올 때와 갠 뒤 비교"><span>갠 뒤</span></div>
+      <figcaption><b>그림 8-1</b> 안개 숲. 막대를 밀어서 비교해 보세요. 갠 뒤에는 회중시계가 뿌리 옆에서 반짝여요.</figcaption>
+    </figure>
+    <div class="cs" id="cs"><span class="h e"></span><span class="h">비</span><span class="h">갠 뒤</span></div>
+  </section>
+
+  <section id="shadows">
+    <div class="sec"><span class="no">09</span><h2>물그림자</h2></div>
+    <p class="lead">잊힌 물건을 하나씩 품은 물 생물이에요. 동물 모양을 빌렸지만 괴상하지 않게 그려요. 몸이 물이라서 속이 비쳐요. 눈은 늘 반쯤 감겨 있고 발밑에는 웅덩이가 따라다녀요. 작은 것은 솔 혼자 상대하고 큰 것은 둘이 같이 상대해요.</p>
+    <div class="grid g6" id="monSmall" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr))"></div>
+    <h3 class="sub">대장</h3>
+    <div class="grid g3" id="monBoss" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr))"></div>
+    <h3 class="sub">풀려나는 순간</h3>
+    <div class="grid g3" id="release"></div>
+  </section>
+
+  <section id="items">
+    <div class="sec"><span class="no">10</span><h2>잊힌 물건들</h2></div>
+    <p class="lead">물건마다 두 줄짜리 사연이 붙어요. 게임 안에서는 텐트에서 펼쳐 읽어요. 같은 주인의 물건을 모으면 다음 사연이 열려요. 아래는 앞의 네 지역에서 줍는 열두 개예요.</p>
+    <div class="items" id="itemList"></div>
+  </section>
+
+  <section id="hunt">
+    <div class="sec"><span class="no">11</span><h2>한 번의 사냥</h2></div>
+    <p class="lead">흔적을 읽고 몰래 다가가서 솔을 보내요. 한 방에 풀어 준 다음에는 쉬어요. 이 흐름을 다섯 칸 콘티로 그렸어요.</p>
+    <div class="grid g3" id="board" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))"></div>
+  </section>
+
+  <section id="tent">
+    <div class="sec"><span class="no">12</span><h2>들고 다니는 집</h2></div>
+    <p class="lead">방랑자에게는 돌아갈 집이 없어요. 대신 조금 큰 텐트를 늘 등에 지고 다녀요. 펼치면 난로를 피우고 젖은 우비와 솔을 말려요.</p>
+    <div class="grid g3" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">
+      <figure><div class="art" data-k="tentOut"></div><figcaption><b>그림 12-1</b> 바깥. 처마 밑만 마른 땅이에요. 솔은 늘 입구에 앉아 있어요.</figcaption></figure>
+      <figure><div class="art" data-k="tentIn"></div><figcaption><b>그림 12-2</b> 안쪽 단면</figcaption></figure>
     </div>
-    <div class="q"><b>지킬 규칙</b><p>주인공의 과거는 끝까지 말하지 않아요. 수집품 이야기가 암시만 해요.</p></div>
-  </section>
-
-  <section>
-    <div class="tag">06 · 이야기</div>
-    <h2>세 막으로 보는 여정</h2>
-    <ol class="steps">
-      <li><b>1막 젖은 길</b> 방랑자와 솔은 이미 함께 걷고 있어요. 왜 같이 있는지는 말하지 않아요. 첫 수집품들을 모으며 작은 비가 걷히고, 솔이 어떤 물건에만 유독 반응하는 걸 플레이어가 눈치채요.</li>
-      <li><b>2막 이름들</b> 수집품 이야기가 쌓이며 비의 원리를 알게 돼요. 흩어진 수집품 중에 솔과 방랑자가 어떻게 길을 떠나게 됐는지 알려 주는 조각이 숨어 있어요. 플레이어가 조각을 맞춰서 알아내요. 솔의 빨간 목걸이 태그는 이름이 지워져 있어요.</li>
-      <li><b>3막 가장 오래 잊힌 것</b> 비의 근원에 닿아요. 가장 큰 물그림자와 마주하고, 그 미련을 풀어 줘요.</li>
-    </ol>
-    <div class="cols">
-      <div class="box"><h3>엔딩</h3><p>비가 완전히 그치지는 않아요. 가늘게 남은 비 속에서 둘이 텐트를 다시 접고 걸어가요. 쓸쓸하지만 괜찮아진 느낌이에요.</p></div>
-      <div class="box"><h3>엔딩 이후</h3><p>남은 비가 새 수집품을 계속 씻어 내요. 수집은 이어지고, 이야기만 닫혀요.</p></div>
-      <div class="box"><h3>둘이 함께 떠난 이유</h3><p>플레이 중 조각으로 알게 돼요. 단, 방랑자 개인의 과거는 비밀로 남겨요. 솔과의 만남만 드러나요.</p></div>
+    <div class="split">
+      <figure class="fix"><div class="art" data-k="turn:pack" data-s="2"></div><figcaption><b>그림 12-3</b> 접어서 진 모습</figcaption></figure>
+      <ol class="legend" id="tentLegend"></ol>
     </div>
   </section>
 
-  <section>
-    <div class="tag">07 · 몬스터</div>
-    <h2>물그림자</h2>
-    <p class="lead">작은 것부터 큰 것까지 있되 괴상하지 않아요. 동물 실루엣에 젖은 털, 물방울, 이끼 같은 익숙한 요소만 얹어요. 표정은 무서움 대신 시큰둥하거나 서글퍼요.</p>
-    <div class="cols">
-      <div class="box"><h3>작은 것 (솔이 혼자)</h3><p>손바닥 크기. 물방울 쥐, 우산 쓴 새끼 새. 솔이 냥냥펀치로 잡고 식빵을 구워요.</p></div>
-      <div class="box"><h3>중간 (둘이 협동)</h3><p>솔 몸집의 몇 배. 젖은 여우, 이끼 사슴. 방랑자가 우비 자락으로 시선을 끌고 솔이 파고들어요.</p></div>
-      <div class="box"><h3>큰 것 (보스)</h3><p>비구름을 쓴 큰 곰 같은 모습. 지역마다 하나씩 있고, 이긴 뒤 그 지역 비가 크게 걷혀요.</p></div>
-    </div>
-    <p class="todo">빈칸: 종류별 디자인 시트, 쓰러질 때 물로 풀리는 연출, 수집품이 남는 모습</p>
+  <section id="screen">
+    <div class="sec"><span class="no">13</span><h2>게임 화면</h2></div>
+    <p class="lead">위에서 비스듬히 내려다보는 시점이에요. 화면 위 정보는 줄이고 비의 세기, 수집 수, 솔의 기분만 늘 띄워 둬요.</p>
+    <figure>
+      <div class="art" data-k="game" id="gameArt">
+        <div class="hud" style="left:2.5%;top:4%"><span>보슬비</span><i class="drop on"></i><i class="drop on"></i><i class="drop"></i></div>
+        <div class="hud" style="right:2.5%;top:4%">수집 12 / 60</div>
+        <div class="hud" style="left:2.5%;bottom:5%"><span>솔</span><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip off"></i></div>
+        <div class="hud" style="right:2.5%;bottom:5%;padding:.3em" id="mini"></div>
+      </div>
+      <figcaption><b>그림 13-1</b> 화면 예시. 숫자는 예로 넣은 값이에요. 웅덩이 옆 물방울 쥐와 뿌리 옆 반짝임(수집품)이 보여요.</figcaption>
+    </figure>
   </section>
 
-  <section>
-    <div class="tag">08 · 텐트</div>
-    <h2>들고 다니는 안식처</h2>
-    <div class="cols">
-      <div class="box"><h3>말리기</h3><p>모닥불 곁 빨랫줄에 우비를 널어 말려요. 솔도 털을 말려요.</p></div>
-      <div class="box"><h3>읽기</h3><p>수집품을 펼쳐 이야기를 읽는 곳이에요. 모을수록 텐트 안이 채워져요. 걸린 방울, 붙은 편지, 텐트가 곧 도감이에요.</p></div>
-      <div class="box"><h3>쉬기</h3><p>솔과 유대가 오르고 체력이 돌아와요. 떠나기 전 준비도 여기서 해요.</p></div>
+  <section id="next">
+    <div class="sec"><span class="no">14</span><h2>정한 것과 다음 단계</h2></div>
+    <div class="done">
+      <div><h3 class="sub" style="margin:0 0 8px">정한 것</h3><ul>
+        <li>비가 기본인 세계, 비는 잊힌 것들</li>
+        <li>적은 비가 만든 물그림자 (작은 것부터 큰 것까지, 괴상하지 않게)</li>
+        <li>엔딩이 있고 엔딩 뒤에도 수집은 계속</li>
+        <li>안식처는 들고 다니는 텐트</li>
+        <li>방랑자의 과거는 비밀, 솔과의 사연은 진행하며 드러남</li>
+        <li>쓸쓸하지만 괜찮아지는 엔딩</li>
+        <li>크게 이어진 지역 다섯 곳</li>
+        <li>솔은 평범한 잊힌 고양이 (이상한 단서만 남김)</li>
+      </ul></div>
+      <div><h3 class="sub" style="margin:0 0 8px">다음에 할 것</h3><ul>
+        <li>물그림자마다 행동 하나씩 정하기 (도망, 숨기, 따라오기 같은 것)</li>
+        <li>수집품 수 확정. 지역당 12개면 사연 60편</li>
+        <li>솔 단서 후보 셋 중에서 고르기</li>
+        <li>안개 숲 한 지역으로 플레이 데모 만들기</li>
+      </ul></div>
     </div>
-    <p class="todo">빈칸: 텐트 외관, 안쪽 단면, 접어서 짊어진 모습 (사냥꾼 실루엣에 얹기)</p>
-  </section>
-
-  <section>
-    <div class="tag">09 · 정한 것과 남은 것</div>
-    <h2>다음에 같이 정할 것</h2>
-    <div class="q"><b>정함</b><p>적은 비가 만든 몬스터 · 엔딩이 있는 수집 · 텐트가 안식처 · 비는 잊힌 것들 · 주인공 과거는 비밀 · 쓸쓸하지만 괜찮아지는 엔딩 · 솔과의 사연은 진행하며 드러남</p></div>
-    <div class="q"><b>남음 1</b><p>세계는 몇 개 지역으로 나눌까요? 지역마다 비 분위기, 보스, 수집품 묶음을 하나씩 둘 수 있어요.</p></div>
-    <div class="q"><b>남음 2</b><p>솔이 잊힌 고양이인지, 다른 사연인지 정해야 해요. 지금은 목걸이 태그의 지워진 이름이 단서예요.</p></div>
-    <div class="q"><b>남음 3</b><p>수집품은 몇 개쯤 만들까요? 이야기를 쓰는 양이 정해져요.</p></div>
+    <p class="end">비 오는 숲 컨셉아트북 1판. 그림과 글은 함께 고쳐 가요.</p>
   </section>
 </div>
 
@@ -175,39 +321,149 @@
 <script src="js/editorial.js"></script>
 <script src="js/hunter.js"></script>
 <script src="js/hunter-concepts.js"></script>
+<script src="js/ab-kit.js"></script>
+<script src="js/ab-world.js"></script>
+<script src="js/ab-cast.js"></script>
 <script>
 (function () {
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const HID = 5; // 6번 우비 방랑자
-  const frames = []; for (let f = 0; f < HC_F; f++) frames.push(hcFrame(HID, f).canvas());
-  const c1 = document.getElementById('hero').getContext('2d'), c2 = document.getElementById('hero2').getContext('2d');
-  function fit() {
-    const w = Math.min(innerWidth - 32, 960), k = Math.max(1, Math.min(3, Math.floor((w < 640 ? w : 380) / 160)));
-    for (const id of ['hero', 'hero2']) { const c = document.getElementById(id); c.style.width = c.style.height = (160 * k) + 'px'; }
-    const r = document.getElementById('rain'), a = document.getElementById('hero'); r.width = 160 * k; r.height = 160 * k; r.style.width = r.style.height = (160 * k) + 'px'; rainK = k;
+  const $ = s => document.querySelector(s);
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+  /* ---- 글 데이터 ---- */
+  const REG = [
+    { name: '안개 숲', rain: '안개비', boss: '안개 올빼미', obj: '6시 40분에 멈춘 회중시계', items: '편지, 파란 단추, 회중시계', mood: '줄기만 보일 만큼 큰 나무들 사이로 길이 하나 나 있어요. 여정이 시작되는 곳이에요. 가지 위 안개 속에서 졸린 눈 두 개가 내려다봐요.', pal: ['#a2b3ae', '#71877f', '#4f635b', '#3d6646', '#7d735a'] },
+    { name: '젖은 늪', rain: '보슬비', boss: '늪 거북', obj: '나룻배', items: '종이배, 우산 손잡이, 머리핀', mood: '물 위에 놓인 나무 데크를 따라 걸어요. 섬인 줄 알았던 게 가끔 숨을 쉬어요. 반쯤 잠긴 배는 대장을 풀어 주면 떠올라요.', pal: ['#90a49f', '#3f5753', '#4f6a44', '#4a5238', '#6a5642'] },
+    { name: '이끼 폐허', rain: '장대비', boss: '이끼 큰개', obj: '목줄과 이름표', items: '현관 방울, 빛바랜 사진, 이름 긁힌 밥그릇', mood: '사람이 떠난 마을이에요. 기와에 이끼가 덮였고 장독대만 그대로예요. 큰 개 한 마리가 대문 앞에서 아직 누군가를 기다려요.', pal: ['#76818d', '#3c444e', '#56763c', '#706858', '#553828'] },
+    { name: '비구름 산', rain: '바람 섞인 비', boss: '구름 곰', obj: '오르골', items: '자장가 악보, 오르골, 빨간 리본', mood: '출렁다리를 건너면 능선 위에서 구름이 곰 모양으로 잠들어 있어요. 곰 배 밑으로만 비가 내려요. 붉은 소나무가 절벽을 붙잡고 있어요.', pal: ['#9aa3b6', '#d6dce6', '#4a5160', '#9a4c38', '#344c40'] },
+    { name: '근원의 호수', rain: '거꾸로 오르는 빗방울', boss: '비고래', obj: '아직 비밀', items: '아직 비워 둠', mood: '빗방울이 하늘로 올라가요. 거울 같은 호수에는 잊힌 우산과 등이 떠다녀요. 하늘에서는 커다란 고래가 흐릿하게 헤엄쳐요.', pal: ['#b0a5c8', '#8c80ae', '#6c628e', '#e8e2ec', '#c8a048'] },
+  ];
+  const GEAR_TXT = ['챙이 눈을 덮어요. 뒤챙이 길어서 목덜미로 비가 들어오지 않아요.', '몸 전체를 덮는 큰 세모예요. 밑단 아래가 솔의 자리예요.', '빗물이 들지 않게 총구에 천을 감았어요. 쏘기보다 신호를 보낼 때 써요.', '열매와 약초를 손질하고 덩굴을 쳐서 길을 내요.', '웅덩이를 피하지 않고 그냥 밟고 지나가요.', '집 대신 늘 등에 져요. 난로 연통이 삐죽 나와 있어요.', '안개가 짙은 곳에서 발밑을 비춰요.', '주운 물건을 넣어요. 걸을 때마다 방울이 작게 울려요.'];
+  const ITEM_TXT = [
+    '받는 사람 이름만 번져서 읽을 수 없다. 첫 줄은 "늦어서 미안해"로 시작한다.',
+    '외투 맨 위에서 떨어진 단추. 다시 달아 주겠다던 말은 지켜지지 않았다.',
+    '6시 40분에 멈춰 있다. 태엽을 감아도 그 시각을 넘어가지 않는다.',
+    '안쪽에 연필로 "내일 또"라고 적혀 있다. 배를 접은 아이는 다음 날 오지 않았다.',
+    '천은 다 찢겨 나가고 손잡이만 남았다. 손이 닿던 자리만 반질반질하다.',
+    '꽃잎 하나가 떨어져 나갔다. 똑같은 핀이 어딘가에 하나 더 있다.',
+    '문을 열 때마다 울리던 방울. 마지막으로 울린 날 누군가 나가서 돌아오지 않았다.',
+    '사람 얼굴은 다 바랬는데 발치의 고양이만 또렷하다. 고양이 귀 끝은 멀쩡하다.',
+    '바닥에 새긴 이름을 누가 못으로 긁어 지웠다. 그릇은 아직 깨끗하다.',
+    '마지막 마디가 비에 번졌다. 처음 네 음이 오르골 노래와 같다.',
+    '태엽을 감으면 네 음만 울리고 멈춘다. 나머지 음은 악보에 있다.',
+    '선물 상자에 묶여 있던 리본. 상자는 끝내 열리지 않았다.',
+  ];
+  const ITEM_REG = ['안개 숲', '젖은 늪', '이끼 폐허', '비구름 산'];
+
+  /* ---- 그림 슬롯 만들기 ---- */
+  const jobs = [], pbCache = {};
+  const memo = (key, fn) => pbCache[key] || (pbCache[key] = fn());
+  const MAKE = {
+    cover: () => AB.cover(0), map: () => memo('map', AB.map), tag: AB.tag, tentOut: AB.tentOut, tentIn: AB.tentIn, game: AB.game,
+    region: (i, v) => memo('r' + i + v, () => AB.R[+i](v === 'clear')),
+    turn: v => AB.turn(v), face: e => AB.face(e), gear: i => AB.gear(+i), sol: k => AB.solPose(k),
+    mon: i => AB.monster(+i), rel: i => AB.release(+i), item: i => AB.item(+i), board: i => AB.board(+i),
+  };
+  const SIZE = { cover: [480, 270], map: [480, 300], tag: [64, 64], tentOut: [240, 150], tentIn: [240, 150], game: [480, 270], region: [480, 270], turn: [100, 170], face: [64, 64], gear: [64, 64], sol: [64, 56], mon: i => (+i >= 5 ? [112, 88] : [64, 56]), rel: [120, 80], item: [48, 48], board: [160, 96] };
+  const canvases = [];
+  function slot(box) {
+    const [fn, ...args] = box.dataset.k.split(':');
+    let sz = SIZE[fn]; if (typeof sz === 'function') sz = sz(...args);
+    const c = document.createElement('canvas'); c.width = sz[0]; c.height = sz[1];
+    const s = +box.dataset.s; if (s) { c.style.width = sz[0] * s + 'px'; c.dataset.fixed = 1; }
+    box.prepend(c); canvases.push(c);
+    jobs.push(() => { const pb = MAKE[fn](...args); c.getContext('2d').putImageData(pb.img, 0, 0); });
+    if (box.dataset.rain) rainOver(box, sz[0], sz[1], +box.dataset.rain);
+    return c;
   }
-  let rainK = 2; addEventListener('resize', fit); fit();
-  // 솔 시트
-  bakeSprites();
-  const S = SPR.cat, parts = [['앉기', S.sit[0]], ['귀 쫑긋', S.sitEar], ['그루밍', S.groom[0]], ['식빵', S.loaf[0]], ['걷기', S.r.walk[0]], ['종종걸음', S.r.trot[0]]];
-  const sol = document.getElementById('sol');
-  for (const [name, cv] of parts) {
-    const fig = document.createElement('figure'), c = document.createElement('canvas'); c.width = 40; c.height = 34; c.style.width = '160px'; c.style.height = '136px';
-    c.getContext('2d').drawImage(cv, 0, 0); const cap = document.createElement('figcaption'); cap.textContent = name; fig.append(c, cap); sol.appendChild(fig);
+  const art = (k, s) => { const d = el('div', 'art'); d.dataset.k = k; if (s) d.dataset.s = s; return d; };
+
+  // 4장: 3면도, 표정, 장비
+  [['front', '앞'], ['q', '3/4'], ['back', '뒤'], ['pack', '텐트를 진 뒤']].forEach(([v, n], i) => { const f = el('figure', 'tile'); f.append(art('turn:' + v)); f.append(el('figcaption', null, '<b>그림 4-' + (i + 1) + '</b>' + n)); $('#turn').append(f); });
+  [['flat', '무뚝뚝'], ['smile', '흐뭇'], ['surp', '놀람'], ['sleep', '졸림'], ['wet', '흠뻑 젖음'], ['whistle', '휘파람']].forEach(([e, n]) => { const f = el('figure', 'tile'); f.append(art('face:' + e)); f.append(el('figcaption', null, n)); $('#faces').append(f); });
+  AB.GEAR.forEach((g, i) => { const d = el('div', 'gear'); d.append(art('gear:' + i, 2)); d.append(el('div', null, '<h3>' + g[0] + '</h3><p>' + GEAR_TXT[i] + '</p>')); $('#gear').append(d); });
+  // 5장: 솔 자세
+  [['sit', '앉기'], ['ear', '귀 쫑긋'], ['groom', '그루밍'], ['loaf', '식빵'], ['walk', '걷기'], ['trot', '종종걸음'], ['sniff', '냄새 맡기'], ['punch', '냥냥펀치'], ['scratch', '할퀴기']].forEach(([k, n], i) => { const f = el('figure', 'tile'); f.append(art('sol:' + k)); f.append(el('figcaption', null, '<b>5-' + (i + 1) + '</b>' + n)); $('#poses').append(f); });
+  // 7장: 지역
+  REG.forEach((r, i) => {
+    const d = el('article', 'region');
+    d.append(el('div', 'region-head', '<h3>' + (i + 1) + '. ' + r.name + '</h3><span class="rain-k">' + r.rain + '</span>'));
+    const fig = el('figure'); const a = art('region:' + i + ':rain'); a.dataset.rain = String([90, 110, 200, 120, 0][i]); fig.append(a); d.append(fig);
+    const body = el('div', 'region-body');
+    body.append(el('p', null, r.mood));
+    const right = el('div', null); right.style.display = 'grid'; right.style.gap = '12px';
+    right.append(el('dl', 'facts', '<dt>물그림자 대장</dt><dd>' + r.boss + '</dd><dt>대장이 품은 것</dt><dd>' + r.obj + '</dd><dt>수집품</dt><dd>' + r.items + '</dd>'));
+    right.append(el('div', 'chips', r.pal.map(h => '<span><i style="background:' + h + '"></i>' + h + '</span>').join('')));
+    body.append(right); d.append(body); $('#regionList').append(d);
+  });
+  // 8장: 컬러 스크립트 표
+  REG.forEach((r, i) => { const cs = $('#cs'); cs.append(el('span', 'rn', r.name)); cs.append(art('region:' + i + ':rain')); cs.append(art('region:' + i + ':clear')); });
+  // 9장: 물그림자
+  AB.MON.forEach((m, i) => { const f = el('figure', 'tile mon'); f.append(art('mon:' + i)); f.append(el('figcaption', 'info', '<b>' + m.name + '</b><br>품은 것: ' + m.item + '<br>' + m.size)); $(i < 5 ? '#monSmall' : '#monBoss').append(f); });
+  ['솔의 냥냥펀치', '물로 풀려요', '단추만 남고 비가 멎어요'].forEach((n, i) => { const f = el('figure', 'tile'); f.append(art('rel:' + i)); f.append(el('figcaption', null, '<b>' + (i + 1) + '</b>' + n)); $('#release').append(f); });
+  // 10장: 수집품
+  AB.ITEMS.forEach((it, i) => { const d = el('div', 'item'); d.append(art('item:' + i, 2)); d.append(el('div', null, '<h3>' + it[0] + '<span>' + ITEM_REG[it[1]] + '</span></h3><p>' + ITEM_TXT[i] + '</p>')); $('#itemList').append(d); });
+  // 11장: 콘티
+  AB.BOARD.forEach((b, i) => { const f = el('figure', 'tile'); f.append(art('board:' + i)); f.append(el('figcaption', null, '<b>' + (i + 1) + '</b>' + b[0] + '. ' + b[1])); $('#board').append(f); });
+  // 12장: 텐트 범례
+  AB.TENTLAB.forEach(t => $('#tentLegend').append(el('li', null, '<div>' + t[1] + ' <span>' + t[2] + '</span></div>')));
+  // 6장: 지도 이름
+  AB.MAPLAB.forEach(([n, name, x, y]) => { const s = el('span', 'lab', name); s.style.left = x * 100 + '%'; s.style.top = y * 100 + '%'; $('#mapArt').append(s); });
+
+  /* ---- 빗줄기 겹그림 (보이는 그림만 움직임) ---- */
+  const rains = [];
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { const r = rains.find(q => q.box === e.target); if (r) r.vis = e.isIntersecting; })) : null;
+  function rainOver(box, w, h, n) {
+    if (!n || reduce) return;
+    const c = document.createElement('canvas'); c.width = w; c.height = h; c.className = 'rain'; box.append(c);
+    const drops = []; for (let i = 0; i < n; i++) drops.push({ x: Math.random() * w, y: Math.random() * h, v: 150 + Math.random() * 110, l: 3 + Math.floor(Math.random() * 5), a: Math.random() < .35 ? .5 : .28 });
+    const r = { box, g: c.getContext('2d'), w, h, drops, vis: !io }; rains.push(r); if (io) io.observe(box);
   }
-  // 빗줄기 (그림 위, 픽셀 단위 선)
-  const rg = document.getElementById('rain').getContext('2d'), drops = []; for (let i = 0; i < 40; i++) drops.push({ x: Math.random() * 160, y: Math.random() * 160, v: 90 + Math.random() * 60 });
-  let tick = 0, last = 0, lt = 0;
+
+  document.querySelectorAll('.art[data-k]').forEach(slot);
+
+  /* ---- 표지 움직임: 16장 ---- */
+  const cover = document.querySelector('[data-k="cover"] canvas'), frames = [];
+  let coverVis = true; if (io) new IntersectionObserver(es => { coverVis = es[0].isIntersecting; }).observe(cover);
+  for (let f = 1; f < HC_F; f++) jobs.push(() => { frames[f] = AB.cover(f).img; });
+
+  /* ---- 비교 막대 ---- */
+  const baTop = $('#baTop'), baBar = $('#baBar'), baRange = $('#baRange');
+  const topC = document.createElement('canvas'); topC.width = 480; topC.height = 270; baTop.append(topC);
+  jobs.push(() => { topC.getContext('2d').putImageData(MAKE.region(0, 'clear').img, 0, 0); });
+  function setBA() { const v = +baRange.value; baTop.style.clipPath = 'inset(0 0 0 ' + v + '%)'; baBar.style.left = 'calc(' + v + '% - 1px)'; }
+  baRange.addEventListener('input', setBA); setBA();
+  // 게임 화면 미니맵
+  const mini = document.createElement('canvas'); mini.width = 480; mini.height = 300; $('#mini').append(mini);
+  jobs.push(() => { mini.getContext('2d').putImageData(MAKE.map().img, 0, 0); });
+
+  /* ---- 작업 순서대로 굽기 (화면이 멈추지 않게 조금씩) ---- */
+  // 작은 그림은 정수 배로 키워 픽셀 크기를 고르게. 넓은 도판은 폭에 맞추고, 원래보다 작아지면 부드럽게
+  function smooth() {
+    for (const c of canvases.concat([topC])) {
+      const box = c.parentElement; let w;
+      if (c.dataset.fixed) w = c.clientWidth;
+      else if (c.width <= 160) { const W = box.parentElement.clientWidth; if (!W) continue; const k = Math.max(1, Math.floor(W / c.width + .08)); w = Math.min(W, c.width * k); c.style.width = w + 'px'; }
+      else w = box.clientWidth;
+      c.style.imageRendering = w && w < c.width ? 'auto' : '';
+    }
+  }
+  function pump() { const t0 = performance.now(); while (jobs.length && performance.now() - t0 < 24) { try { jobs.shift()(); } catch (e) { console.error(e); } } if (jobs.length) setTimeout(pump, 0); else window.ART_DONE = true; }
+  addEventListener('resize', smooth); smooth();
+  setTimeout(pump, 0);
+
+  let last = 0, tick = 0, lt = 0;
   function loop(ts) {
     const dt = Math.min(.05, (ts - lt) / 1000 || 0); lt = ts;
     if (!reduce) {
-      if (ts - last > 125) { last = ts; tick = (tick + 1) % HC_F; c1.drawImage(frames[tick], 0, 0); c2.drawImage(frames[tick], 0, 0); }
-      rg.clearRect(0, 0, rg.canvas.width, rg.canvas.height); rg.fillStyle = 'rgba(190,210,235,.55)';
-      for (const d of drops) { d.y += d.v * dt; d.x -= d.v * dt * .25; if (d.y > 160) { d.y = -8; d.x = Math.random() * 190; } rg.fillRect(Math.round(d.x) * rainK, Math.round(d.y) * rainK, rainK, 4 * rainK); }
+      if (coverVis && ts - last > 125 && frames.length === HC_F) { last = ts; tick = (tick + 1) % HC_F; if (tick && frames[tick]) cover.getContext('2d').putImageData(frames[tick], 0, 0); else if (!tick) cover.getContext('2d').putImageData(pbCache.cover0 || (pbCache.cover0 = AB.cover(0)).img, 0, 0); }
+      for (const r of rains) {
+        if (!r.vis) continue; const g = r.g; g.clearRect(0, 0, r.w, r.h);
+        for (const d of r.drops) { d.y += d.v * dt; d.x -= d.v * dt * .26; if (d.y > r.h) { d.y = -d.l; d.x = Math.random() * (r.w + 40); } g.fillStyle = 'rgba(214,228,240,' + d.a + ')'; g.fillRect(Math.round(d.x), Math.round(d.y), 1, d.l); }
+      }
     }
     requestAnimationFrame(loop);
   }
-  c1.drawImage(frames[0], 0, 0); c2.drawImage(frames[0], 0, 0);
   requestAnimationFrame(loop);
 })();
 </script>
