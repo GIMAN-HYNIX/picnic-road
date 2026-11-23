@@ -14,7 +14,7 @@ const MANP = {
   STEEL: ['#24242a', '#3a3a44', '#5c5c6a'], WOOD: ['#4a2e1a', '#7a5032', '#9a6a44'], CLOTH: ['#8a7a56', '#bca878', '#dccca0'], BLADE: ['#7a7a88', '#c4c4d0', '#f4f4fc'],
 };
 const M_BRASS = { b: '#e2c25a' }, M_LACE = '#d6c49a';
-const MAN_W = 176, MAN_H = 152, MAN_OX = 80, MAN_OY = 142, MAN_S = 2, CAT_K = .35;   // CAT_K: 방랑자 좌표 안에서 솔의 배율 (.7 ÷ 2)
+const MAN_W = 256, MAN_H = 196, MAN_OX = 112, MAN_OY = 186, MAN_S = 2, CAT_K = .35;   // CAT_K: 방랑자 좌표 안에서 솔의 배율 (.7 ÷ 2)
 
 /* ---------- 옆모습 부품 ---------- */
 function mBoot(R, x, y, ang, g, far) {
@@ -97,6 +97,7 @@ function mBodyS(R, P) {
   R.K2(hip[0], hip[1] - 1.5, sh[0] + .6, sh[1] + 4, 4.4, 4.7, M.SHIRT, { g: 'body', ol: 1 });
   R.K2(hip[0] - 4, hip[1] - 1.4, hip[0] + 4.4, hip[1] - 1, 1.1, 1.1, M.LEA, { g: 'belt', ol: 1 }); R.stamp(hip[0] + 3.6, hip[1] - 1.2, ['b'], M_BRASS);
   R.E(hip[0] - 2.6, hip[1] + 1.6, 2, 2.4, 0, M.LEA, { g: 'pouch', ol: 1 });
+  R.K2(hip[0] + 1.6, hip[1] - .6, hip[0] - 3.6, hip[1] + 9.5, 1.5, 1, M.BOOT, { g: 'sheath', ol: 1 }); R.stamp(hip[0] + 1.4, hip[1] - .2, ['b'], M_BRASS);   // 빈 사냥칼 칼집
   R.K2(sh[0] + 3.2, sh[1] + 3, hip[0] - 3.4, hip[1] - 3, .7, .7, M.LEA, { g: 'sling', ol: 1 });
 }
 function mRifle(R, ax, ay, bx, by) {
@@ -111,10 +112,20 @@ function mRifle(R, ax, ay, bx, by) {
   const [gx, gy] = at(.12); R.DL(ax + nx * .5, ay + ny * .5, gx + nx * .3, gy + ny * .3, P.WOOD[2]);
   const [qx, qy] = at(.34); R.stamp(qx, qy, ['bb'], M_BRASS, 1, 0);
 }
-function mKnife(R, hand, ang) {
+// 칼 두 자루. hunt: 사냥칼 — 팔뚝보다 긴 외날, 놋쇠 코등이, 가죽 감은 자루 (물그림자를 벨 때)
+//          forage: 채집칼 — 손바닥만 한 굽은 날, 나무 자루 (버섯 · 열매를 딸 때)
+function mKnife(R, hand, ang, kind) {
   const c = Math.cos(ang), s = Math.sin(ang), at = (d, w) => [hand[0] + c * d - s * w, hand[1] + s * d + c * w];
-  R.P([at(1.4, -1.1), at(11, -1), at(13.6, .6), at(1.4, 1.3)], MANP.BLADE, { g: 'kb', ol: 1 });
-  const a = at(-1.8, 0), b = at(1.4, 0); R.K2(a[0], a[1], b[0], b[1], 1, 1, MANP.WOOD, { g: 'kh', ol: 1 });
+  if (kind === 'forage') {
+    R.P([at(1.2, -.8), at(4.4, -1.1), at(6.4, .4), at(5.2, 1.5), at(1.2, .9)], MANP.BLADE, { g: 'kb', ol: 1 });
+    const a = at(-1.6, 0), b = at(1.2, 0); R.K2(a[0], a[1], b[0], b[1], .9, .9, MANP.WOOD, { g: 'kh', ol: 1 });
+    return;
+  }
+  R.P([at(2, -1.5), at(16.5, -1.4), at(19.4, -.6), at(22, 1), at(2, 1.6)], MANP.BLADE, { g: 'kb', ol: 1 });
+  const f0 = at(4, -.6), f1 = at(17, -.5); R.DL(f0[0], f0[1], f1[0], f1[1], MANP.BLADE[0]);   // 피홈
+  const g0 = at(1.6, -2.5), g1 = at(1.6, 2.6); R.K2(g0[0], g0[1], g1[0], g1[1], .8, .8, ['#8a6a20', '#d8b040', '#fff0a0'], { g: 'kg', ol: 1 });
+  const a = at(-2.6, 0), b = at(1.2, 0); R.K2(a[0], a[1], b[0], b[1], 1.1, 1.1, MANP.LEA, { g: 'kh', ol: 1 });
+  const p = at(-3.2, 0); R.stamp(p[0], p[1], ['b'], M_BRASS);
 }
 
 /* ---------- 솔 동행 (옆) ---------- */
@@ -149,7 +160,7 @@ function mTorso(P, hip, lean, o = {}) {
   P.hip = hip; P.sh = [hip[0] + 1 + 18 * sn, hip[1] - 18 * cs];
   P.head = [P.sh[0] + 1.2 + 4 * sn, P.sh[1] - 5.5 + 2.4 * sn * sn];
   P.tilt = (o.tilt == null ? .04 : o.tilt) + lean * .55; P.hatTilt = P.tilt + .04;
-  P.front = [P.sh[0] + 6, P.sh[1] + 9]; P.hemF = [hip[0] + 9 + sw + 6 * sn, hip[1] + 9 - fl * .4]; P.hemB = [hip[0] - 11 - sw * .6 - fl * 3, hip[1] + 7.5 - fl * 2.4]; P.back = [P.sh[0] - 8, P.sh[1] + 7];
+  P.front = [P.sh[0] + 6, P.sh[1] + 9]; P.hemF = [hip[0] + 9.6 + sw + 6 * sn, hip[1] + 11 - fl * .5]; P.hemB = [hip[0] - 12 - sw * .6 - fl * 3.4, hip[1] + 9.6 - fl * 3]; P.back = [P.sh[0] - 8, P.sh[1] + 7];
   P.pouch = [hip[0] + 6 + sw * .5, hip[1] + 2];
   if (o.rifleBack !== false) P.rifleBack = [P.sh[0] - 10 - fl, P.sh[1] + 25 - fl * 2, P.sh[0] - 6 + (o.rsw || 0), P.sh[1] - 12];
   return P;
@@ -200,9 +211,9 @@ const M_DG = [[-1, -21, .3, 5, -2.2, -5, -2.2, 0, 0, 0], [2, -22, .75, 10, -4, -
 const M_DGF = [[5, 0, 0], [8, 1.4, 1], [10, 2, 2], [7, 1, 1.6], [2, .2, .5]];
 const M_KNEEL = { knN: [5.5, -11.5], anN: [6.5, -2.2], knF: [-3, -2.6], anF: [-10, -5], bootF: Math.PI / 2, bootN: 0 };
 const M_KN = [   // 칼 세 번: [어깨에서 본 손 x, y, 칼 방향, 몸이 나가는 정도, 자락이 날리는 정도] × 네 자세 (준비 · 베기 · 끝 · 거두기)
-  [[-5, -14, -2.3, -.6, .2], [15.5, -5, -.5, 1, 1.3], [9, 12.5, 1, 1.15, .9], [6, 10, .9, .4, .3]],        // 머리 위에서 비스듬히 내려 벰
-  [[5, 13, 1.3, .1, .3], [15.5, 3, .2, 1, 1.1], [4, -15.5, -1.5, .9, 1.3], [5, -10, -1.2, .4, .4]],         // 아래에서 위로 걷어 올림
-  [[-7.5, 4, 0, -.7, .1], [16.6, 0, 0, 1.7, 1.7], [16.6, 0, 0, 1.55, 1.2], [9, 4, .2, .5, .4]],             // 당겼다가 깊게 찌름
+  [[-8, -13.5, -2.6, -.9, .1], [15.5, -6, -.6, 1.2, 1.6], [7, 14, 1.25, 1.45, 1.1], [6, 10.5, 1, .5, .4]],     // 머리 뒤로 젖혔다가 몸을 실어 내려 벰
+  [[2, 14.5, 1.6, .2, .3], [15.5, 4, .25, 1.25, 1.4], [2, -16, -1.75, 1.1, 1.7], [4.5, -11, -1.3, .5, .5]],    // 낮게 깔았다가 위로 크게 걷어 올림
+  [[-9.5, 3, -.1, -1, 0], [16.8, -.5, 0, 2, 2.1], [16.8, 0, 0, 1.85, 1.5], [9, 4, .2, .6, .5]],                // 한껏 당겼다가 뛰어들며 깊게 찌름
 ];
 function mSidePose(anim, fr, o) {
   let P;
@@ -216,8 +227,8 @@ function mSidePose(anim, fr, o) {
     case 'knife1': case 'knife2': case 'knife3': case 'knife1c': case 'knife2c': case 'knife3c': {
       // 우비 앞자락을 뒤로 넘기고, 어깨부터 팔 전체로 크게 휘두름. 내디딘 무릎이 굽고 몸이 실림
       const K = mKnifeAt(anim, fr, false), lu = K[3], e = K[5], fw = Math.max(0, lu);
-      P = mLegs(mTorso({}, [lu * 3, lerp(-27, -25.2, e) + fw * 2.2], e * .06 + lu * .17, { flare: K[4] + fw * .3, tilt: .04 - lu * .05 }), [lerp(3.4, 6, e) + fw * 7, -2.2], [lerp(-3.2, -6.5, e) - fw * 1.5, -2.2], 0, e * .1 + clamp((lu - .3) * 2, 0, 1) * .5);
-      const S = [P.sh[0] + 1.6, P.sh[1] + 3], H = [S[0] + K[0], S[1] + K[1]], S2 = [P.sh[0] - 1, P.sh[1] + 3.4], H2 = [S2[0] + 2.5 - K[0] * .5, S2[1] + 11 - Math.abs(K[0]) * .22];
+      P = mLegs(mTorso({}, [lu * 3.8, lerp(-27, -25.2, e) + fw * 2.7], e * .06 + lu * .2, { flare: K[4] + fw * .3, tilt: .04 - lu * .06 }), [lerp(3.4, 6, e) + fw * 8.2, -2.2], [lerp(-3.2, -6.5, e) - fw * 1.6 + Math.min(0, lu) * 2, -2.2], 0, e * .1 + clamp((lu - .3) * 2, 0, 1) * .6);
+      const S = [P.sh[0] + 1.6 + lu * 1.2, P.sh[1] + 3], H = [S[0] + K[0], S[1] + K[1]], S2 = [P.sh[0] - 1, P.sh[1] + 3.4], H2 = [S2[0] + 2.5 - K[0] * .5, S2[1] + 11 - Math.abs(K[0]) * .22];
       P.open = e; P.armU = [S, mElbow(S, H, 1)]; P.armN = [P.armU[1], H]; P.knife = K[2];
       P.armB = [S2, mElbow(S2, H2, 1), H2]; P.rifleBack = [P.sh[0] - 9 - K[4], P.sh[1] + 24 - K[4] * 2, P.sh[0] - 5, P.sh[1] - 12];
       return P;
@@ -236,7 +247,7 @@ function mSidePose(anim, fr, o) {
     case 'hit': return mLegs(mTorso({}, [-1, -25], -.24, { tilt: -.2, flare: -.4 }), [4, -2.2], [-7, -2.2]);
     case 'down': return Object.assign(mTorso({}, [-1, -16], .5, { tilt: .5 }), M_KNEEL);
     case 'gather': P = mLegs(mTorso({}, [-1.5, -11], .3, { tilt: .2 }), [4.5, -2.2], [3, -2.2]); P.hemF = [11, -10]; P.hemB = [-7, -5.5]; P.rifleBack = [-9, -8, -1, -40]; P.pouch = null;
-      P.armN = [[8.6, -19], [12.6, fr % 2 ? -9 : -5]]; P.armF = [[7, -18], [9.5, -9]]; return P;
+      P.armN = [[8.6, -19], [12.6, fr % 2 ? -9 : -5]]; P.armF = [[7, -18], [9.5, -9]]; P.knife = fr % 2 ? 1.2 : .7; P.knifeK = 'forage'; return P;
     case 'pet': case 'lift': P = Object.assign(mTorso({}, [-1, -16], .12, { tilt: .2 }), M_KNEEL); P.hemF = [9.5, -13]; P.hemB = [-9, -11]; P.rifleBack = [-9, -14, 1, -48]; P.pouch = null;
       if (anim === 'pet') { P.armN = [[6.5, -23], [12 + (fr % 2) * 1.6, -13.6 + (fr % 2) * .8]]; P.armF = [[5, -24], [7, -15]]; } else { P.armN = [[7, -22], [12.4, -15 - fr * 3]]; P.armF = [[6, -22], [10.6, -14 - fr * 3]]; }
       return P;
@@ -266,7 +277,7 @@ function mSide(R, anim, fr, o = {}) {
   if (P.armF) mArm(R, P.armF[0], P.armF[1], true, 'af');
   if (P.rifle) mRifle(R, P.rifle[0], P.rifle[1], P.rifle[2], P.rifle[3]);
   if (P.armU) mUpper(R, P.armU[0], P.armU[1], false, 'au');
-  if (P.knife != null) mKnife(R, P.armN[1], P.knife);
+  if (P.knife != null) mKnife(R, P.armN[1], P.knife, P.knifeK);
   if (P.armN) mArm(R, P.armN[0], P.armN[1], false, 'an');
   if (P.extra) P.extra(R);
   return P.muz ? { muz: R.pt(P.muz[0], P.muz[1]) } : null;
@@ -340,16 +351,16 @@ function mFB(anim, fr, o) {
     if (run) q.fl = 1.2 + Math.sin(a * 2) * .7; else if (anim === 'walk') q.fl = .35 + Math.sin(a * 2 + 1) * .35; if (anim === 'sneak') q.cr = 6;
   } else if (anim === 'sneakIdle') q.cr = 6 + (fr % 2) * .3;
   else if (anim === 'dodge') { const D = mKeys(M_DGF, fr / (DG_N - 1) * 4); q.cr = D[0]; q.fl = Math.max(0, D[1]); q.wide = Math.max(0, D[2]); }
-  else if (anim.startsWith('knife')) { const K = mKnifeAt(anim, fr, true), e = K[5], u = fr / KN_SUB, bl = (c, w) => Math.exp(-(u - c) * (u - c) / w); q.cr = 2 * e - 1.4 * bl(1, .3) + 3.4 * bl(2.3, .5); q.wide = e * 1.4 + 1.6 * bl(2.3, .5); q.fl = Math.max(0, K[4]) * 1.5; q.open = e; q.lean = -1.6 * bl(1, .4) + 2.2 * bl(2.4, .6); }   // 준비 때 살짝 일어섰다가 베면서 낮게 가라앉음
+  else if (anim.startsWith('knife')) { const K = mKnifeAt(anim, fr, true), e = K[5], u = fr / KN_SUB, bl = (c, w) => Math.exp(-(u - c) * (u - c) / w); q.cr = 2 * e - 2 * bl(1, .3) + 5 * bl(2.3, .5); q.wide = e * 1.6 + 2.6 * bl(2.3, .5); q.fl = Math.max(0, K[4]) * 1.5; q.open = e; q.lean = -2.4 * bl(1, .4) + 3.6 * bl(2.4, .6); }   // 준비 때 살짝 일어섰다가 베면서 낮게 가라앉음
   else if (anim === 'aim') { q.wide = .8; q.cr = o.kneel ? 5 : 0; q.bob = o.br || 0; }
   else if (anim === 'hit') { q.cr = 1.5; q.fl = .8; }
   else q.bob = [0, .25, .45, .25][fr % 4];
   return q;
 }
 const M_KNF = [   // 앞모습 칼: [어깨에서 본 손 x, y, 칼 방향, (안 씀), 자락이 날리는 정도]
-  [[-5, -14, -1.9, 0, .2], [-15.5, -2, -3.1, 0, 1.1], [1, 13, .9, 0, .9], [-1, 10, 1.2, 0, .3]],
-  [[2, 13, .9, 0, .3], [-14.5, 5, 2.6, 0, 1], [-8, -14.5, -2.2, 0, 1.2], [-6, -10, -2, 0, .4]],
-  [[-3, 1, 1.57, 0, .1], [3, 13, 1.57, 0, 1.4], [3, 13, 1.57, 0, 1.1], [0, 9, 1.5, 0, .4]],
+  [[-6, -15, -1.8, 0, .2], [-16.5, -2, -3.1, 0, 1.4], [4, 14, .8, 0, 1.1], [0, 10.5, 1.2, 0, .4]],
+  [[4, 14, .8, 0, .3], [-15.5, 6, 2.6, 0, 1.3], [-8, -15.5, -2.1, 0, 1.6], [-6, -10.5, -1.9, 0, .5]],
+  [[-4, -1, 1.57, 0, 0], [3.5, 14.5, 1.57, 0, 1.8], [3.5, 14.5, 1.57, 0, 1.4], [0, 9, 1.5, 0, .5]],
 ];
 // 우비 속 몸 (앞 · 뒤): 셔츠와 허리띠
 function mBodyF(R, sx, y0) { const M = MANP; R.K2(sx, -41 + y0, sx * .4, -27 + y0, 7, 6.4, M.SHIRT, { g: 'body', ol: 1 }); R.K2(-6.4 + sx * .4, -27.6 + y0, 6.4 + sx * .4, -27.6 + y0, 1.1, 1.1, M.LEA, { g: 'belt', ol: 1 }); R.stamp(sx * .4, -27.6 + y0, ['b'], M_BRASS); }
@@ -378,7 +389,7 @@ function mFront(R, anim, fr, o = {}) {
   }
   if (under) mCatAt(R, 0, 2.6, r => solDraw(r, anim === 'walk' ? 'fwalk' : 'fsit', fr / GAIT_N * 16, { eye: c.st === 'alert' ? 'wide' : 'open', ear: c.st === 'alert' ? 1 : 0 }));
   if (op > 0) mBodyF(R, sx, y0);
-  mPonchoF(R, -45 + y0, -14 + y0, { sw: q.s * 2, fl: q.fl, cx: sx, bulge: c && c.mode === 'arms', bag: c && c.mode === 'bag', open: op, pouch: op > .3 ? false : undefined });
+  mPonchoF(R, -45 + y0, -12 + y0, { sw: q.s * 2, fl: q.fl, cx: sx, bulge: c && c.mode === 'arms', bag: c && c.mode === 'bag', open: op, pouch: op > .3 ? false : undefined });
   if (c && c.mode === 'bag' && c.st !== 'hide') R.E(7.4 + sx, -41.4 + y0, 1.3, 1, 0, SOLP.WHT, { g: 'cp', ol: 1 });
   if (aim) {
     const a = o.a == null ? Math.PI / 2 : o.a, rc = o.recoil || 0, dx = Math.cos(a), dy = Math.sin(a) * .8, b = [-3.2 - dx * rc * 1.5, -38 + y0 - dy * rc * 1.5], at = d => [b[0] + dx * d, b[1] + dy * d];
@@ -409,7 +420,7 @@ function mBack(R, anim, fr, o = {}) {
     const x = L.sd * wd, lift = Math.max(0, L.k) * 3.4, fw = Math.max(0, -L.k) * 1.2;
     R.K2(x + sx * .4, -27 + y0, x, -8 - lift + fw, 3, 2.5, P.TRO, { g: 'lg' + L.sd, ol: 1 }); mBootF(R, x, -lift + fw, 'bb' + L.sd, true);
   }
-  mPonchoF(R, -45 + y0, -14 + y0, { back: true, sw: q.s * 2, fl: q.fl, cx: sx, bag, open: op * .6 });
+  mPonchoF(R, -45 + y0, -12 + y0, { back: true, sw: q.s * 2, fl: q.fl, cx: sx, bag, open: op * .6 });
   if (bag) {
     R.P([[-7, -42 + y0], [7, -42 + y0], [8, -26 + y0], [-8, -26 + y0]], P.LEA, { g: 'bag', ol: 1 });
     R.P([[-7.2, -42.2 + y0], [7.2, -42.2 + y0], [7.6, -35.6 + y0], [-7.6, -35.6 + y0]], P.BOOT, { g: 'bagF', ol: 1 });

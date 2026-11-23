@@ -137,7 +137,7 @@ function drawFx() {
       } else {
         const dir = pt.c === 1 ? -1 : 1, span = 2.7, a0 = pt.a - span / 2 * dir, R = pt.reach - 4, n = 72;
         for (let i = Math.floor(tl * n); i <= hd * n; i++) {
-          const q = i / n, a = a0 + span * dir * q, ld = (q - tl) / Math.max(.02, hd - tl), w = 1 + 12 * Math.pow(ld, 1.4) * (.35 + .65 * Math.sin(q * Math.PI)), ca = Math.cos(a), sa = Math.sin(a) * .8;
+          const q = i / n, a = a0 + span * dir * q, ld = (q - tl) / Math.max(.02, hd - tl), w = 1 + 16 * Math.pow(ld, 1.4) * (.35 + .65 * Math.sin(q * Math.PI)), ca = Math.cos(a), sa = Math.sin(a) * .8;
           g.globalAlpha = .5 * fade; g.fillStyle = '#b4dcf6'; for (let r = R - w; r < R - 2; r += 1.5) g.fillRect(Math.round(px + ca * r), Math.round(py + sa * r), 2, 2);
           g.globalAlpha = fade; g.fillStyle = '#ffffff'; for (let r = R - Math.min(w, 3.5); r <= R; r += 1) g.fillRect(Math.round(px + ca * r), Math.round(py + sa * r), 2, 2);
         }

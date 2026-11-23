@@ -52,11 +52,11 @@ function pDodge() {
   const l = Math.hypot(dx, dy); PL.dvx = dx / l; PL.dvy = dy / l; PL.st = 'dodge'; PL.t = 0; PL.sneak = false; PL.kneel = false;
   GSFX.dodge(); noise(PL.x, PL.y, 120); drops(PL.x, PL.y, 2, 4, 50, '#9ab8d4', 60);
 }
-const KNF = [[.08, .09, .17, 1, 62, 22], [.07, .09, .17, 1, 62, 22], [.16, .1, .3, 2, 80, 44]];   // 준비 · 베기 · 거두기 · 피해 · 닿는 거리 · 내딛는 거리
+const KNF = [[.09, .09, .18, 1, 80, 34], [.07, .09, .18, 1, 80, 34], [.17, .1, .32, 2, 104, 66]];   // 준비 · 베기 · 거두기 · 피해 · 닿는 거리 · 내딛는 거리
 function pKnife(c, chain) {
   pUnload('knife'); PL.chain = !!chain; PL.combo = c; PL.st = 'knife'; PL.t = 0; PL.swHit = false; PL.swOn = false; PL.sneak = false;
   let a = IN.stick ? Math.atan2(IN.ay, IN.ax) : IN.mouseT < 2.5 && !V.touch ? Math.atan2(IN.cy + CAM.y - (PL.y - 40), IN.cx + CAM.x - PL.x) : IN.mx || IN.my ? Math.atan2(IN.my, IN.mx) : DIRA[PL.dir];
-  let best = null, bd = 112; for (const f of FOES) if (f.live) { const d = dist(f, PL); if (d < bd && Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), a)) < 1.05) { bd = d; best = f; } }
+  let best = null, bd = 150; for (const f of FOES) if (f.live) { const d = dist(f, PL); if (d < bd && Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), a)) < 1.05) { bd = d; best = f; } }
   if (best) a = Math.atan2(best.y - PL.y, best.x - PL.x);
   PL.swA = a; PL.dir = dir4(Math.cos(a), Math.sin(a), PL.dir);
 }
@@ -186,7 +186,7 @@ function pUpdate(dt) {
   } else if (st === 'knife') {
     const K = KNF[PL.combo], t = PL.t, a = PL.swA;
     // 준비: 몸을 살짝 뒤로 뺌 → 베기: 앞부분에 몰아서 훅 내디딤 → 거두기
-    if (t < K[0]) { const b = PL.combo === 2 ? 46 : 26; pMove(-Math.cos(a) * b, -Math.sin(a) * b, dt, 40); }
+    if (t < K[0]) { const b = PL.combo === 2 ? 70 : 34; pMove(-Math.cos(a) * b, -Math.sin(a) * b, dt, 40); }
     else if (t < K[0] + K[1]) { const u = (t - K[0]) / K[1], v = K[5] / K[1] * 2 * (1 - u); pMove(Math.cos(a) * v, Math.sin(a) * v, dt, 90); GHOSTS.push({ s: pSprite(), x: PL.x, y: PL.y, t: 0 }); if (GHOSTS.length > 5) GHOSTS.shift(); }
     else pMove(0, 0, dt, 30);
     if (t >= K[0] && !PL.swOn) { PL.swOn = true; GSFX.swish(PL.combo); part({ k: 'arc', x: PL.x, y: PL.y, a, c: PL.combo, sw: K[1], reach: K[4], life: K[1] + .14 }); if (PL.combo === 2) { ring(PL.x, PL.y, 12, .3, '#c4d8e8'); spray(PL.x, PL.y, 2, 5, a + Math.PI, 70, '#9ab8d4', 1.6); } }
