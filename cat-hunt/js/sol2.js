@@ -55,13 +55,16 @@ function s2Head(R, hx, hy, o = {}) {
   R.E(hx, hy, 6.7, 5.8, 0, FUR, R.pat({ g: 'head', alts: [STR], alt: (x, y) => (y < hy - 2.2 && x < hx + 2.4 && Math.abs(mod(x - hx + 10, 2.4) - 1.2) < .42 ? 0 : -1) }));
   R.E(hx - .6, hy + 2.8, 4.8, 3.4, 0, FUR, R.pat({ g: 'head', alts: [STR], alt: (x, y) => (Math.abs(y - (hy + 2.2 + (x - hx) * .22)) < .45 && x < hx + 1 ? 0 : -1) }));
   R.P([[hx - 5.6, hy + 3.4], [hx - 7.2, hy + 4.4], [hx - 5, hy + 5.4]], FUR, { g: 'head' });
-  R.E(hx + 4.2, hy + 1.9, 3.1, 2.5, 0, WHT, { g: 'muz' });
-  R.E(hx + 3.6, hy + 3.8, 2.4, 1.4, 0, WHT, { g: 'chin' });
+  R.E(hx + 4.6, hy + 1.6, 2.9, 2.2, 0, WHT, { g: 'muz' });
+  R.E(hx + 3.4, hy + 2.4, 2.6, 2, 0, WHT, { g: 'muz' });
+  R.E(hx + 4.4, hy + 4, 2, 1.1, 0, WHT, { g: 'chin' });
   s2Eye(R, hx + 2.8, hy - 1, o.eye);
-  R.stamp(hx + 7.4, hy + .4, ['NN', 'N.'], { N: '#d9827e' }, 0, 0);
-  if (o.hiss) R.stamp(hx + 5, hy + 3.4, ['MwwM', '.MM.'], { M: '#3a1a18', w: '#fffaf0' }, 1, 0);
-  else R.stamp(hx + 6, hy + 3, ['M.', '.M'], { M: '#5a3a34' }, 0, 0);
-  R.W(hx + 5, hy + 2.2, hx + 10.6, hy + 1.4, '#f2ece2'); R.W(hx + 5, hy + 2.8, hx + 10.2, hy + 3.4, '#e4ded4');
+  R.P([[hx + 5.6, hy - 1], [hx + 8.3, hy - .7], [hx + 7.4, hy + 1.3]], ['#b8605c', '#e08a86', '#f4b0aa'], { g: 'nose', ol: 1, cast: 0 });
+  R.DL(hx + 7.2, hy + 1.4, hx + 7.1, hy + 2.7, '#3a2220');
+  if (o.hiss) { R.stamp(hx + 5.4, hy + 2.8, ['MMMM', 'MwwM', '.MM.'], { M: '#3a1a18', w: '#fffaf0' }, 1, 0); }
+  else { R.DL(hx + 7.1, hy + 2.7, hx + 6.1, hy + 3.4, '#3a2220'); R.DL(hx + 6.1, hy + 3.4, hx + 4.9, hy + 3.1, '#3a2220'); R.DL(hx + 7.1, hy + 2.7, hx + 7.8, hy + 3.3, '#3a2220'); }
+  R.stamp(hx + 5, hy + 1.4, ['k.k', '.k.'], { k: '#9a8a80' }, 0, 0);
+  R.W(hx + 4.6, hy + 2, hx + 9.4, hy + 1.6, '#d8d2c8'); R.W(hx + 4.6, hy + 2.6, hx + 9, hy + 3.4, '#cac4ba');
 }
 // 빨간 리본 목줄 + 작은 매듭
 function s2Ribbon(R, x1, y1, x2, y2) {
@@ -71,12 +74,13 @@ function s2Ribbon(R, x1, y1, x2, y2) {
 }
 // 다리 둘 마디 (어깨→팔꿈치→발). front: 팔꿈치가 뒤로, 뒷다리는 발목이 뒤로
 function s2Leg(R, sx, sy, px, py, r1, r2, far, front, g, lift = 0) {
+  r1 *= .8; r2 *= .8;
   const { FUR, FURD, STR, STRD, WHT, WHTD } = S2;
   const jx = (sx + px) / 2 + (front ? -.8 : -2.6), jy = (sy + py) / 2 + (front ? 0 : 1.2) - lift * .4;
   const pal = far ? FURD : FUR, band = R.pat({ g, alts: [far ? STRD : STR], alt: (x, y) => (mod(y + 40, 3.4) < 1 ? 0 : -1), ...(far ? { b: -.1 } : { ol: 2 }) });
   R.K2(sx, sy, jx, jy, r1, (r1 + r2) / 2, pal, band);
   R.K2(jx, jy, px, py - 1.1 - lift, (r1 + r2) / 2, r2, pal, R.pat({ g, alts: [far ? STRD : STR], alt: (x, y) => (mod(y + 40, 3.4) < 1 ? 0 : -1), ...(far ? { b: -.1 } : { ol: 2 }) }));
-  R.E(px + .7, py - .9 - lift, 2.6, 1.3, 0, far ? WHTD : WHT, { g: g + 'p', ...(far ? { b: -.1 } : {}) });
+  R.E(px + .6, py - .9 - lift, 2.2, 1.15, 0, far ? WHTD : WHT, { g: g + 'p', ...(far ? { b: -.1 } : {}) });
 }
 
 /* ---------- 자세 ---------- */
@@ -84,7 +88,7 @@ function s2Leg(R, sx, sy, px, py, r1, r2, far, front, g, lift = 0) {
 function sol2Walk(R, s = {}) {
   const { FUR, STR, WHT } = S2, walk = s.p != null, ph = walk ? s.p * TAU : 0, bob = walk ? Math.cos(ph * 2) * .5 : 0;
   const sw = a => walk ? Math.sin(ph + a) * 4.2 : 0, lf = a => walk ? Math.max(0, Math.cos(ph + a)) * 1.8 : 0, tw = walk ? Math.sin(ph) * 1.4 : 0;
-  R.chain([[-14, -19 + bob], [-20, -20 + bob], [-24.4, -24 + bob], [-25.8 + tw * .5, -30 + bob], [-24.2 + tw, -35 + bob]], [2.3, 2.1, 1.9, 1.7, 1.4], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
+  R.chain([[-14, -19 + bob], [-20, -20 + bob], [-24.4, -24 + bob], [-25.8 + tw * .5, -30 + bob], [-24.2 + tw, -35 + bob]], [1.84, 1.68, 1.52, 1.36, 1.12], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
   s2Leg(R, 6.6, -15 + bob, 7.6 + sw(Math.PI), 0, 2.4, 1.7, true, true, 'ff', lf(Math.PI));
   s2Leg(R, -8.8, -10 + bob, -13.6 + sw(0), 0, 2.6, 1.6, true, false, 'fh', lf(0));
   R.E(-6, -17.6 + bob, 10.5, 7, 0, FUR, R.pat({ g: 'body', alts: [STR], alt: s2Stripe }));
@@ -101,20 +105,20 @@ function sol2Walk(R, s = {}) {
 // 앉기 (옆)
 function sol2Sit(R, s = {}) {
   const { FUR, FURD, STR, WHT } = S2;
-  R.chain([[-11, -3], [-13.6, -1.4], [-7, -.9], [3, -.9], [10.6, -1.3]], [2.1, 2, 1.8, 1.6, 1.4], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
-  R.K2(3.6, -13, 4.6, -1.4, 2.2, 1.7, FURD, { g: 'ff', b: -.1 }); R.E(5.4, -.9, 2.5, 1.2, 0, S2.WHTD, { g: 'ffp' });
+  R.chain([[-11, -3], [-13.6, -1.4], [-7, -.9], [3, -.9], [10.6, -1.3]], [1.68, 1.6, 1.44, 1.28, 1.12], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
+  R.K2(3.6, -13, 4.6, -1.4, 1.76, 1.36, FURD, { g: 'ff', b: -.1 }); R.E(5.4, -.9, 2.5, 1.2, 0, S2.WHTD, { g: 'ffp' });
   R.E(-4, -8, 9, 8, 0, FUR, R.pat({ g: 'hip', alts: [STR], alt: (x, y) => (mod(x * .8 + y * .5 + 20, 4) < 1.3 ? 0 : -1) }));
   R.E(2.6, -1.2, 4.4, 1.5, 0, WHT, { g: 'hp' });
   R.E(1.6, -17, 6.6, 10, -.22, FUR, R.pat({ g: 'torso', alts: [STR], alt: (x, y) => (x < 3 && mod(y + x * .5 + 40, 4.2) < 1.4 ? 0 : -1) }));
   R.E(5.8, -16.6, 3.2, 7, -.18, WHT, { g: 'chest' });
-  R.K2(6.4, -13.6, 7.4, -1.6, 2.3, 1.8, FUR, R.pat({ g: 'nf', ol: 2, alts: [STR], alt: (x, y) => (mod(y + 40, 3.4) < 1 && y < -5 ? 0 : -1) })); R.E(8.2, -1, 2.6, 1.3, 0, WHT, { g: 'nfp' });
+  R.K2(6.4, -13.6, 7.4, -1.6, 1.84, 1.44, FUR, R.pat({ g: 'nf', ol: 2, alts: [STR], alt: (x, y) => (mod(y + 40, 3.4) < 1 && y < -5 ? 0 : -1) })); R.E(8.2, -1, 2.6, 1.3, 0, WHT, { g: 'nfp' });
   s2Ribbon(R, 3, -24.6, 8.6, -21.4);
   s2Head(R, 8.4, -29.6, { eye: s.eye });
 }
 // 식빵 (옆)
 function sol2Loaf(R, s = {}) {
   const { FUR, STR, WHT } = S2;
-  R.chain([[-12, -3.4], [-9, -1], [-1, -.7], [7, -1]], [2.1, 1.9, 1.7, 1.5], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
+  R.chain([[-12, -3.4], [-9, -1], [-1, -.7], [7, -1]], [1.68, 1.52, 1.36, 1.2], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
   R.E(-1, -8.4, 13, 8.4, 0, FUR, R.pat({ g: 'body', alts: [STR], alt: (x, y) => (y < -6 && mod(x + Math.sin(y * .7) * 1.4 + 40, 4.4) < 1.5 ? 0 : -1) }));
   R.E(7.4, -8.6, 6, 7, 0, FUR, { g: 'body' });
   R.E(9.6, -5.4, 3.6, 4.4, 0, WHT, { g: 'chest' });
@@ -125,8 +129,8 @@ function sol2Loaf(R, s = {}) {
 // 경계 (등을 세우고 털을 부풀림)
 function sol2Puff(R) {
   const { FUR, STR, WHT } = S2;
-  R.chain([[-12, -21], [-15, -27], [-15.4, -33], [-14.2, -38]], [2.9, 3.4, 3.4, 2.8], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
-  for (let k = 0; k < 7; k++) { const y = -24 - k * 2.2, sd = k % 2 ? 1 : -1; R.P([[-15 + sd * 2.6, y], [-15 + sd * 4.6, y - 1.2], [-15 + sd * 2.4, y - 1.8]], FUR, { g: 'tail' }); }
+  R.chain([[-12, -21], [-15, -27], [-15.4, -33], [-14.2, -38]], [2.32, 2.72, 2.72, 2.24], FUR, R.pat({ g: 'tail', ol: 1, alts: [STR], alt: (x, y, t) => (mod(t * 2.2, 1) < .4 ? 0 : -1) }));
+  for (let k = 0; k < 7; k++) { const y = -24 - k * 2.2, sd = k % 2 ? 1 : -1; R.P([[-15 + sd * 2.1, y], [-15 + sd * 3.8, y - 1.2], [-15 + sd * 1.9, y - 1.8]], FUR, { g: 'tail' }); }
   s2Leg(R, 5.6, -17, 7, 0, 2.4, 1.7, true, true, 'ff');
   s2Leg(R, -8, -14, -11.6, 0, 2.6, 1.6, true, false, 'fh');
   R.E(-7.6, -20, 8.6, 6.6, .18, FUR, R.pat({ g: 'body', alts: [STR], alt: s2Stripe }));
