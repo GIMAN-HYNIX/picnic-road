@@ -6,7 +6,7 @@
    - 빛 받는 쪽 가장자리에 옅은 테두리 빛
    단위: 원점은 발 가운데, 위가 -y, 오른쪽을 봄. 몸길이(코~엉덩이) 약 40
    ========================================================= */
-function ramp6(b, cool = '#2a2038', warm = '#fff0d6') { return [mix(b, cool, .56), mix(b, cool, .38), mix(b, cool, .19), b, mix(b, warm, .2), mix(b, warm, .38)]; }
+function ramp6(b, cool = '#2a2038', warm = '#fff0d6') { return [mix(b, cool, .4), mix(b, cool, .16), b, mix(b, warm, .22)]; }
 const S2 = {
   FUR: ramp6('#9e8d79'), FURD: ramp6(mix('#9e8d79', '#2a2038', .22)), STR: ramp6('#5e4f43'), STRD: ramp6(mix('#5e4f43', '#2a2038', .22)),
   WHT: ramp6('#eee8de', '#5a6478', '#ffffff'), WHTD: ramp6('#cfc9c2', '#4a5468', '#f4f0ea'), PINK: ramp6('#e6a2a0'), RED: ramp6('#c0432f'), REDD: ramp6('#8e2c20'),
@@ -32,7 +32,7 @@ function s2SelOut(pb) {
     if (c) d[i] = _mixU(c, dk, t);
   }
 }
-function softBake(W, H, ox, oy, k, fn) { const pb = hiBake(W, H, ox, oy, R => { R.scl(k); fn(R); }, SOFT); s2Rim(pb); s2SelOut(pb); return pb; }
+function softBake(W, H, ox, oy, k, fn) { const pb = hiBake(W, H, ox, oy, R => { R.scl(k); fn(R); }, SOFT); s2SelOut(pb); return pb; }
 
 /* ---------- 부품 ---------- */
 const s2Stripe = (x, y) => (y < -13 && mod(x + Math.sin(y * .7) * 1.4, 4.4) < 1.5 ? 0 : -1);
@@ -55,16 +55,16 @@ function s2Head(R, hx, hy, o = {}) {
   R.E(hx, hy, 6.7, 5.8, 0, FUR, R.pat({ g: 'head', alts: [STR], alt: (x, y) => (y < hy - 2.2 && x < hx + 2.4 && Math.abs(mod(x - hx + 10, 2.4) - 1.2) < .42 ? 0 : -1) }));
   R.E(hx - .6, hy + 2.8, 4.8, 3.4, 0, FUR, R.pat({ g: 'head', alts: [STR], alt: (x, y) => (Math.abs(y - (hy + 2.2 + (x - hx) * .22)) < .45 && x < hx + 1 ? 0 : -1) }));
   R.P([[hx - 5.6, hy + 3.4], [hx - 7.2, hy + 4.4], [hx - 5, hy + 5.4]], FUR, { g: 'head' });
-  R.E(hx + 4.6, hy + 1.6, 2.9, 2.2, 0, WHT, { g: 'muz' });
-  R.E(hx + 3.4, hy + 2.4, 2.6, 2, 0, WHT, { g: 'muz' });
-  R.E(hx + 4.4, hy + 4, 2, 1.1, 0, WHT, { g: 'chin' });
+  R.E(hx + 3.8, hy + 1.8, 2.6, 2.1, 0, WHT, { g: 'muz' });
+  R.E(hx + 2.8, hy + 2.6, 2.6, 2, 0, WHT, { g: 'muz' });
+  R.E(hx + 3.4, hy + 4, 1.9, 1.1, 0, WHT, { g: 'chin' });
   s2Eye(R, hx + 2.8, hy - 1, o.eye);
-  R.P([[hx + 5.6, hy - 1], [hx + 8.3, hy - .7], [hx + 7.4, hy + 1.3]], ['#b8605c', '#e08a86', '#f4b0aa'], { g: 'nose', ol: 1, cast: 0 });
-  R.DL(hx + 7.2, hy + 1.4, hx + 7.1, hy + 2.7, '#3a2220');
-  if (o.hiss) { R.stamp(hx + 5.4, hy + 2.8, ['MMMM', 'MwwM', '.MM.'], { M: '#3a1a18', w: '#fffaf0' }, 1, 0); }
-  else { R.DL(hx + 7.1, hy + 2.7, hx + 6.1, hy + 3.4, '#3a2220'); R.DL(hx + 6.1, hy + 3.4, hx + 4.9, hy + 3.1, '#3a2220'); R.DL(hx + 7.1, hy + 2.7, hx + 7.8, hy + 3.3, '#3a2220'); }
-  R.stamp(hx + 5, hy + 1.4, ['k.k', '.k.'], { k: '#9a8a80' }, 0, 0);
-  R.W(hx + 4.6, hy + 2, hx + 9.4, hy + 1.6, '#d8d2c8'); R.W(hx + 4.6, hy + 2.6, hx + 9, hy + 3.4, '#cac4ba');
+  R.P([[hx + 4.8, hy - .9], [hx + 7.1, hy - .6], [hx + 6.3, hy + 1.2]], ['#b8605c', '#e08a86', '#f4b0aa'], { g: 'nose', ol: 1, cast: 0 });
+  R.DL(hx + 6.1, hy + 1.3, hx + 6, hy + 2.6, '#3a2220');
+  if (o.hiss) { R.stamp(hx + 4.6, hy + 2.8, ['MMMM', 'MwwM', '.MM.'], { M: '#3a1a18', w: '#fffaf0' }, 1, 0); }
+  else { R.DL(hx + 6, hy + 2.6, hx + 5.1, hy + 3.3, '#3a2220'); R.DL(hx + 5.1, hy + 3.3, hx + 4, hy + 3, '#3a2220'); R.DL(hx + 6, hy + 2.6, hx + 6.6, hy + 3.1, '#3a2220'); }
+  R.stamp(hx + 4, hy + 1.6, ['k.k', '.k.'], { k: '#9a8a80' }, 0, 0);
+  R.W(hx + 3.6, hy + 2.4, hx + 5.6, hy + 4.6, '#cac4ba'); R.W(hx + 3, hy + 2.8, hx + 4.4, hy + 5.2, '#bcb6ac');
 }
 // 빨간 리본 목줄 + 작은 매듭
 function s2Ribbon(R, x1, y1, x2, y2) {
