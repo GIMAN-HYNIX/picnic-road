@@ -31,6 +31,7 @@ function gUpdate(dt) {
   if (p.esc) UI.open = false;
   if (p.f2) { PL.ammo = 8; say('총알을 채웠어요. (시험용)'); } if (p.f4) { WX.target = (WX.target + 1) % 3; WX.t = 0; say(['안개비', '보슬비', '장대비'][WX.target] + ' (시험용)'); }
   if (p.f6) { DBG.intact = true; say('다음 사냥에서 온전한 냄비가 나와요. (시험용)'); } if (p.f7) { bagAdd('shroom'); UI.bag = 2; }
+  if (p.f8) { KN_VAR = (KN_VAR + 1) % M_KNS.length; say('모션 시안 ' + (KN_VAR + 1) + ' · ' + M_KN_NAMES[KN_VAR] + ' (시험용)', 3); }
   if (p.f3) { const f = FOES.find(q => !q.live && q.st !== 'dissolve') || FOES[0], a = DIRA[PL.dir], n = WORLD.nearestOpen(PL.x + Math.cos(a) * 170, PL.y + Math.sin(a) * 130, true) || [PL.x + 150, PL.y]; f.x = n[0]; f.y = n[1]; f.hp = f.mhp; f.stag = 0; f.re = 0; f.aware = 0; f.st = 'emerge'; f.t = 0; f.tx = f.x; f.ty = f.y; f.hx = f.x; f.hy = f.y; say('물그림자를 불렀어요. (시험용)'); }
   if (p.sol && PL.st !== 'camp' && PL.st !== 'down' && PL.st !== 'tent') solCommand();
   pUpdate(dt); solUpdate(dt); for (const f of FOES) foeUpdate(f, dt); globsUpdate(dt); birdsUpdate(dt);
@@ -228,7 +229,7 @@ function drawUi() {
   if (UI.help) drawHelp();
 }
 const HELP = [['이동', 'WASD · 방향키'], ['달리기', 'Shift (소리가 커요)'], ['살금살금', 'C (켜고 끄기)'], ['구르기', 'Space · X'], ['칼', '마우스 왼쪽 · J · Z (3연속)'], ['총', '오른쪽 누른 채 겨누고 왼쪽으로 발사 (K + J)'],
-  ['솔 보내기 · 부르기', 'Q'], ['줍기 · 쓰다듬기', 'E (솔 곁에서 길게: 안기)'], ['텐트', 'T 길게'], ['가방', 'Tab'], ['도움말 · 소리', 'H · M'], ['시험용', 'F2 총알 · F3 물그림자 · F4 비 · F6 온전한 드롭 · F7 버섯']];
+  ['솔 보내기 · 부르기', 'Q'], ['줍기 · 쓰다듬기', 'E (솔 곁에서 길게: 안기)'], ['텐트', 'T 길게'], ['가방', 'Tab'], ['도움말 · 소리', 'H · M'], ['시험용', 'F2 총알 · F3 물그림자 · F4 비 · F6 온전한 드롭 · F7 버섯 · F8 모션 시안']];
 function drawHelp() {
   const g = V.g, W = V.hw, H = V.hh, pw = Math.min(W - 16, 430), ph = 64 + HELP.length * 13, x0 = Math.round((W - pw) / 2), y0 = Math.max(4, Math.round((H - ph) / 2));
   g.fillStyle = 'rgba(8,10,14,.5)'; g.fillRect(0, 0, W, H); g.fillStyle = 'rgba(18,22,28,.94)'; g.fillRect(x0, y0, pw, ph); g.fillStyle = '#5a5448'; g.fillRect(x0, y0, pw, 1); g.fillRect(x0, y0 + ph - 1, pw, 1); g.fillRect(x0, y0, 1, ph); g.fillRect(x0 + pw - 1, y0, 1, ph);

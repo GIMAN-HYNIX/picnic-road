@@ -22,7 +22,7 @@ const press = k => { IN.p[k] = true; };
 function gInput() {
   const el = V.out, pos = e => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * V.w, (e.clientY - r.top) / r.height * V.h]; };
   const posH = e => { const q = pos(e); return [q[0] / V.hs, q[1] / V.hs]; };   // 터치 단추는 화면 표시 좌표로
-  const MAP = { Space: 'dodge', KeyX: 'dodge', KeyJ: 'knife', KeyZ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7' };
+  const MAP = { Space: 'dodge', KeyX: 'dodge', KeyJ: 'knife', KeyZ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7', F8: 'f8' };
   // 다른 쪽 안에 끼워져 돌아갈 때(아티팩트 등): 화면을 눌러도 글쇠가 이 창으로 안 들어오는 일이 없도록 누를 때마다 초점을 가져옴
   const grab = () => { try { window.focus(); if (document.activeElement !== el) el.focus({ preventScroll: true }); } catch (e) {} };
   addEventListener('pointerdown', grab, true); addEventListener('mousedown', grab, true); addEventListener('touchstart', grab, { capture: true, passive: true });
@@ -86,7 +86,7 @@ function gBake(key, W, H, ox, oy, mir, fn) {
 function manSpr(anim, fr, dir, o) {
   const side = dir === 'l' || dir === 'r', c = o && o.cat, ck = c ? c.mode[0] + c.st + (c.st === 'squirm' ? c.fr % 2 : '') : '';
   const ak = anim === 'aim' ? Math.round(o.a * 12 / Math.PI) + (o.kneel ? 'k' : '') + (o.recoil ? 'r' : '') + (o.bolt ? 'b' : '') : '';
-  return gBake('m' + anim + fr + dir + ck + ak, MAN_W, MAN_H, MAN_OX, MAN_OY, dir === 'l', R => manDraw(R, anim, fr, side ? 's' : dir, o || {}));
+  return gBake('m' + anim + (anim.startsWith('knife') && side ? 'v' + KN_VAR : '') + fr + dir + ck + ak, MAN_W, MAN_H, MAN_OX, MAN_OY, dir === 'l', R => manDraw(R, anim, fr, side ? 's' : dir, o || {}));
 }
 function solSpr(pose, fr, flip, o) {
   o = o || {}; fr = fr % (SOL_N[pose] || 1);   // 프레임 수만큼만 구움 (창고가 끝없이 늘지 않게)
