@@ -1,0 +1,30 @@
+<title>비 오는 숲 1막</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* 화면 전체가 게임. 어두운 숲 테마 하나로 고정 */
+  :root { --frame: #0c1014; color-scheme: dark; }
+  :root[data-theme="light"], :root[data-theme="dark"] { --frame: #0c1014; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--frame); overflow: hidden; overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #game { position: fixed; left: 0; top: 0; display: block; cursor: crosshair; touch-action: none; outline: none; }
+</style>
+
+<canvas id="game" tabindex="0" aria-label="비 오는 숲 1막 시험판. 방랑자와 고양이 솔이 안개 숲을 걸으며 물그림자를 사냥하는 게임"></canvas>
+
+<script src="js/g-fonts.js"></script>
+<script src="js/core.js"></script>
+<script src="js/hires.js"></script>
+<script src="js/g-cat.js"></script>
+<script src="js/g-man.js"></script>
+<script src="js/g-foe.js"></script>
+<script src="js/g-world.js"></script>
+<script src="js/g-sfx.js"></script>
+<script src="js/g-core.js"></script>
+<script src="js/g-play.js"></script>
+<script src="js/g-sol.js"></script>
+<script src="js/g-foes.js"></script>
+<script src="js/g-main.js"></script>
+<script>
+  (window.FONTS_READY || Promise.resolve()).then(function () { var c = document.getElementById('game'); gStart(c); c.focus(); });
+</script>
