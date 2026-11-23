@@ -38,6 +38,8 @@
   .toc a { text-decoration: none; display: flex; gap: 10px; padding: 3px 0; }
   .toc a::before { content: counter(c); font-family: var(--display); font-size: 15px; color: var(--rain); min-width: 1.4em; }
   .toc a:hover { color: var(--hat); }
+  .toc li.pro { counter-increment: none; }
+  .toc li.pro a::before { content: "0"; }
 
   /* 장 */
   section { padding-block: 76px 0; display: grid; gap: 22px; }
@@ -62,6 +64,7 @@
   .g3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
   .tile { display: grid; gap: 6px; align-content: start; min-width: 0; }
   .tile .art { border-radius: 2px; justify-self: start; }
+  #intro .tile .art { justify-self: stretch; }
   .tile .name { font-size: 15px; }
   .tile .name span { color: var(--muted); font-size: 13px; margin-left: 6px; }
   .gear { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 14px; align-items: center; }
@@ -151,12 +154,19 @@
       </div>
     </div>
     <ol class="toc" aria-label="차례">
-      <li><a href="#concept">컨셉</a></li><li><a href="#world">세계관</a></li><li><a href="#story">이야기</a></li><li><a href="#wanderer">우비 방랑자</a></li>
+      <li class="pro"><a href="#prologue">처음 이야기</a></li><li><a href="#concept">컨셉</a></li><li><a href="#world">세계관</a></li><li><a href="#story">이야기</a></li><li><a href="#wanderer">우비 방랑자</a></li>
       <li><a href="#sol">솔</a></li><li><a href="#map">지도</a></li><li><a href="#regions">지역 다섯 곳</a></li><li><a href="#color">컬러 스크립트</a></li>
       <li><a href="#shadows">물그림자</a></li><li><a href="#items">수집품</a></li><li><a href="#hunt">사냥</a></li><li><a href="#tent">텐트와 하루</a></li>
       <li><a href="#screen">게임 화면</a></li><li><a href="#next">정한 것과 다음 단계</a></li>
     </ol>
   </header>
+
+  <section id="prologue">
+    <div class="sec"><span class="no">00</span><h2>처음 이야기</h2></div>
+    <p class="lead">게임을 시작하면 보게 될 세계의 규칙을 열두 장면으로 그렸어요. 방랑자가 숲을 떠돌게 된 이유부터, 냄비 하나로 보는 해방까지예요.</p>
+    <div class="grid" id="intro" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))"></div>
+    <p class="cap">장면 속 물그림자는 예시예요. 물방울 쥐 모양을 빌려 그렸고, 속에 생활 물건인 냄비를 품고 있어요. 실제 몬스터 모양은 따로 설계해요.</p>
+  </section>
 
   <section id="concept">
     <div class="sec"><span class="no">01</span><h2>비를 걷는 사람</h2></div>
@@ -352,6 +362,7 @@
 <script src="js/ab-kit.js"></script>
 <script src="js/ab-world.js"></script>
 <script src="js/ab-cast.js"></script>
+<script src="js/ab-intro.js"></script>
 <script>
 (function () {
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -390,9 +401,9 @@
     cover: () => AB.cover(0), map: () => memo('map', AB.map), tag: AB.tag, tentOut: AB.tentOut, tentIn: AB.tentIn, game: AB.game,
     region: (i, v) => memo('r' + i + v, () => AB.R[+i](v === 'clear')),
     turn: v => AB.turn(v), face: e => AB.face(e), gear: i => AB.gear(+i), sol: k => AB.solPose(k),
-    mon: i => AB.monster(+i), rel: i => AB.release(+i), item: i => AB.item(+i), board: i => AB.board(+i),
+    intro: i => AB.intro(+i), mon: i => AB.monster(+i), rel: i => AB.release(+i), item: i => AB.item(+i), board: i => AB.board(+i),
   };
-  const SIZE = { cover: [480, 270], map: [480, 300], tag: [64, 64], tentOut: [240, 150], tentIn: [240, 150], game: [480, 270], region: [480, 270], turn: [100, 170], face: [64, 64], gear: [64, 64], sol: [64, 56], mon: i => (+i >= 5 ? [112, 88] : [64, 56]), rel: [120, 80], item: [48, 48], board: [160, 96] };
+  const SIZE = { cover: [480, 270], map: [480, 300], tag: [64, 64], tentOut: [240, 150], tentIn: [240, 150], game: [480, 270], region: [480, 270], turn: [100, 170], face: [64, 64], gear: [64, 64], sol: [64, 56], mon: i => (+i >= 5 ? [112, 88] : [64, 56]), rel: [120, 80], intro: [240, 135], item: [48, 48], board: [160, 96] };
   const canvases = [];
   function slot(box) {
     const [fn, ...args] = box.dataset.k.split(':');
@@ -406,6 +417,8 @@
   }
   const art = (k, s) => { const d = el('div', 'art'); d.dataset.k = k; if (s) d.dataset.s = s; return d; };
 
+  // 0장: 처음 이야기
+  AB.INTRO.forEach((p, i) => { const f = el('figure', 'tile'); f.append(art('intro:' + i)); f.append(el('figcaption', null, '<b>0-' + (i + 1) + '</b>' + p[0] + '. ' + p[1])); $('#intro').append(f); });
   // 4장: 3면도, 표정, 장비
   [['front', '앞'], ['q', '3/4'], ['back', '뒤'], ['pack', '텐트를 진 뒤']].forEach(([v, n], i) => { const f = el('figure', 'tile'); f.append(art('turn:' + v)); f.append(el('figcaption', null, '<b>그림 4-' + (i + 1) + '</b>' + n)); $('#turn').append(f); });
   [['flat', '무뚝뚝'], ['smile', '흐뭇'], ['surp', '놀람'], ['sleep', '졸림'], ['wet', '흠뻑 젖음'], ['whistle', '휘파람']].forEach(([e, n]) => { const f = el('figure', 'tile'); f.append(art('face:' + e)); f.append(el('figcaption', null, n)); $('#faces').append(f); });
