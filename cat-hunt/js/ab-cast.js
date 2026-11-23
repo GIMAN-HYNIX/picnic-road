@@ -193,20 +193,23 @@ AB.solPose = function (kind) {
   grain(pb, .04, kind.length);
   return pb;
 };
-// 솔 목걸이 태그 확대: 이름이 긁혀 지워짐
+// 솔의 빨간 리본 끈 확대: 수놓은 이름이 긁혀 있음. 끝은 해어짐
 AB.tag = function () {
   const W = 64, pb = new PB(W, W); pb.d.fill(C('#2b3644'));
-  const L = hiBake(W, W, 32, 32, R => {
-    R.chain([[-30, -16], [-16, -8], [0, -6], [16, -8], [30, -16]], [3.4, 3.4, 3.4, 3.4, 3.4], WT('#a03a26', .16), R.pat({ g: 'col', ol: 1, alts: [WT('#7a2a1a')], alt: (x, y, t) => (mod(Math.round(x), 5) === 0 ? 0 : -1) }));
-    R.E(0, -3, 2.6, 2.6, 0, ['#6a5020', '#c8a040'], { g: 'ring', ol: 1 });
-    R.E(0, 10, 13, 13, 0, ['#8a6a20', '#d8b040', '#fff0a0'], { g: 'tag', ol: 1 });
-    R.E(0, 10, 10, 10, 0, ['#9a7a2a', '#c8a43a'], { g: 'face', ol: 2 });
+  const RED = WT('#b8402e', .18), RED2 = WT('#8a2a1e');
+  const L = hiBake(W, W, 32, 30, R => {
+    R.chain([[-30, -18], [-18, -9], [-6, -5], [6, -5], [18, -9], [30, -18]], [2.4, 2.4, 2.4, 2.4, 2.4, 2.4], RED, R.pat({ g: 'band', ol: 1, alts: [RED2], alt: x => (mod(Math.round(x), 5) === 0 ? 0 : -1) }));
+    R.P([[-2, 4], [-10, 25], [-7, 23], [-5, 27], [1, 6]], RED, { g: 'tailL', ol: 1 });
+    R.P([[2, 4], [12, 22], [9, 22], [8, 26], [-1, 6]], RED2, { g: 'tailR', ol: 1 });
+    R.P([[0, 0], [-14, -8], [-16, 6]], RED, { g: 'loopL', ol: 1 });
+    R.P([[0, 0], [14, -8], [16, 6]], RED, { g: 'loopR', ol: 1 });
+    R.E(0, 1, 3.6, 3.2, 0, RED2, { g: 'knot', ol: 1 });
+    R.push(); R.translate(8, 15); R.rotate(-1.05); R.B(0, 0, 9, 5.4, 0, ['#c8b89a', '#ece2c8'], { g: 'patch', ol: 1 }); R.pop();
   }, ED);
   pbOver(pb, L);
-  const r = RNG(77), sc = '#6a4e18';
-  for (let i = 0; i < 14; i++) { const x = 25 + r() * 14, y = 37 + r() * 8; pb.line(x, y, x + 3 + r() * 5, y - 1 - r() * 3, sc); }
-  for (let i = 0; i < 6; i++) { const x = 24 + r() * 16, y = 36 + r() * 10; pb.line(x, y, x + 6, y + 2, '#f4e0a0'); }
-  pb.px(31, 49, sc); pb.px(33, 49, sc); pb.px(32, 50, sc); pb.px(30, 48, sc); pb.px(34, 48, sc);
+  const r = RNG(77), sc = '#8a6e4e';
+  for (let i = 0; i < 9; i++) { const x = 37 + r() * 5, y = 41 + r() * 7; pb.line(x, y, x + 2 + r() * 2, y - 2 - r() * 2, sc); }
+  for (const [x, y] of [[22, 57], [24, 58], [26, 57], [39, 56], [41, 57]]) { pb.px(x, y, '#c85a46'); pb.px(x, y + 1, '#a8402e'); }
   grain(pb, .04, 9);
   return pb;
 };

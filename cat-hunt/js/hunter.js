@@ -15,7 +15,7 @@ const HP = {
   GLOVE: HT('#6a4430'), STOCK: HT('#8a5432', .3), STEEL: ['#22222a', '#3a3a46', '#6c6c7a'],
   SLING: HT('#6a4026'), KNH: HT('#7a4a2a'), SHE: HT('#3e2a1e'), BRASS: '#d8b04c', LACE: '#a8826a', MOUTH: '#5a2a24',
 };
-const CP = { F: HT('#978672'), S: HT('#544a40'), W: ['#cfc6b8', '#f4efe6'], EAR: HT('#e2a09a'), NOSE: '#d97c78', EYE: '#a8d25a', COL: HT('#8a3a26'), TAG: '#e0b84a' };
+const CP = { F: HT('#978672'), S: HT('#544a40'), W: ['#cfc6b8', '#f4efe6'], EAR: HT('#e2a09a'), NOSE: '#d97c78', EYE: '#a8d25a', COL: HT('#8a3a26'), TAG: '#d8584a' };
 const stubble = (lim, xmax = 99) => (x, y) => (y > lim && x < xmax && hash2(Math.round(x) + 9, Math.round(y) - 3) > .42 ? 0 : -1);
 
 /* ---------- 사냥꾼: 앞 ---------- */
