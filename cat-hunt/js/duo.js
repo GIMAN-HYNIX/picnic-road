@@ -15,6 +15,7 @@ const WP2 = {
 };
 const DUO_ST = { cel: [-.02, .58], cast: true, contour: true, olCol: '#1c1618', outline: '#1c1618', clean: true, light: lightDir(.6, -.55, .58) };
 const LACE = { l: '#d6c49a' }, BRASS = { b: '#e2c25a' };
+let DUO_HI = false;   // 2배 해상도: 커진 만큼 끈 · 바늘땀 · 주름 같은 디테일을 더 그림
 
 /* ---------- 옆모습 부품 (오른쪽을 봄, 땅이 y=0) ---------- */
 function dBoot(R, x, y, ang, g, far) {
@@ -24,7 +25,13 @@ function dBoot(R, x, y, ang, g, far) {
   R.P([[-2.2, -1.4], [1, -2.6], [4, -.6], [4.8, 1], [-2.4, 1]], P.BOOT, o);
   R.K2(-2.4, 1.4, 4.8, 1.4, .75, .75, P.SOLE, { g: g + 's', ol: 1 });
   R.K2(-2.2, -4.8, 2.2, -4.8, 1, 1, P.CUFF, { g: g + 'c', ol: 1 });
-  if (!far) { R.stamp(1.6, -1.2, ['l'], LACE); R.stamp(.6, -2.4, ['l'], LACE); R.stamp(3.8, .1, ['h'], { h: '#7e6650' }); }
+  if (!far && !DUO_HI) { R.stamp(1.6, -1.2, ['l'], LACE); R.stamp(.6, -2.4, ['l'], LACE); R.stamp(3.8, .1, ['h'], { h: '#7e6650' }); }
+  if (!far && DUO_HI) {
+    R.DL(-.4, -3.8, 1.8, -2.4, '#d6c49a'); R.DL(1.8, -3.8, -.4, -2.4, '#d6c49a'); R.DL(.2, -2.2, 2.4, -1.2, '#d6c49a'); R.DL(2.4, -2.2, .6, -1, '#d6c49a');
+    for (let k = 0; k < 5; k++) R.stamp(-2 + k * 1.6, 1.9, ['t'], { t: '#0c0a0a' });
+    R.DL(2, -.4, 4.4, .5, '#6e5640'); R.stamp(3.6, -.2, ['hh'], { h: '#8a7056' });
+    for (let k = 0; k < 4; k++) R.stamp(-1.8 + k * 1.2, -4.9, ['w'], { w: '#d8ccb8' });
+  }
   R.pop();
 }
 function dLeg(R, hip, kn, an, far, g, bootAng) {
@@ -39,8 +46,9 @@ function dPoncho(R, sh, front, hemF, hemB, back, o = {}) {
   R.P(pts, P.PON, R.pat({ g: 'pon', ol: 1, alts: [P.TRIM, P.STR], alt: (x, y) => (dHem(x, y) < 2.2 ? 0 : cmod(x * .55 - y * .28, 5) < .75 ? 1 : -1) }));
   R.E(sh[0] - 3.2, sh[1] + 1.4, 3, 2.4, -.3, P.PON, { g: 'hood', ol: 1 });
   const nx = -hy / hl, ny = hx / hl;
-  for (let t = .08; t < .95; t += .12) R.stamp(hemB[0] + hx * t - nx * 2.9, hemB[1] + hy * t - ny * 2.9, ['s'], { s: '#86a48a' });
-  for (const t of [.22, .48, .74]) R.stamp(lerp(front[0], hemF[0], t) - 1.6, lerp(front[1], hemF[1], t), ['tw'], { t: '#6a4428', w: '#a87e4c' }, 1, 0);
+  for (let t = .08; t < .95; t += DUO_HI ? .05 : .12) R.stamp(hemB[0] + hx * t - nx * 2.9, hemB[1] + hy * t - ny * 2.9, ['s'], { s: '#86a48a' });
+  for (const t of [.22, .48, .74]) { const x = lerp(front[0], hemF[0], t) - 1.6, y = lerp(front[1], hemF[1], t); if (DUO_HI) { R.B(x, y, 2, .9, -.35, P.LEA, { g: 'tg' + t, ol: 1 }); R.DL(x + 1, y, x + 2, y + .3, '#2a1a10'); } else R.stamp(x, y, ['tw'], { t: '#6a4428', w: '#a87e4c' }, 1, 0); }
+  if (DUO_HI) { R.DL(sh[0] - 1, sh[1] + 1.4, sh[0] - .4, sh[1] + 5, '#d8c8a0'); R.stamp(sh[0] - .4, sh[1] + 5.4, ['k'], { k: '#d8c8a0' }); for (let k = 0; k < 6; k++) R.DL(front[0] - 1 - k * .4, front[1] + 4 + k * 3, front[0] - 2.2 - k * .4, front[1] + 5.4 + k * 3, P.PON[0]); }
   if (o.sling !== false) { R.K2(sh[0] + 3.4, sh[1] + 1.6, back[0] + 1.6, back[1] + 11, .8, .8, P.LEA, { g: 'sling', ol: 1 }); R.stamp(lerp(sh[0] + 3.4, back[0] + 1.6, .5), lerp(sh[1] + 1.6, back[1] + 11, .5), ['bb'], BRASS, 1, 0); }
   if (o.pouch) { const [px, py] = o.pouch; R.E(px, py, 2.1, 2.5, 0, P.LEA, { g: 'pouch', ol: 1 }); R.DL(px - 2, py - 1, px + 2, py - 1, P.LEA[0]); R.stamp(px + .4, py + 3.2, ['b'], BRASS); }
 }
@@ -51,6 +59,7 @@ function sHead(R, h, tilt) {
   R.E(-2.4, .4, 1.1, 1.5, 0, P.SKIN, { g: 'ear', ol: 1 });
   R.P([[2.2, -1.6], [6, 1.2], [5.2, 2], [2.6, 1.2]], P.SKIN, { g: 'nose', ol: 1 });
   R.P([[-2.9, .6], [2.6, 1.6], [4.8, 2.6], [4.4, 4.8], [1.6, 7], [-1.6, 5.8], [-3.1, 3]], P.BEARD, R.pat({ g: 'beard', ol: 1, alts: [[P.BEARD[0], P.BEARD[2], P.BEARD[2]]], alt: (x, y) => (hash2(Math.round(x * 2), Math.round(y * 2)) > .72 ? 0 : -1) }));
+  if (DUO_HI) { R.stamp(5.2, 1.4, ['n'], { n: '#8a5040' }); R.DL(2.6, 2, 4.6, 2.8, P.BEARD[0]); R.DL(-1, 3, 0, 6, P.BEARD[0]); R.DL(1.6, 3.4, 2, 6.4, P.BEARD[0]); R.DL(3.4, 3.4, 3, 5.4, P.BEARD[0]); R.DL(3, -1, 4.4, -.6, '#f6d8bc'); }
   R.pop();
 }
 // 오일스킨 사냥 모자: 꼭대기가 눌린 둥근 머리 · 가죽 띠와 놋쇠 고리 · 앞이 처져 눈을 가리는 챙
@@ -59,8 +68,10 @@ function sHat(R, h, tilt) {
   R.push(); R.translate(h[0], h[1]); R.rotate(tilt || 0);
   R.P([[-4.4, -3.4], [-4.2, -7.6], [-2.4, -9.4], [-.4, -8.4], [1.4, -9.6], [3.6, -8.6], [4.6, -3.4]], P.HAT, { g: 'crown', ol: 1 });
   R.P([[-4.5, -3.4], [4.6, -3.4], [4.5, -5], [-4.4, -5.2]], P.BAND, { g: 'band', ol: 1 });
-  R.stamp(3.2, -4.4, ['b'], BRASS);
+  if (DUO_HI) { R.E(3.2, -4.3, .8, .8, 0, ['#8a6a20', '#d8b040', '#fff0a0'], { g: 'ring', ol: 1 }); for (let k = 0; k < 8; k++) R.stamp(-4 + k * 1.1, -5.4, ['s'], { s: '#7a5a34' }); R.DL(-.4, -8.4, -.2, -5.6, P.HAT[0]); R.DL(-2.6, -8.8, -3.4, -6, P.HAT[2]); }
+  else R.stamp(3.2, -4.4, ['b'], BRASS);
   R.P([[-10, -3.6], [-4, -3.8], [3, -3.4], [8.6, -2.2], [10.6, -.4], [9.2, -.2], [4, -1.6], [-3, -2.2], [-9.8, -2.2]], P.HAT, { g: 'brim', ol: 1, cl: 1 });
+  if (DUO_HI) { R.DL(-3, -3.7, 3, -3.4, P.HAT[2]); R.DL(3, -3.4, 8.6, -2.2, P.HAT[2]); R.DL(-9, -2.6, 4, -1.8, P.HAT[0]); }
   R.pop();
 }
 function dArm(R, el, hand, far, g) { R.K2(el[0], el[1], hand[0], hand[1], 1.9, 1.5, WP2.SHIRT, far ? { g, b: -.15 } : { g, ol: 1 }); R.E(hand[0], hand[1], 1.7, 1.5, 0, WP2.SKIN, { g: g + 'h', ol: 1 }); }
@@ -71,6 +82,7 @@ function sRifle(R, ax, ay, bx, by) {
   R.K2(x2, y2, x3, y3, 1.2, 1, P.WOOD, { g: 'gf', ol: 1 });
   R.K2(x2, y2, bx, by, .7, .6, P.STEEL, { g: 'gb', ol: 1 });
   R.K2(x4, y4, bx, by, 1.1, 1.1, P.CLOTH, { g: 'gc', ol: 1 });
+  if (DUO_HI) { const nx = -dy / Math.hypot(dx, dy), ny = dx / Math.hypot(dx, dy); for (const t of [.93, .97]) { const [px, py] = at(t); R.DL(px - nx * 1.1, py - ny * 1.1, px + nx * 1.1, py + ny * 1.1, '#6a5a3a'); } const [gx, gy] = at(.12); R.DL(ax + nx * .5, ay + ny * .5, gx + nx * .3, gy + ny * .3, P.WOOD[2]); const [qx, qy] = at(.34); R.stamp(qx, qy, ['bb'], BRASS, 1, 0); }
 }
 function sideMan(R, P) {
   if (P.rifleBack) sRifle(R, ...P.rifleBack);
@@ -335,5 +347,40 @@ AB.duoSheet = function (z = 3) {
   c.width = cols * PW * z + (cols + 1) * gap; c.height = rows * PH * z + (rows + 1) * gap;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#12161c'; g.fillRect(0, 0, c.width, c.height);
   AB.DUO.forEach((d, i) => { const pb = d[2](), x = gap + (i % cols) * (PW * z + gap), y = gap + Math.floor(i / cols) * (PH * z + gap); g.drawImage(pb.canvas(), x, y, PW * z, PH * z); });
+  return c;
+};
+
+/* ---------- 1번 컷 2배 해상도 (비교용) ---------- */
+const S4 = { FUR: ['#68574a', '#94806a', '#b29e84'], FURD: ['#544638', '#7a6858', '#94806a'], STR: ['#2e241e', '#43352c', '#5a4a3e'], STRD: ['#241c16', '#382c24', '#4a3c32'],
+  WHT: ['#c9c0b4', '#f0e9de', '#ffffff'], WHTD: ['#a8a094', '#cfc6ba', '#e4dcd0'], PINK: ['#c47a76', '#e8a09c', '#f4c0bc'], RED: ['#8a2a1e', '#c84430', '#e06a50'], REDD: ['#5e1a12', '#8a2a1e', '#a83a2a'] };
+const CAT_ST = Object.assign({}, DUO_ST, { olCol: '#241a16', outline: '#241a16' });
+function withMid(fn) { const keep = Object.assign({}, S2); Object.assign(S2, S4, { MID: true }); try { return fn(); } finally { for (const k of Object.keys(S2)) delete S2[k]; Object.assign(S2, keep); } }
+function tuft2(pb, x, y, c) { for (const [dx, h, lean] of [[-2, 4, -1], [-1, 6, 0], [0, 5, 1], [1, 7, 0], [2, 4, 1]]) for (let k = 0; k < h; k++) pb.px(x + dx + Math.round(lean * k / h * 2), y - k, k > h - 2 ? mix(c, '#c8e0a0', .3) : c); }
+function cut1Hi() {
+  const s = 2, W = PW * s, H = PH * s, pb = new PB(W, H), em = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const n = vnoise(x * .04, y * .05, 1), h = hash2(x + 31, y);
+    let c = n > .56 ? '#47684a' : '#3d5a40'; if (h > .95) c = '#2f4632'; else if (h < .03) c = '#5b7d55';
+    const pd = Math.abs(y - s * (98 + Math.sin(x / s * .03) * 4)) - 26 + (vnoise(x * .075, y * .075, 3) - .5) * 12;
+    if (pd < 0) { const m = vnoise(x * .05, y * .07, 5); c = m > .6 ? '#5f4a36' : '#6e573f'; if (h > .96) c = '#4e3c2c'; else if (h < .025) c = '#85705a'; if (pd > -3 && hash2(x, y + 9) > .5) c = '#4a5a3a'; }
+    pb.d[y * W + x] = C(c);
+  }
+  const r = RNG(8);
+  for (let i = 0; i < 70; i++) { const x = Math.round(r() * W), y = Math.round(48 + r() * (H - 48)); const pd = Math.abs(y - s * (98 + Math.sin(x / s * .03) * 4)); if (pd > 30) tuft2(pb, x, y, i % 3 ? '#62865a' : '#557a4e'); else if (i % 3 === 0) pebble(pb, x, y); }
+  trunk(pb, 36, 120, 32); trunk(pb, 360, 104, 36); fern(pb, 88, 144, 24); fern(pb, 300, 140, 24, true); fern(pb, 120, 150, 16);
+  shadowEl(pb, 172, 202, 22, 5); shadowEl(pb, 252, 204, 15, 3);
+  DUO_HI = true;
+  try { pbOver(pb, hiBake(W, H, 172, 202, R => { R.scl(s); sideMan(R, POSE.walk); }, DUO_ST)); } finally { DUO_HI = false; }
+  pbOver(pb, withMid(() => hiBake(W, H, 252, 205, R => { R.scl(.7); sol2Walk(R, { p: .25 }); }, CAT_ST)));
+  const out = pLight(pb, em, [], DAY);
+  const rr = RNG(11);
+  for (let i = 0; i < 380; i++) { const x = rr() * (W + 40), y = rr() * H, len = 6 + Math.floor(rr() * 7); for (let k = 0; k < len; k++) out.tint(Math.round(x - k * .3), Math.round(y + k), .36, '#9ab4d4'); }
+  return out;
+};
+AB.duoCompare = function () {
+  const lo = AB.DUO[0][2](), hi = cut1Hi(), gap = 12, c = document.createElement('canvas');
+  c.width = 800 * 2 + gap * 3; c.height = 480 + gap * 2;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#12161c'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(lo.canvas(), gap, gap, 800, 480); g.drawImage(hi.canvas(), gap * 2 + 800, gap, 800, 480);
   return c;
 };

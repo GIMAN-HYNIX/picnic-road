@@ -38,6 +38,7 @@ function softBake(W, H, ox, oy, k, fn) { const pb = hiBake(W, H, ox, oy, R => { 
 const s2Stripe = (x, y) => (y < -23.4 + Math.sin(x * .4) * .4 || (y < -13 && mod(x + Math.sin(y * .7) * 1.4, 4.4) < 1.5) ? 0 : -1);
 function s2Eye(R, x, y, kind) {
   const pal = { L: '#2a1c18', G: '#9cc850', g: '#c8e47a', P: '#141010', w: '#fffaf0' };
+  if (S2.MID) { R.stamp(x, y, kind === 'half' ? ['LL'] : ['LL', 'gP'], pal, 1, 0); return; }
   if (S2.HI) { const big = kind === 'half' ? ['LLLLLLL', '.GgGPL.', '..LLL..'] : ['.LLLLL.', 'LwgGPPL', 'LGGGPGL', '.LLGGL.']; R.stamp(x, y, big, pal, 3, 1); return; }
   const rows = kind === 'shut' ? ['.LLL.', 'L...L'] : kind === 'half' ? ['LLLL', 'GgPG'] : kind === 'wide' ? ['.LLL.', 'LwgGL', 'LGPGL', '.GGG.'] : ['.LLL', 'LwgP', '.GGP'];
   R.stamp(x, y, rows, pal, 2, 1);
@@ -65,7 +66,7 @@ function s2Head(R, hx, hy, o = {}) {
   R.DL(hx + 6.1, hy + 1.3, hx + 6, hy + 2.6, '#3a2220');
   if (o.hiss) { R.stamp(hx + 4.6, hy + 2.8, ['MMMM', 'MwwM', '.MM.'], { M: '#3a1a18', w: '#fffaf0' }, 1, 0); }
   else { R.DL(hx + 6, hy + 2.6, hx + 5.1, hy + 3.3, '#3a2220'); R.DL(hx + 5.1, hy + 3.3, hx + 4, hy + 3, '#3a2220'); R.DL(hx + 6, hy + 2.6, hx + 6.6, hy + 3.1, '#3a2220'); }
-  R.stamp(hx + 4, hy + 1.6, ['k.k', '.k.'], { k: '#9a8a80' }, 0, 0);
+  if (!S2.MID) R.stamp(hx + 4, hy + 1.6, ['k.k', '.k.'], { k: '#9a8a80' }, 0, 0);
   R.W(hx + 3.6, hy + 2.4, hx + 5.6, hy + 4.6, '#cac4ba'); R.W(hx + 3, hy + 2.8, hx + 4.4, hy + 5.2, '#bcb6ac');
 }
 // 빨간 리본 목줄 + 작은 매듭
