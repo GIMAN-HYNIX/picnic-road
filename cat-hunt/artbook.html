@@ -217,6 +217,10 @@
     <div class="sec"><span class="no">05</span><h2>솔</h2></div>
     <p class="lead">왼쪽 귀 끝이 찢어진 고등어 태비. 흰 양말을 신었고 목에는 빨간 리본 끈을 맸어요. 비를 싫어해서 우비 밑이 제자리예요. 물그림자를 눈으로 보지는 못하지만, 가까이 오면 느끼고 털을 부풀려요.</p>
     <div class="grid g6" id="poses"></div>
+    <h3 class="sub">리디자인 시안</h3>
+    <p class="lead">실제 고양이 비율로 다시 그렸어요. 머리를 줄이고 다리와 꼬리를 길게 했어요. 명암은 여섯 단계로 나눠 부드럽게 칠하고, 외곽선은 검정 대신 바로 옆 색을 어둡게 썼어요. 흰 털의 그림자는 푸른빛으로 넣었어요.</p>
+    <div class="grid" id="sol2" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))"></div>
+    <p class="note"><b>정할 것</b> 방랑자와 배경은 아직 예전 방식(또렷한 두세 단계 명암, 잉크 선)이에요. 새 솔을 장면에 넣으면 결이 달라 보여요. 이 방향이 맞으면 방랑자와 장면도 같은 방식으로 맞출지 정해 주세요.</p>
     <div class="split">
       <figure class="fix"><div class="art" data-k="tag" data-s="3"></div><figcaption><b>그림 5-10</b> 빨간 리본 끈. 수놓은 이름이 긁혀 있어요.</figcaption></figure>
       <div>
@@ -363,6 +367,7 @@
 <script src="js/ab-world.js"></script>
 <script src="js/ab-cast.js"></script>
 <script src="js/ab-intro.js"></script>
+<script src="js/sol2.js"></script>
 <script>
 (function () {
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -401,9 +406,9 @@
     cover: () => AB.cover(0), map: () => memo('map', AB.map), tag: AB.tag, tentOut: AB.tentOut, tentIn: AB.tentIn, game: AB.game,
     region: (i, v) => memo('r' + i + v, () => AB.R[+i](v === 'clear')),
     turn: v => AB.turn(v), face: e => AB.face(e), gear: i => AB.gear(+i), sol: k => AB.solPose(k),
-    intro: i => AB.intro(+i), mon: i => AB.monster(+i), rel: i => AB.release(+i), item: i => AB.item(+i), board: i => AB.board(+i),
+    intro: i => AB.intro(+i), sol2: (k, p) => (k === 'old' ? AB.sol1() : AB.sol2(k, p != null ? { p: +p } : {})), mon: i => AB.monster(+i), rel: i => AB.release(+i), item: i => AB.item(+i), board: i => AB.board(+i),
   };
-  const SIZE = { cover: [480, 270], map: [480, 300], tag: [64, 64], tentOut: [240, 150], tentIn: [240, 150], game: [480, 270], region: [480, 270], turn: [100, 170], face: [64, 64], gear: [64, 64], sol: [64, 56], mon: i => (+i >= 5 ? [112, 88] : [64, 56]), rel: [120, 80], intro: [240, 135], item: [48, 48], board: [160, 96] };
+  const SIZE = { cover: [480, 270], map: [480, 300], tag: [64, 64], tentOut: [240, 150], tentIn: [240, 150], game: [480, 270], region: [480, 270], turn: [100, 170], face: [64, 64], gear: [64, 64], sol: [64, 56], mon: i => (+i >= 5 ? [112, 88] : [64, 56]), rel: [120, 80], intro: [240, 135], sol2: [128, 92], item: [48, 48], board: [160, 96] };
   const canvases = [];
   function slot(box) {
     const [fn, ...args] = box.dataset.k.split(':');
@@ -419,6 +424,8 @@
 
   // 0장: 처음 이야기
   AB.INTRO.forEach((p, i) => { const f = el('figure', 'tile'); f.append(art('intro:' + i)); f.append(el('figcaption', null, '<b>0-' + (i + 1) + '</b>' + p[0] + '. ' + p[1])); $('#intro').append(f); });
+  // 5장: 솔 리디자인
+  [['old', '지금 솔 (비교)'], ['stand', '새 솔, 서기'], ['walk:0', '걷기 (움직임)'], ['sit', '앉기'], ['loaf', '식빵'], ['puff', '경계']].forEach(([k, n], i) => { const f = el('figure', 'tile'); const a = art('sol2:' + k); if (k === 'walk:0') a.id = 'sol2walk'; f.append(a); f.append(el('figcaption', null, '<b>5-' + (i + 11) + '</b>' + n)); $('#sol2').append(f); });
   // 4장: 3면도, 표정, 장비
   [['front', '앞'], ['q', '3/4'], ['back', '뒤'], ['pack', '텐트를 진 뒤']].forEach(([v, n], i) => { const f = el('figure', 'tile'); f.append(art('turn:' + v)); f.append(el('figcaption', null, '<b>그림 4-' + (i + 1) + '</b>' + n)); $('#turn').append(f); });
   [['flat', '무뚝뚝'], ['smile', '흐뭇'], ['surp', '놀람'], ['sleep', '졸림'], ['wet', '흠뻑 젖음'], ['whistle', '휘파람']].forEach(([e, n]) => { const f = el('figure', 'tile'); f.append(art('face:' + e)); f.append(el('figcaption', null, n)); $('#faces').append(f); });
@@ -468,6 +475,11 @@
   let coverVis = true; if (io) new IntersectionObserver(es => { coverVis = es[0].isIntersecting; }).observe(cover);
   for (let f = 1; f < HC_F; f++) jobs.push(() => { frames[f] = AB.cover(f).img; });
 
+  /* ---- 새 솔 걷기: 8장 ---- */
+  const walkC = document.querySelector('#sol2walk canvas'), walkF = [];
+  for (let f = 0; f < 8; f++) jobs.push(() => { walkF[f] = AB.sol2('walk', { p: f / 8 }).img; });
+  let walkVis = true; if (io) new IntersectionObserver(es => { walkVis = es[0].isIntersecting; }).observe(walkC);
+
   /* ---- 비교 막대 ---- */
   const baTop = $('#baTop'), baBar = $('#baBar'), baRange = $('#baRange');
   const topC = document.createElement('canvas'); topC.width = 480; topC.height = 270; baTop.append(topC);
@@ -498,6 +510,7 @@
     const dt = Math.min(.05, (ts - lt) / 1000 || 0); lt = ts;
     if (!reduce) {
       if (coverVis && ts - last > 125 && frames.length === HC_F) { last = ts; tick = (tick + 1) % HC_F; if (tick && frames[tick]) cover.getContext('2d').putImageData(frames[tick], 0, 0); else if (!tick) cover.getContext('2d').putImageData(pbCache.cover0 || (pbCache.cover0 = AB.cover(0)).img, 0, 0); }
+      if (walkVis && walkF.length === 8 && walkF[7] && ts - (loop.w || 0) > 110) { loop.w = ts; loop.wi = ((loop.wi || 0) + 1) % 8; walkC.getContext('2d').putImageData(walkF[loop.wi], 0, 0); }
       for (const r of rains) {
         if (!r.vis) continue; const g = r.g; g.clearRect(0, 0, r.w, r.h);
         for (const d of r.drops) { d.y += d.v * dt; d.x -= d.v * dt * .26; if (d.y > r.h) { d.y = -d.l; d.x = Math.random() * (r.w + 40); } g.fillStyle = 'rgba(214,228,240,' + d.a + ')'; g.fillRect(Math.round(d.x), Math.round(d.y), 1, d.l); }

@@ -181,18 +181,19 @@ const PANELS = [
     const pb = forest({ seed: 7, mid: false });
     const L = AB.layer(IW, IH, R => { AB.fern(R, 214, 118, 34, TF(KF.fern, .12), 6, { n: 7 }); R.K2(160, 116, 198, 106, 2.2, 1.4, TF('#4a3a2e'), { g: 'root', ol: 1 }); R.K2(198, 106, 216, 110, 1.4, 1, TF('#4a3a2e'), { g: 'root', ol: 1 }); });
     AB.over(pb, L);
-    const cx = 140, cy = 116;
-    catAt2(pb, catLoafHi, { peek: true }, 2.4, cx, cy);
+    const cx = 140, cy = 118, f = 1.3 / 2.4;
+    catAt2(pb, catLoafHi, { peek: true }, 1.3, cx, cy);
     const rb = AB.layer(IW, IH, R => {
       const RED = WT('#b8402e', .18);
-      R.chain([[cx - 15, cy - 10], [cx - 4, cy - 2], [cx + 7, cy - 9], [cx + 15, cy - 3]], [1, 1, 1, 1], RED, { g: 'rb1', ol: 1 });
-      R.chain([[cx - 12, cy - 1], [cx - 2, cy - 11], [cx + 10, cy - 2]], [1, 1, 1], RED, { g: 'rb2', ol: 1 });
-      R.chain([[cx + 14, cy - 4], [cx + 26, cy - 8], [cx + 40, cy - 9], [cx + 56, cy - 9]], [1, 1, .9, .8], RED, { g: 'rb3', ol: 1 });
+      const q = (x, y) => [cx + x * f, cy + y * f];
+      R.chain([q(-15, -10), q(-4, -2), q(7, -9), q(15, -3)], [.7, .7, .7, .7], RED, { g: 'rb1', ol: 1 });
+      R.chain([q(-12, -1), q(-2, -11), q(10, -2)], [.7, .7, .7], RED, { g: 'rb2', ol: 1 });
+      R.chain([q(14, -4), [cx + 22, cy - 8], [cx + 38, cy - 10], [cx + 56, cy - 11]], [.7, .7, .7, .6], RED, { g: 'rb3', ol: 1 });
     });
     AB.over(pb, rb);
-    for (const [x, y] of [[cx - 22, cy - 18], [cx + 18, cy - 22], [cx - 24, cy - 9]]) { pb.line(x, y, x + 2, y - 1, '#e8eef4'); pb.line(x + 1, y + 2, x + 3, y + 1, '#e8eef4'); }
-    AB.put(pb, AB.hero(.3, 0, { cat: false }), 70, 116);
-    for (let i = 0; i < 3; i++) pb.rect(72 + i * 3, 60, 2, 2, '#f4f0e6');
+    for (const [x, y] of [[cx - 14, cy - 12], [cx + 10, cy - 14], [cx - 15, cy - 5]]) { pb.line(x, y, x + 2, y - 1, '#e8eef4'); pb.line(x + 1, y + 2, x + 3, y + 1, '#e8eef4'); }
+    AB.put(pb, AB.hero(.55, 0, { cat: false }), 70, 122);
+    for (let i = 0; i < 3; i++) pb.rect(74 + i * 3, 30, 2, 2, '#f4f0e6');
     return finish(pb, { n: 140, seed: 13 });
   },
   function () { // 리본을 매 주다 (가까이)
@@ -204,9 +205,10 @@ const PANELS = [
     const k = 3.6, cx = 120, cy = 131, ny = cy - 8.4 * k;
     catAt2(pb, catSitHi, {}, k, cx, cy);
     const L = AB.layer(IW, IH, R => {
-      R.K2(66, 150, 99, ny + 6, 10, 7.4, WPAL.PON, R.pat({ g: 'sl', ol: 1, alts: [WPAL.PONS], alt: ponchoAlt }));
-      R.K2(174, 150, 141, ny + 6, 10, 7.4, WPAL.PON, R.pat({ g: 'sr', ol: 1, alts: [WPAL.PONS], alt: ponchoAlt }));
-      R.E(103, ny + 2, 6, 5, .3, WPAL.SK, { g: 'hl', ol: 1 }); R.E(137, ny + 2, 6, 5, -.3, WPAL.SK, { g: 'hr', ol: 1 });
+      R.K2(50, 160, 96, ny + 8, 17, 13, WPAL.PON, R.pat({ g: 'sl', ol: 1, alts: [WPAL.PONS], alt: ponchoAlt }));
+      R.K2(190, 160, 144, ny + 8, 17, 13, WPAL.PON, R.pat({ g: 'sr', ol: 1, alts: [WPAL.PONS], alt: ponchoAlt }));
+      R.E(102, ny + 2, 12, 9, .35, WPAL.SK, { g: 'hl', ol: 1 }); R.E(138, ny + 2, 12, 9, -.35, WPAL.SK, { g: 'hr', ol: 1 });
+      R.E(110, ny - 3, 3, 2.4, .6, WPAL.SK, { g: 'tl', ol: 1 }); R.E(130, ny - 3, 3, 2.4, -.6, WPAL.SK, { g: 'tr', ol: 1 });
       R.chain([[cx - 4, ny + 1], [105, ny - 1]], [1.3, 1.3], WT('#b8402e', .18), { g: 'e1', ol: 1 });
       R.chain([[cx + 4, ny + 1], [135, ny - 1]], [1.3, 1.3], WT('#b8402e', .18), { g: 'e2', ol: 1 });
       bowRig(R, cx, ny + 1, 2.4);
@@ -217,25 +219,25 @@ const PANELS = [
   function () { // 털을 세우는 솔
     const pb = forest({ seed: 9, mid: false });
     pb.ellipse(186, 117, 26, 5, '#6a8288'); pb.ellipse(182, 116, 16, 1.4, '#a8c0c8');
-    const mon = monLayer(186, 128, 2.4, { obj: potObj, flip: true });
+    const mon = monLayer(186, 125, 1.7, { obj: potObj, flip: true });
     AB.clipBelow(mon, 117); AB.fog(mon, KF.fog, .35); AB.over(pb, mon);
-    catAt2(pb, catPuff, {}, 2.4, 98, 117);
-    for (const [x, y, dx, dy] of [[86, 62, -2, -3], [98, 58, 0, -4], [110, 62, 2, -3]]) pb.line(x, y, x + dx, y + dy, '#f4f0e6');
-    AB.put(pb, AB.hero(.3, 0, { cat: false }), 40, 114);
+    AB.put(pb, AB.hero(.55, 0, { cat: false }), 46, 122);
+    catAt2(pb, catPuff, {}, 1.3, 108, 121);
+    for (const [x, y, dx, dy] of [[100, 84, -2, -3], [108, 81, 0, -4], [116, 84, 2, -3]]) pb.line(x, y, x + dx, y + dy, '#f4f0e6');
     return finish(pb, { n: 130, seed: 15 });
   },
   function () { // 멈칫하는 물그림자
     const pb = forest({ seed: 11, mid: false });
-    pb.ellipse(172, 118, 26, 4.6, '#6a8288');
-    AB.over(pb, monLayer(172, 119, 2.8, { obj: potObj, flip: true }));
+    pb.ellipse(172, 118, 18, 3.6, '#6a8288');
+    AB.over(pb, monLayer(172, 119, 1.7, { obj: potObj, flip: true }));
     catAt2(pb, catSideHi, { pose: 'stand' }, 2.4, 78, 118);
     const nx = 78 + 5.2 * 2.4, ny = 118 - 11.2 * 2.4;
     AB.over(pb, AB.layer(IW, IH, R => bowRig(R, nx, ny, 1.3)));
     AB.glow(pb, nx, ny, 10, '#ff9a80', .35);
-    const px = 172 + .8 * 2.8, py = 119 - 4.6 * 2.8;
+    const px = 172 + .8 * 1.7, py = 119 - 4.6 * 1.7;
     for (let t = .14; t < .9; t += .06) { const x = lerp(nx, px, t), y = lerp(ny, py, t) - Math.sin(t * Math.PI) * 16; pb.tint(x, y, .65, '#ffe8d0'); pb.tint(x + 1, y, .3, '#ffe8d0'); }
-    for (let i = 0; i < 3; i++) pb.rect(164 + i * 4, 72, 2, 2, '#f4f0e6');
-    for (const r of [22, 26]) for (let a = -2.7; a < -.4; a += .07) pb.tint(172 + Math.cos(a) * r, 103 + Math.sin(a) * r * .75, .35, '#e0eef8');
+    for (let i = 0; i < 3; i++) pb.rect(166 + i * 4, 88, 2, 2, '#f4f0e6');
+    for (const r of [14, 17]) for (let a = -2.7; a < -.4; a += .07) pb.tint(172 + Math.cos(a) * r, 109 + Math.sin(a) * r * .75, .35, '#e0eef8');
     return finish(pb, { n: 120, seed: 16 });
   },
   function () { // 총소리

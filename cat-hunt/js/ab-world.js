@@ -439,7 +439,7 @@ AB.tentOut = function () {
   AB.glow(pb, 96, 104, 26, '#ffd890', .4);
   const lamp = AB.layer(W, H, R => { R.DL(44, 67, 44, 72, '#2a2018'); R.B(44, 76, 5, 7, 0, ['#5a4020', '#f0c050', '#fff2c0'], { g: 'lp', ol: 1 }); });
   AB.over(pb, lamp); AB.glow(pb, 44, 77, 18, '#ffe0a0', .45);
-  const c = AB.sol(2.2, 'sit'); AB.put(pb, c, 118, GY);
+  const c = AB.sol(.75, 'sit'); AB.put(pb, c, 118, GY);
   for (let i = 0; i < 4; i++) pb.ellipse(150 + i * 3, 26 - i * 7, 3 + i, 2 + i * .6, mix('#56627a', '#c8d0dc', .5 - i * .1));
   const dry = new PB(W, H); dry.poly([[26, 64], [96, 50], [146, GY + 2], [26, GY + 2]], '#ffffff'); dry.poly([[46, GY + 2], [96, 50], [140, 52], [146, GY + 2]], '#ffffff');
   const before = AB.copy(pb);
@@ -468,7 +468,7 @@ AB.tentIn = function () {
     [[176, 84, '#d8b040'], [186, 96, '#f0e8d4'], [170, 100, '#c8bca8']].forEach(([x, y, c], i) => R.B(x, y, 7, 7, (i - 1) * .15, T(c, .1), { g: 'it' + i, ol: 1 }));
   }, abLine(INK));
   AB.over(pb, L);
-  const c = AB.sol(2, 'loaf', {}); AB.put(pb, c, 108, GY - 4);
+  const c = AB.sol(1, 'loaf', {}); AB.put(pb, c, 108, GY - 4);
   AB.glow(pb, 56, GY - 9, 22, '#ffb860', .35); AB.glow(pb, 162, GY - 22, 26, '#ffe0a0', .35);
   [[1, 56, 100], [2, 84, 44], [3, 196, 78], [4, 108, 140], [5, 156, 98], [6, 214, 112]].forEach(([n, x, y]) => AB.badge(pb, x, y, n));
   grain(pb, .04, 62);
@@ -486,9 +486,9 @@ AB.board = function (i) {
   const M = AB.MON[0], mouse = (x, y, k) => { const b = hiBake(W, H, x, y, R => { R.scl(k); M.body(R); }, abLine(WINK)), o = hiBake(W, H, x, y, R => { R.scl(k); M.obj(R); }, ED); seeThrough(b, o, .55); pbOver(pb, b); };
   if (i === 0) {
     for (let k = 0; k < 6; k++) { const x = 70 + k * 14, y = 84 - k * 1.6; pb.ellipse(x, y, 2, 1, '#2e3a2c'); pb.ellipse(x + 4, y + 2, 2, 1, '#2e3a2c'); }
-    AB.put(pb, AB.hero(.3, 0, { cat: false }), 40, 86); AB.put(pb, AB.sol(.95, 'side', { pose: 'stand', sniff: 1 }), 66, 88);
+    AB.put(pb, AB.hero(.3, 0, { cat: false }), 40, 86); AB.put(pb, AB.sol(.72, 'side', { pose: 'stand', sniff: 1 }), 64, 88);
   } else if (i === 1) {
-    AB.put(pb, AB.hero(.3, 0, { cat: false }), 70, 92); AB.put(pb, AB.sol(.95, 'side', { pose: 'walk', p: .25 }), 104, 90);
+    AB.put(pb, AB.hero(.3, 0, { cat: false }), 70, 92); AB.put(pb, AB.sol(.72, 'side', { pose: 'walk', p: .25 }), 102, 90);
     const f = AB.layer(W, H, R => { AB.fern(R, 66, 98, 40, T('#3d6646', .14), 4, { n: 9 }); }); AB.over(pb, f);
   } else if (i === 2) {
     mouse(128, 84, 1.3); pb.ellipse(128, 85, 12, 2, '#6a8288');
@@ -500,9 +500,9 @@ AB.board = function (i) {
     const r = RNG(9); for (let k = 0; k < 14; k++) { const a = -Math.PI / 2 + (r() - .5) * 2.4, d = 8 + r() * 14; pb.ellipse(100 + Math.cos(a) * d, 66 + Math.sin(a) * d, 1.4, 1.4, '#cfe2f0'); }
   } else {
     AB.shaft(pb, [[60, 0], [110, 0], [120, H], [50, H]], '#fff2c8', .4, .2);
-    pb.ellipse(86, 86, 14, 3, '#7a8a7a'); AB.put(pb, AB.sol(2, 'loaf', {}), 86, 86);
-    const o = hiBake(W, H, 118, 88, R => { R.scl(1.8); M.obj(R); }, ED); pbOver(pb, o); AB.spark(pb, 120, 74, '#fffbe0', true);
-    AB.put(pb, AB.hero(.3, 0, { cat: false }), 22, 92);
+    pb.ellipse(86, 87, 9, 2, '#7a8a7a'); AB.put(pb, AB.sol(1.07, 'loaf', {}), 86, 87);
+    const o = hiBake(W, H, 104, 88, R => { R.scl(.9); M.obj(R); }, ED); pbOver(pb, o); AB.spark(pb, 104, 80, '#fffbe0', true);
+    AB.put(pb, AB.hero(.45, 0, { cat: false }), 40, 94);
   }
   if (!clearC) AB.rain(pb, { n: 110, len: 8, seed: 20 + i });
   else { const before = AB.copy(pb); AB.rain(pb, { n: 110, len: 8, seed: 24 }); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (Math.abs(x - 86) < 34 + (H - y) * .1) pb.d[y * W + x] = before.d[y * W + x]; }
@@ -530,7 +530,7 @@ AB.game = function () {
   });
   const M = AB.MON[0], b = hiBake(RW, RH, 318, 166, R => { R.scl(1.2); M.body(R); }, abLine(WINK)), o = hiBake(RW, RH, 318, 166, R => { R.scl(1.2); M.obj(R); }, ED); seeThrough(b, o, .55);
   AB.over(pb, b);
-  AB.put(pb, AB.hero(.3, 0, { cat: false }), 236, 176); AB.put(pb, AB.sol(.86, 'side', { pose: 'walk', p: .3 }), 258, 172);
+  AB.put(pb, AB.hero(.3, 0, { cat: false }), 236, 176); AB.put(pb, AB.sol(.72, 'side', { pose: 'walk', p: .3 }), 256, 174);
   AB.over(pb, L);
   AB.spark(pb, 84, 140, '#fff6c8', true); AB.spark(pb, 412, 238, '#fff6c8');
   AB.rings(pb, 30, 3, [130, 160, 200, 90, inPud], '#e8f0f4', .5);
