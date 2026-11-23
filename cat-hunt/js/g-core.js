@@ -9,7 +9,7 @@ function gResize() {
   const dpr = window.devicePixelRatio || 1, dw = Math.max(320, Math.round(innerWidth * dpr)), dh = Math.max(240, Math.round(innerHeight * dpr));
   const want = Math.min(dw / (dw < dh ? 520 : 880), dh / 500) / V.far;
   let sd = 1, best = 9; for (const c of [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8]) { const e = Math.abs(Math.log(c / Math.max(1, want))); if (e < best) { best = e; sd = c; } }
-  V.w = Math.ceil(dw / sd); V.h = Math.ceil(dh / sd); V.hw = Math.ceil(V.w / V.hs); V.hh = Math.ceil(V.h / V.hs); V.k = 1;   // 멀리 보는 화면은 점이 작아서 반정수 배율도 그대로 키움 (두 배로 그렸다 줄이면 너무 무거움) V.css = sd / dpr;
+  V.w = Math.ceil(dw / sd); V.h = Math.ceil(dh / sd); V.hw = Math.ceil(V.w / V.hs); V.hh = Math.ceil(V.h / V.hs); V.k = 1; V.css = sd / dpr;   // 멀리 보는 화면은 점이 작아서 반정수 배율도 그대로 키움 (두 배로 그렸다 줄이면 너무 무거움)
   V.cvs.width = V.w; V.cvs.height = V.h; V.g.imageSmoothingEnabled = false;
   V.out.width = V.w * V.k; V.out.height = V.h * V.k; V.og.imageSmoothingEnabled = false;
   const cs = getComputedStyle(document.documentElement); V.safeT = Math.round((parseFloat(cs.paddingTop) || 0) / V.css / V.hs); V.safeB = Math.round((parseFloat(cs.paddingBottom) || 0) / V.css / V.hs);   // 휴대폰 위아래 막대만큼 표시를 안쪽으로
