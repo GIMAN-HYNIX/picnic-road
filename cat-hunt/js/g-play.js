@@ -28,6 +28,12 @@ function pMove(tx, ty, dt, resp) {
   if (!tx && !ty && Math.hypot(PL.vx, PL.vy) < 7) PL.vx = PL.vy = 0;
   const ox = PL.x, oy = PL.y; let n = WORLD.push(PL.x + PL.vx * dt, PL.y + PL.vy * dt, 9, ox, oy); n = campPush(n[0], n[1], 9);
   if (WORLD.hitSolid(n[0], n[1], 8) && !WORLD.hitSolid(ox, oy, 8)) n = [ox, oy];   // 텐트와 나무 사이에 끼면 제자리
+  if (WORLD.deep(n[0], n[1]) && !WORLD.deep(ox, oy)) {   // 깊은 개울은 못 들어감: 물가를 따라 비껴 걷게 방향을 조금씩 틀어 봄
+    const dx = n[0] - ox, dy = n[1] - oy; let ok = null;
+    for (const a of [.5, -.5, 1, -1, 1.45, -1.45]) { const c = Math.cos(a), s = Math.sin(a), m = WORLD.push(ox + (dx * c - dy * s) * c, oy + (dx * s + dy * c) * c, 9, ox, oy); if (!WORLD.deep(m[0], m[1])) { ok = m; break; } }
+    n = ok || [ox, oy]; PL.deepT = .25;
+    hint('deep', '물이 깊어서 못 건너요. 쓰러진 나무나 바닥이 비치는 얕은 여울을 찾아봐요.', 7);
+  }
   PL.x = n[0]; PL.y = n[1]; return Math.hypot(PL.x - ox, PL.y - oy);
 }
 function pSteps(moved) {
@@ -65,7 +71,24 @@ function pSlash(K) {
   for (const f of FOES) { if (!f.live) continue; const d = dist(f, PL); if (d < K[4] + 16 * f.k && (d < 30 || Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), PL.swA)) < 1.15)) { foeHurt(f, K[3], PL.swA, PL.combo === 2 ? 240 : 130, 'knife'); any = true; } }
   if (any) { V.hitstop = PL.combo === 2 ? .09 : .05; V.shake = Math.max(V.shake, PL.combo === 2 ? 5 : 2.5); GSFX.slash(); noise(PL.x, PL.y, 160); }
   brushFerns(PL.x + Math.cos(PL.swA) * 30, PL.y + Math.sin(PL.swA) * 30, Math.cos(PL.swA) * 100, 1.4);
+  if (bushCut(K[4])) { V.shake = Math.max(V.shake, 1.5); if (!any) { GSFX.slash(); noise(PL.x, PL.y, 120); } }
 }
+// 칼이 닿는 덤불을 한 단계씩 쳐냄. 두 번 쳐내면 성글어져서 헤치고 지나갈 수 있음 (다 없어지지는 않음)
+function bushCut(reach) {
+  let hit = false;
+  WORLD.near(PL.x, PL.y, reach + 40, p => {
+    if (p.t !== 'bush' || p.cut >= 2) return; const dx = p.x - PL.x, dy = p.y - 6 - PL.y, d = Math.hypot(dx, dy);
+    if (d > reach + 12 || (d > 30 && Math.abs(angDiff(Math.atan2(dy, dx), PL.swA)) > 1.15)) return;
+    p.cut++; p.bv = 1.4; hit = true; GSFX.rustle(1.4); leafBurst(p.x, p.y - 12, 9, PL.swA);
+    if (p.cut >= 2) hint('bush2', '덤불이 성글어졌어요. 이제 손으로 헤치면서 지나갈 수 있어요.', 5);
+  });
+  return hit;
+}
+function leafBurst(x, y, n, a) { for (let i = 0; i < n; i++) { const b = a == null ? Math.random() * TAU : a + (Math.random() - .5) * 1.6, v = 40 + Math.random() * 90; part({ k: 'drop', x: x + (Math.random() - .5) * 20, y: y + 12, z: 6 + Math.random() * 14, vx: Math.cos(b) * v, vy: Math.sin(b) * v * .5, vz: 60 + Math.random() * 90, life: .6 + Math.random() * .4, c: Math.random() < .5 ? '#4a7650' : '#6a965e', leaf: 1 }); } }
+// 방랑자가 성근 덤불 속에 있는가 → 느려지고 손으로 헤치는 동작
+function bushIn(x, y) { let b = null; WORLD.near(x, y, 40, p => { if (p.t === 'bush' && p.cut >= 2 && Math.abs(p.x - x) < 24 && Math.abs(p.y - 6 - y) < 13) b = p; }); return b; }
+// 빽빽한 덤불에 막혔는가 (안내용)
+function bushBlock(x, y) { let b = false; WORLD.near(x, y, 50, p => { if (p.t === 'bush' && p.cut < 2 && Math.abs(p.x - x) < 36 && Math.abs(p.y - 6 - y) < 26) b = true; }); return b; }
 function pAimAngle(oy) {   // 오른쪽 막대 > 마우스 > 자동(가장 가까운 물그림자)
   if (IN.stick) { PL.lock = null; return Math.atan2(IN.ay, IN.ax); }
   if (IN.mouseT < 3 && !V.touch) { PL.lock = null; return Math.atan2(IN.cy + CAM.y - (PL.y - oy), IN.cx + CAM.x - PL.x); }
@@ -146,12 +169,18 @@ function pUpdate(dt) {
     if (pTake('dodge') && PL.dodgeCd <= 0) return pDodge();
     if (IN.aim) { pUnload('aim'); PL.st = 'aim'; PL.t = 0; PL.steady = 0; PL.kneel = false; PL.aimA = pAimAngle(84); GSFX.cloth(); hint('aim', '가만히 겨누면 숨을 골라 탄착이 모여요. 다 모이면 한 방이 더 세요. 왼쪽 단추로 쏴요.'); return; }
     if (pTake('knife')) return pKnife(PL.comboT > 0 ? (PL.combo + 1) % 3 : 0);
-    const sp = (PL.sneak ? 50 : IN.run && SO.mode !== 'arms' ? 195 : 100) * (WORLD.wet(PL.x, PL.y) ? .72 : 1) * (PL.hp <= 2 && !PL.sneak ? .85 : 1);
+    const bush = bushIn(PL.x, PL.y); PL.wade = bush && (IN.mx || IN.my) ? Math.min(1, (PL.wade || 0) + dt * 8) : 0;
+    const sp = bush ? (PL.sneak ? 34 : 46) : (PL.sneak ? 50 : IN.run && SO.mode !== 'arms' ? 195 : 100) * (WORLD.wet(PL.x, PL.y) ? .72 : 1) * (PL.hp <= 2 && !PL.sneak ? .85 : 1);
     const moved = pMove(IN.mx * sp, IN.my * sp, dt, IN.mx || IN.my ? 16 : 22), v = Math.hypot(PL.vx, PL.vy);
     if (IN.mx || IN.my) { PL.dir = dir4(IN.mx, IN.my, PL.dir); const l = Math.hypot(IN.mx, IN.my); PL.hx = IN.mx / l; PL.hy = IN.my / l; }
     const g = v > 12 ? (PL.sneak ? 'sneak' : v > 150 ? 'run' : 'walk') : PL.sneak ? 'sneakIdle' : 'idle';
     if (g !== PL.gait) { if (v <= 12) PL.ph = 0; PL.gait = g; }
     if (v > 12) { pSteps(moved); PL.idleT = 0; } else PL.idleT += dt;
+    if (bush && v > 12) {   // 헤치는 동안 덤불이 흔들리고 잎이 떨어짐
+      bush.bv = Math.max(Math.abs(bush.bv), .9); PL.wadeT = (PL.wadeT || 0) - dt;
+      if (PL.wadeT <= 0) { PL.wadeT = .34; GSFX.rustle(PL.sneak ? .5 : 1); leafBurst(PL.x, PL.y - 22, 2); if (!PL.sneak) noise(PL.x, PL.y, 70); }
+      hint('wade', '덤불 속에서는 걸음이 느려져요. 몸을 낮추면 숨을 수도 있어요.', 5);
+    } else if ((IN.mx || IN.my) && v < 30 && bushBlock(PL.x + PL.hx * 14, PL.y + PL.hy * 10)) hint('bush', '덤불이 빽빽해서 못 지나가요. 칼로 두어 번 쳐내면 헤치고 지나갈 수 있어요.', 7);
     pInteract();
     if (IN.tHold >= .9 && !PL.tUsed) { PL.tUsed = true; campTry(); }
   } else if (st === 'aim') {
@@ -195,7 +224,7 @@ function pUpdate(dt) {
 // 방랑자 그림: 상태 → 동작 · 프레임
 function pSprite() {
   const st = PL.st, cat = solCarryOpt(); let a = 'idle', fr = 0, dir = PL.dir, o = { cat };
-  if (st === 'move') { a = PL.gait; fr = a === 'idle' ? Math.floor(V.time * 2.2) % 4 : a === 'sneakIdle' ? Math.floor(V.time * 1.6) % 2 : Math.floor(PL.ph * 12) % 12; }
+  if (st === 'move') { a = PL.gait; fr = a === 'idle' ? Math.floor(V.time * 2.2) % 4 : a === 'sneakIdle' ? Math.floor(V.time * 1.6) % 2 : Math.floor(PL.ph * 12) % 12; if (PL.wade > .5 && (a === 'walk' || a === 'run') && (!cat || cat.mode !== 'arms')) a = 'wade'; }
   else if (st === 'aim') { a = 'aim'; o = pAimOpt(); }
   else if (st === 'dodge') { a = 'dodge'; fr = Math.min(4, Math.floor(PL.t / .3 * 5)); }
   else if (st === 'knife') { const K = KNF[PL.combo]; a = 'knife' + (PL.combo + 1); fr = PL.t < K[0] ? 0 : PL.t < K[0] + K[1] * .5 ? 1 : PL.t < K[0] + K[1] + .06 ? 2 : 3; }

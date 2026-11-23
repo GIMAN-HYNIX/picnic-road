@@ -67,7 +67,7 @@ function drawWorld() {
   const L = [], S = WORLD.SP, vx0 = cx - 130, vx1 = cx + V.w + 130, vy0 = cy - 40, vy1 = cy + V.h + 300;
   WORLD.near(cx + V.w / 2, cy + V.h / 2 + 130, Math.max(V.w, V.h) / 2 + 330, p => {
     if (p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) return;
-    if (CAMP.on || CAMP.building) { if ((p.t === 'fern' || p.t === 'bush' || p.t === 'reed' || p.t === 'shroom') && Math.abs(p.x - CAMP.x) < 96 && p.y > CAMP.y - 110 && p.y < CAMP.y + 70) return; }
+    if (CAMP.on || CAMP.building) { if ((p.t === 'fern' || p.t === 'reed' || p.t === 'shroom' || (p.t === 'bush' && p.cut >= 2)) && Math.abs(p.x - CAMP.x) < 96 && p.y > CAMP.y - 110 && p.y < CAMP.y + 70) return; }
     L.push(p);
   });
   const E = [];
@@ -88,6 +88,7 @@ function drawWorld() {
     if (e.f) { e.f(); continue; }
     const p = e.p; let s;
     if (p.t === 'fern') { p.bv *= dtc; s = S.fern[p.v][1 + clamp(Math.round(p.bv), -1, 1)]; }
+    else if (p.t === 'bush') { p.bv *= dtc; s = S.bush[p.v][p.cut]; if (Math.abs(p.bv) > .25) { gDraw(s, p.x + Math.round(Math.sin(V.time * 38) * Math.min(2, Math.abs(p.bv) * 1.6)), p.y); continue; } }
     else if (p.t === 'berry') s = S.berry[clamp(p.n, 0, 3)];
     else if (p.t === 'shroom') { if (p.n <= 0) continue; s = S.shroom; }
     else s = Array.isArray(S[p.t]) ? S[p.t][p.v] : S[p.t];
@@ -97,17 +98,17 @@ function drawWorld() {
     if (p.flip) { g.save(); g.translate(Math.round(p.x - cx), 0); g.scale(-1, 1); g.drawImage(s.c, -s.ox, Math.round(p.y - cy) - s.oy); g.restore(); } else gDraw(s, p.x, p.y, al);
   }
 }
-// 시험용 충돌 보기 (F8): 빨강 = 막힘, 주황 = 낮은 장애물(총알은 넘어감), 파랑 칸 = 솔이 못 가는 물, 회색 칸 = 솔이 못 가는 곳, 노랑 = 방랑자
+// 시험용 충돌 보기 (F8): 빨강 = 막힘, 주황 = 낮은 장애물(총알은 넘어감), 초록 = 헤치고 지나가는 덤불, 파랑 칸 = 얕은 물(솔은 못 감), 붉은 칸 = 깊은 물, 회색 칸 = 솔이 못 가는 곳, 노랑 = 방랑자
 function drawCollision() {
   const g = V.g, cx = CAM.x, cy = CAM.y, NS = 16, nav = WORLD.navAt;
   for (let y = Math.floor(cy / NS) * NS; y < cy + V.h; y += NS) for (let x = Math.floor(cx / NS) * NS; x < cx + V.w; x += NS) {
     const v = nav(x + NS / 2, y + NS / 2); if (!v) continue;
-    g.fillStyle = v === 2 ? 'rgba(80,150,255,.22)' : 'rgba(160,160,160,.18)'; g.fillRect(x - cx, y - cy, NS - 1, NS - 1);
+    g.fillStyle = v === 2 ? (WORLD.deep(x + NS / 2, y + NS / 2) ? 'rgba(255,60,90,.3)' : 'rgba(80,150,255,.22)') : 'rgba(160,160,160,.18)'; g.fillRect(x - cx, y - cy, NS - 1, NS - 1);
   }
   const circ = (x, y, r, col) => { g.strokeStyle = col; g.beginPath(); g.arc(Math.round(x - cx) + .5, Math.round(y - cy) + .5, r, 0, TAU); g.stroke(); };
   g.lineWidth = 1;
   for (const s of WORLD.solids) if (s.x > cx - 120 && s.x < cx + V.w + 120 && s.y > cy - 80 && s.y < cy + V.h + 80) {
-    const col = s.low ? '#ffb040' : '#ff4a4a';
+    const col = s.bush ? (s.p.cut >= 2 ? '#6ad06a' : '#ffb040') : s.low ? '#ffb040' : '#ff4a4a';
     if (!s.hl) { circ(s.x, s.y, s.r, col); continue; }
     const x0 = Math.round(s.x - s.hl - cx) + .5, x1 = Math.round(s.x + s.hl - cx) + .5, y = Math.round(s.y - cy) + .5;
     g.strokeStyle = col; g.beginPath(); g.arc(x0, y, s.r, Math.PI / 2, Math.PI * 1.5); g.lineTo(x1, y - s.r); g.arc(x1, y, s.r, -Math.PI / 2, Math.PI / 2); g.closePath(); g.stroke();

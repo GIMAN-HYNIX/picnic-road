@@ -16,6 +16,7 @@ const WORLD = (() => {
     { x: 560, y: 1548, rx: 22, ry: 9 }, { x: 836, y: 1508, rx: 18, ry: 8 }, { x: 1196, y: 1410, rx: 24, ry: 10 }, { x: 1452, y: 1186, rx: 20, ry: 8 }, { x: 1330, y: 846, rx: 22, ry: 9 }, { x: 1590, y: 540, rx: 24, ry: 10 }, { x: 1700, y: 1290, rx: 26, ry: 11 }, { x: 900, y: 1180, rx: 20, ry: 8 }, { x: 2140, y: 420, rx: 18, ry: 7 },
   ];
   const BRIDGE = [[1898, 448], [1982, 416]];
+  const FORD = [[2196, 905, 70], [1893, 232, 56]];   // 얕은 여울 [x, y, 반지름]: 발목 아래까지만 차서 그냥 건넘. 나머지 개울 한가운데는 깊어서 쓰러진 나무로만 건넘
   const START = [330, 1600];
   let fTrail, fBrook, fTree, props = [], solids = [], buckets, sbuckets, nav, chunks = new Map(), SP = {}, forage = [], covers = [], rnd;
 
@@ -31,16 +32,21 @@ const WORLD = (() => {
   const clearD = (x, y, c) => ((x - c[0]) / c[2]) ** 2 + ((y - c[1]) / c[3]) ** 2 + (vnoise(x * .06, y * .06, 3) - .5) * .5;
   const pudQ = (x, y, p) => ((x - p.x) / p.rx) ** 2 + ((y - p.y) / p.ry) ** 2 + (vnoise(x * .1, y * .1, 7) - .5) * .4;
   const onBridge = (x, y) => segDist(x, y, BRIDGE[0], BRIDGE[1]) < 9;
-  // 땅 종류: 0 풀 · 1 흙길 · 3 숲 바닥 · 4 개울 · 5 웅덩이 · 6 통나무 다리
+  const fordK = (x, y) => { let k = -9; for (const f of FORD) k = Math.max(k, 1 - Math.hypot(x - f[0], y - f[1]) / f[2]); return k; };
+  // 깊은 물: 물가에서 6픽셀 넘게 들어간 곳. 여울에서는 깊은 곳이 없어짐
+  const deepD = (x, y) => brookD(x, y) + 6 + Math.max(0, fordK(x, y)) * 60;
+  // 방랑자가 못 들어가는 깊은 물인가 (쓰러진 나무 위는 제외. 나무는 판정을 넉넉하게 줘서 건너다 빠지지 않음)
+  const deep = (x, y) => fs(fBrook, x, y) < BW + 8 && deepD(x, y) < 0 && segDist(x, y, BRIDGE[0], BRIDGE[1]) >= 13;
+  // 땅 종류: 0 풀 · 1 흙길 · 3 숲 바닥 · 4 얕은 개울 · 5 웅덩이 · 6 통나무 다리 · 7 깊은 개울
   function terr(x, y) {
     if (onBridge(x, y)) return 6;
     for (const p of PUD) if (Math.abs(x - p.x) < p.rx * 1.2 && Math.abs(y - p.y) < p.ry * 1.2 && pudQ(x, y, p) < 1) return 5;
-    if (fs(fBrook, x, y) < BW + 8 && brookD(x, y) < 0) return 4;
+    if (fs(fBrook, x, y) < BW + 8 && brookD(x, y) < 0) return deepD(x, y) < 0 ? 7 : 4;
     if (fs(fTrail, x, y) < TW + 8 && trailD(x, y) < 0) return 1;
     for (const c of CLEAR) if (c[4] && Math.abs(x - c[0]) < c[2] * 1.3 && Math.abs(y - c[1]) < c[3] * 1.3 && clearD(x, y, c) < 1) return 1;
     return fs(fTree, x, y) < 40 ? 3 : 0;
   }
-  const wet = (x, y) => { const t = terr(x, y); return t === 4 || t === 5; };
+  const wet = (x, y) => { const t = terr(x, y); return t === 4 || t === 5 || t === 7; };
 
   /* ---------- 배치 ---------- */
   function free(x, y, pad) {   // 길 · 개울 · 웅덩이 · 빈터를 피함
@@ -70,7 +76,8 @@ const WORLD = (() => {
     for (const [x, y] of [[860, 1600], [1700, 1100], [1050, 560], [2320, 900], [460, 1360]]) add('stump', x, y);
     for (const [x, y] of [[470, 1520], [1640, 1440], [1930, 1330], [1120, 1270], [1350, 480], [2200, 300], [760, 1010]]) add('berry', x, y, { n: 3 });
     prune();
-    for (let i = 0; i < 500; i++) { const x = 130 + R() * (WW - 260), y = 150 + R() * (WH - 290); if (free(x, y, 22) && far(x, y, 54)) add('bush', x, y, { v: (R() * 2) | 0 }); if (props.filter(p => p.t === 'bush').length > 44) break; }
+    for (let i = 0; i < 500; i++) { const x = 130 + R() * (WW - 260), y = 150 + R() * (WH - 290); if (free(x, y, 22) && far(x, y, 54)) add('bush', x, y, { v: (R() * 2) | 0, cut: 0, bv: 0, rn: 1 }); if (props.filter(p => p.t === 'bush').length > 44) break; }
+    prune();   // 덤불도 다른 장애물과 어중간한 틈을 만들면 뺌
     // 버섯: 큰 나무 밑동 옆
     const trees = props.filter(p => p.t === 'tree' && p.x > 200 && p.x < WW - 200 && p.y > 240 && p.y < WH - 160);
     for (let i = 0, n = 0; i < trees.length && n < 12; i += 5) { const t = trees[i], x = t.x + (R() < .5 ? -1 : 1) * (38 + R() * 14), y = t.y + 8 + R() * 10; if (free(x, y, 10)) { add('shroom', x, y, { n: 1 }); n++; } }
@@ -88,15 +95,17 @@ const WORLD = (() => {
     if (p.t === 'tree') return [p.x, p.y - 4, TR[p.v] * .8]; if (p.t === 'sap') return [p.x, p.y - 2, 5];
     if (p.t === 'rock') { const r = [9, 15, 24][p.v]; return [p.x, p.y - r * .35, r]; }
     if (p.t === 'stump') return [p.x, p.y - 6, 15]; if (p.t === 'log') return [p.x, p.y - 9, 10, 44]; if (p.t === 'berry') return [p.x, p.y - 6, 13];
+    if (p.t === 'bush') return [p.x, p.y - 6, 14, 8];   // 덤불: 칼로 쳐내 성글어지면(cut ≥ 2) 헤치고 지나감
     return null;
   }
   function gap(a, b) { const dx = Math.max(0, Math.abs(a[0] - b[0]) - (a[3] || 0) - (b[3] || 0)); return Math.hypot(dx, a[1] - b[1]) - a[2] - b[2]; }
   // 레이아웃 정리: 아무 데나 뿌린 나무 · 묘목 · 바위가 다른 장애물과 겹치거나, 방랑자가 못 지나갈 만큼(지름 18) 좁은 틈을 만들면 뺌
   // 손으로 놓은 통나무 · 그루터기 · 산딸기 · 가장자리 나무는 그대로 두고, 작은 것부터 뺌
   function prune() {
-    const rank = { sap: 0, rock: 1, tree: 2 }, cand = props.filter(p => p.rn).sort((a, b) => rank[a.t] - rank[b.t] || b.v - a.v), dead = new Set();
+    const rank = { bush: -1, sap: 0, rock: 1, tree: 2 }, cand = props.filter(p => p.rn).sort((a, b) => rank[a.t] - rank[b.t] || b.v - a.v), dead = new Set();
     for (const p of cand) {
       const a = shape(p);
+      if (fordK(p.x, p.y) > -.25) { dead.add(p); continue; }   // 여울과 그 물가는 비워 둠
       for (const q of props) {
         if (q === p || dead.has(q)) continue; const b = shape(q); if (!b) continue;
         const d = gap(a, b), fixed = !q.rn && q.t !== 'tree';
@@ -109,10 +118,10 @@ const WORLD = (() => {
     solids = []; forage = []; covers = [];
     for (const p of props) {
       const sh = shape(p);
-      if (sh) { const o = { x: sh[0], y: sh[1], r: sh[2], p }; if (sh[3]) o.hl = sh[3]; if (p.t === 'log' || p.t === 'berry') o.low = 1; if (p.t === 'tree' || p.t === 'rock') p.r = sh[2]; solids.push(o); }
+      if (sh) { const o = { x: sh[0], y: sh[1], r: sh[2], p }; if (sh[3]) o.hl = sh[3]; if (p.t === 'log' || p.t === 'berry' || p.t === 'bush') o.low = 1; if (p.t === 'bush') o.bush = 1; if (p.t === 'tree' || p.t === 'rock') p.r = sh[2]; solids.push(o); }
       if (p.t === 'berry') forage.push(p);
-      else if (p.t === 'shroom') forage.push(p);
-      else if (p.t === 'fern' || p.t === 'bush') covers.push(p);
+      if (p.t === 'shroom') forage.push(p);
+      if (p.t === 'fern' || p.t === 'bush') covers.push(p);
     }
     buckets = new Map(); sbuckets = new Map();
     const put = (M, k, v) => { let a = M.get(k); if (!a) M.set(k, a = []); a.push(v); };
@@ -123,31 +132,33 @@ const WORLD = (() => {
     for (let j = 0; j < NH; j++) for (let i = 0; i < NW; i++) {
       const x = i * NS + NS / 2, y = j * NS + NS / 2; let v = 0;
       if (x < 60 || y < 70 || x > WW - 60 || y > WH - 210) v = 1;
-      else if (hitSolid(x, y, 7)) v = 1;
+      else if (hitSolid(x, y, 7, true)) v = 1;   // 솔은 덤불 밑으로 지나가므로 덤불은 막힌 곳으로 치지 않음
       else if (segDist(x, y, BRIDGE[0], BRIDGE[1]) < 14) v = 0;   // 통나무 다리는 솔도 건넘
-      else { const t = terr(x, y); if (t === 4 || t === 5) v = 2; }
+      else { const t = terr(x, y); if (t === 4 || t === 5 || t === 7) v = 2; }
       nav[j * NW + i] = v;
     }
   }
   function near(M, x, y, r, sh, fn) { for (let j = (y - r) >> sh; j <= (y + r) >> sh; j++) for (let i = (x - r) >> sh; i <= (x + r) >> sh; i++) { const a = M.get(j * 64 + i); if (a) for (const o of a) fn(o); } }
   // 장애물에서 가장 가까운 점: 원은 가운데, 통나무(가로 캡슐)는 선분 위의 점
   const cpx = (s, x) => s.hl ? clamp(x, s.x - s.hl, s.x + s.hl) : s.x;
-  function hitSolid(x, y, r) { let h = null; near(sbuckets, x, y, r + 60, 7, s => { if (!h && Math.hypot(cpx(s, x) - x, s.y - y) < s.r + r) h = s; }); return h; }
+  // 덤불은 성글어졌거나(cut ≥ 2), 작은 몸(솔)이면 막지 않음
+  const open = (s, small) => s.bush && (small || s.p.cut >= 2);
+  function hitSolid(x, y, r, small) { let h = null; near(sbuckets, x, y, r + 60, 7, s => { if (!h && !open(s, small) && Math.hypot(cpx(s, x) - x, s.y - y) < s.r + r) h = s; }); return h; }
   const inB = (x, y) => [clamp(x, 70, WW - 70), clamp(y, 96, WH - 216)];
   // 원을 장애물 밖으로 밀어냄 (미끄러지듯 비껴 감)
   // 원래 자리(ox, oy)를 주면: 나무와 맵 가장자리 사이처럼 풀 수 없는 구석에서는 파고들거나 뒤로 튕기지 않고 제자리에 머묾
   function push(x, y, r, ox, oy) {
-    const ix = x, iy = y;
+    const ix = x, iy = y, small = r < 7;
     for (let it = 0; it < 4; it++) {
       let hit = false;
       [x, y] = inB(x, y);
-      near(sbuckets, x, y, r + 60, 7, s => { const qx = cpx(s, x), dx = x - qx, dy = y - s.y, d = Math.hypot(dx, dy), m = s.r + r; if (d < m) { hit = true; if (d > .001) { x = qx + dx / d * m; y = s.y + dy / d * m; } else y = s.y + m; } });
+      near(sbuckets, x, y, r + 60, 7, s => { if (open(s, small)) return; const qx = cpx(s, x), dx = x - qx, dy = y - s.y, d = Math.hypot(dx, dy), m = s.r + r; if (d < m) { hit = true; if (d > .001) { x = qx + dx / d * m; y = s.y + dy / d * m; } else y = s.y + m; } });
       if (!hit) break;
     }
     [x, y] = inB(x, y);
     if (ox == null) return [x, y];
-    const bad = hitSolid(x, y, r - .5) || (x - ox) * (ix - ox) + (y - oy) * (iy - oy) < 0;
-    return bad && !hitSolid(ox, oy, r - .5) ? inB(ox, oy) : [x, y];
+    const bad = hitSolid(x, y, r - .5, small) || (x - ox) * (ix - ox) + (y - oy) * (iy - oy) < 0;
+    return bad && !hitSolid(ox, oy, r - .5, small) ? inB(ox, oy) : [x, y];
   }
   // 총알: 나무 · 바위에 막히는 거리 (낮은 것은 넘어감)
   function ray(x, y, dx, dy, max) {
@@ -235,9 +246,16 @@ const WORLD = (() => {
     for (const [bx, by, rx, ry] of (v ? [[44, 42, 23, 17], [27, 54, 15, 12], [61, 52, 16, 13], [42, 25, 17, 12]] : [[44, 46, 21, 16], [25, 42, 15, 12], [63, 46, 17, 13], [46, 27, 19, 13], [33, 62, 12, 9]])) leafBlob(pb, bx, by, rx, ry);
     return cv(pb, cx, yb);
   }
-  function paintBush(v, berries) {
-    const pb = new PB(60, 44);
-    for (const [bx, by, rx, ry] of (v ? [[30, 25, 25, 15], [15, 30, 12, 9], [46, 29, 12, 10]] : [[28, 26, 22, 14], [44, 28, 14, 11], [14, 31, 11, 8]])) leafBlob(pb, bx, by, rx, ry, berries != null ? ['#223a2a', '#32533a', '#44704a', '#5e8a56'] : null);
+  // thin: 0 빽빽함 · 1 조금 쳐냄 · 2 성글어짐(잘린 가지가 보이고 사이로 지나갈 수 있음)
+  function paintBush(v, berries, thin = 0) {
+    const pb = new PB(60, 44), pal = berries != null ? ['#223a2a', '#32533a', '#44704a', '#5e8a56'] : null;
+    const full = v ? [[30, 25, 25, 15], [15, 30, 12, 9], [46, 29, 12, 10]] : [[28, 26, 22, 14], [44, 28, 14, 11], [14, 31, 11, 8]];
+    if (thin) {   // 잘린 가지
+      for (const [x, h, ln] of [[14, 9, -2], [22, 13, 1], [30, 15, 0], [38, 12, 2], [46, 8, -1]]) { for (let k = 0; k < h; k++) pb.px(x + Math.round(ln * k / h), 39 - k, k % 4 === 3 ? '#6a543c' : '#4a3a2a'); pb.px(x + ln, 39 - h, '#c8b48a'); }
+    }
+    if (thin === 0) for (const [bx, by, rx, ry] of full) leafBlob(pb, bx, by, rx, ry, pal);
+    else if (thin === 1) for (const [bx, by, rx, ry] of (v ? [[30, 28, 21, 11], [14, 32, 10, 7], [46, 31, 10, 8]] : [[28, 29, 18, 10], [44, 31, 11, 8], [14, 33, 9, 6]])) leafBlob(pb, bx, by, rx, ry, pal);
+    else for (const [bx, by, rx, ry] of (v ? [[13, 34, 7, 5], [29, 33, 6, 5], [46, 34, 8, 5], [37, 28, 4, 3]] : [[12, 35, 7, 4], [27, 34, 6, 5], [44, 34, 8, 5], [20, 29, 4, 3]])) leafBlob(pb, bx, by, rx, ry, pal);
     if (berries) for (const [x, y] of [[20, 22], [33, 18], [41, 27], [26, 31], [14, 30], [47, 22]].slice(0, berries * 2)) { pb.ellipse(x + .5, y + .5, 2, 2, '#b02a36'); pb.px(x, y - 1, '#f08a8a'); pb.px(x + 2, y + 1, '#6a1420'); }
     return cv(pb, 30, 40);
   }
@@ -342,7 +360,7 @@ const WORLD = (() => {
   }
   function sprites() {
     SP.tree = TR.map((r, i) => paintTrunk(r, [176, 190, 202, 214, 262][i], i * 3 + 1));
-    SP.sap = [paintSap(0), paintSap(1)]; SP.bush = [paintBush(0), paintBush(1)]; SP.berry = [0, 1, 2, 3].map(n => paintBush(1, n));
+    SP.sap = [paintSap(0), paintSap(1)]; SP.bush = [0, 1].map(v => [0, 1, 2].map(t => paintBush(v, null, t))); SP.berry = [0, 1, 2, 3].map(n => paintBush(1, n));
     SP.fern = [0, 1, 2].map(v => [-1, 0, 1].map(l => paintFern(v, l)));
     SP.rock = [0, 1, 2].map(paintRock); SP.log = paintLog(124); SP.seat = paintLog(66); SP.stump = paintStump(); SP.shroom = paintShroom(); SP.reed = [paintReed(0), paintReed(1)];
     SP.tent = paintTent(); SP.fire = [-1, 0, 1, 2].map(paintFire);
@@ -354,7 +372,7 @@ const WORLD = (() => {
   const U = h => C(h);
   const G1 = U('#47684a'), G2 = U('#3d5a40'), G3 = U('#2f4632'), G4 = U('#5b7d55'), F1 = U('#3a5340'), F2 = U('#34493a'), FL = U('#5e4a34'), FG = U('#4a6a46'),
     D1 = U('#5f4a36'), D2 = U('#6e573f'), D3 = U('#4e3c2c'), D4 = U('#85705a'), DE = U('#4a5a3a'), DW = U('#54402e'),
-    W1 = U('#27404e'), W2 = U('#2f4b5a'), W3 = U('#4a5e66'), WE = U('#1e2c36'), BK1 = U('#4a4034'), BK2 = U('#7a766e'), P1 = U('#2e4658'), P2 = U('#24384a'), PM = U('#3e3428');
+    W1 = U('#1f3644'), W2 = U('#284252'), W3 = U('#4a5e66'), WE = U('#1e2c36'), S1 = U('#44646c'), S2 = U('#527478'), S3 = U('#7e8a80'), S4 = U('#3a5460'), BK1 = U('#4a4034'), BK2 = U('#7a766e'), P1 = U('#2e4658'), P2 = U('#24384a'), PM = U('#3e3428');
   function tuft(pb, x, y, dark) { const c = dark ? '#557a4e' : '#62865a', t = dark ? '#7a9c6a' : '#88a878'; for (const [dx, h, ln] of [[-2, 4, -1], [-1, 6, 0], [0, 5, 1], [1, 7, 0], [2, 4, 1]]) for (let k = 0; k < h; k++) pb.px(x + dx + Math.round(ln * k / h * 2), y - k, k > h - 2 ? t : c); }
   function paintChunk(cx, cy) {
     const pb = new PB(CHK, CHK), X0 = cx * CHK, Y0 = cy * CHK, d = pb.d, mx = X0 + 128, my = Y0 + 128;
@@ -368,7 +386,8 @@ const WORLD = (() => {
       if (nT && fs(fTrail, x, y) < TW + 8) { const pd = trailD(x, y); if (pd < 0) { dirt = true; edge = pd > -3; } }
       for (const q of cl) { const e = clearD(x, y, q); if (e < 1) { dirt = true; edge = edge || e > .9; } }
       if (dirt) { const m = vnoise(x * .05, y * .07, 5); c = m > .6 ? D1 : m < .28 ? DW : D2; if (h > .96) c = D3; else if (h < .025) c = D4; if (edge && hash2(x, y + 9) > .5) c = DE; }
-      if (nB && fs(fBrook, x, y) < BW + 16) { const bd = brookD(x, y); if (bd < 0) { c = bd < -9 ? W1 : W2; if (h > .965) c = W3; if (bd > -2.5) c = WE; } else if (bd < 7) c = h > .78 ? BK2 : BK1; }
+      // 개울: 깊은 곳은 어둡고, 얕은 곳은 밝고 바닥 자갈이 비침
+      if (nB && fs(fBrook, x, y) < BW + 16) { const bd = brookD(x, y); if (bd < 0) { const dd = deepD(x, y); if (dd < 0) { c = dd < -5 ? W1 : W2; if (h > .975) c = W3; } else { c = vnoise(x * .11, y * .16, 13) > .5 ? S1 : S2; if (h > .9) c = S3; else if (h < .06) c = S4; } if (bd > -2.5) c = WE; } else if (bd < 7) c = h > .78 ? BK2 : BK1; }
       for (const p of pu) { if (Math.abs(x - p.x) > p.rx * 1.3 || Math.abs(y - p.y) > p.ry * 1.4) continue; const q = pudQ(x, y, p); if (q < 1) c = q > .72 ? P2 : P1; else if (q < 1.22) c = PM; }
       d[j * CHK + i] = c;
     }
@@ -405,6 +424,6 @@ const WORLD = (() => {
     for (const p of props) if (p.t === 'tree') { const r = TR[p.v]; for (let j = Math.max(0, ((p.y - 130) / FS) | 0); j <= Math.min(FH - 1, ((p.y + 130) / FS) | 0); j++) for (let i = Math.max(0, ((p.x - 150) / FS) | 0); i <= Math.min(FW - 1, ((p.x + 150) / FS) | 0); i++) { const dd = Math.hypot(i * FS - p.x, (j * FS - p.y) * 1.5) - r, o = j * FW + i; if (dd < fTree[o]) fTree[o] = dd; } }
     index(); sprites();
   }
-  return { WW, WH, CHK, PUD, START, BRIDGE, TRAIL, BROOK, TR, SP, gen, chunk, terr, wet, push, hitSolid, ray, path, walkable, clearLine, nearestOpen, onBridge, navAt: (x, y) => { const i = (x / NS) | 0, j = (y / NS) | 0; return i < 0 || j < 0 || i >= NW || j >= NH ? 1 : nav[j * NW + i]; }, hasChunk: (cx, cy) => chunks.has(cy * 64 + cx),
+  return { WW, WH, CHK, PUD, START, BRIDGE, FORD, deep, TRAIL, BROOK, TR, SP, gen, chunk, terr, wet, push, hitSolid, ray, path, walkable, clearLine, nearestOpen, onBridge, navAt: (x, y) => { const i = (x / NS) | 0, j = (y / NS) | 0; return i < 0 || j < 0 || i >= NW || j >= NH ? 1 : nav[j * NW + i]; }, hasChunk: (cx, cy) => chunks.has(cy * 64 + cx),
     near: (x, y, r, fn) => near(buckets, x, y, r, 8, fn), get props() { return props; }, get forage() { return forage; }, get covers() { return covers; }, get solids() { return solids; } };
 })();
