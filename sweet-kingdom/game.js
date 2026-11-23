@@ -1315,6 +1315,8 @@ const GIM = {
   roll: { name: '롤케이크', hint: '굴러오는 롤케이크를 피해요', desc: '굵은 줄 위로 거대한 롤케이크가 굴러가요. 나는 피하고, 줄 위의 적은 깔려서 크게 다쳐요.' },
   coat: { name: '설탕 코팅', hint: '반짝이는 적은 단단해요', desc: '적이 설탕 껍질을 두르고 나와요. 껍질이 깨질 때까지는 피해가 덜 들어가요.' },
   grid: { name: '와플 격자', hint: '격자 줄 사이 칸으로 피해요', desc: '내 주변에 와플 같은 가로세로 줄이 그어지고 곧 뜨거워져요. 줄과 줄 사이 빈칸으로 들어가요.' },
+  whisk: { name: '거품기 휘젓기', hint: '휘젓는 쪽을 보고 뒤로 비켜요', desc: '근처에 커다란 거품기가 나타나 한 바퀴 반쯤 휘저어요. 빗살이 차례로 쓸고 지나가니 멀리 물러나거나 이미 지나간 쪽으로 가요.' },
+  soda: { name: '탄산 방울', hint: '방울을 밟아 펑 터뜨려요', desc: '바닥 곳곳에 톡톡 튀는 탄산 방울이 있어요. 밟으면 펑 터지면서 주변 몬스터에게 큰 피해를 줘요. 적이 많은 곳에서 터뜨려 봐요.' },
   cookie: { name: '쿠키 틀', hint: '틀이 찍히면 가장자리로 비켜요', desc: '커다란 네모 쿠키 틀이 내 주위에 내려와요. 먼저 틀 테두리가 쾅 찍히고, 이어서 가운데가 꾹 눌려요. 테두리가 찍힌 뒤엔 가운데에서 벗어나요.' },
   belt: { name: '컨베이어 벨트', hint: '벨트 위에선 옆으로 밀려요', desc: '사탕 공장 바닥에 컨베이어 벨트가 깔려 있어요. 벨트에 올라서면 화살표 쪽으로 쭉 밀려가요. 피할 때 타면 빨라요.' },
   pipe: { name: '생크림 짜기', hint: '줄지어 터지는 크림을 피해요', desc: '커다란 짤주머니가 내 옆을 지나가며 생크림을 한 줄로 짜요. 크림 방울이 차례로 터지니 줄 옆으로 비켜요.' },
@@ -1388,7 +1390,15 @@ const STAGES = [
   { n: '쿠키 그림자', g: ['cookie', 'stalker'] }, { n: '단단한 벨트 사탕', g: ['belt', 'coat'] }, { n: '쿠키 와플', g: ['cookie', 'grid'] }, { n: '벨트 보석 비', g: ['belt', 'gemrain'] }, { n: '곰팡이 케이크의 벨트 공장', boss: 'boss', g: ['belt'] },
   { n: '쿠키와 생크림', g: ['cookie', 'pipe'] }, { n: '벨트 위 젤리', g: ['belt', 'jelly'] }, { n: '쿠키 롤케이크', g: ['cookie', 'roll'] }, { n: '벨트 차원문', g: ['belt', 'portal'] }, { n: '초코 분수 대왕의 마지막 쿠키', boss: 'boss2', g: ['cookie'] },
   { n: '쿠키 케이크 커팅', g: ['cookie', 'slice'] }, { n: '벨트 현상금 사냥', g: ['belt', 'bounty'] }, { n: '쿠키 시럽 나선', g: ['cookie', 'spiral'] }, { n: '벨트 위 생크림', g: ['belt', 'pipe'] }, { n: '탄 설탕 마왕의 마지막 벨트', boss: 'boss3', g: ['belt'] },
-  { n: '마지막 쿠키 틀', g: ['cookie', 'coat'] }, { n: '왕좌로 가는 벨트', g: ['belt', 'candles'] }, { n: '쿠키 탑 계단', g: ['cookie', 'giant'] }, { n: '왕좌 앞 벨트', g: ['belt'] }, { n: '삼백이십 번째 왕좌: 디저트 여왕의 쿠키 왕관', boss: 'queen', g: ['cookie'] }
+  { n: '마지막 쿠키 틀', g: ['cookie', 'coat'] }, { n: '왕좌로 가는 벨트', g: ['belt', 'candles'] }, { n: '쿠키 탑 계단', g: ['cookie', 'giant'] }, { n: '왕좌 앞 벨트', g: ['belt'] }, { n: '삼백이십 번째 왕좌: 디저트 여왕의 쿠키 왕관', boss: 'queen', g: ['cookie'] },
+  { n: '거품 내는 부엌', g: ['whisk'] }, { n: '톡톡 탄산 광장', g: ['soda'] }, { n: '거품기와 보석', g: ['whisk', 'gemrain'] }, { n: '탄산 개미 떼', g: ['soda', 'swarm'] }, { n: '초코 분수 대왕의 거품 부엌', boss: 'boss2', g: ['whisk'] },
+  { n: '거품기 현상범', g: ['whisk', 'bounty'] }, { n: '탄산 거인', g: ['soda', 'giant'] }, { n: '휘젓는 벨트', g: ['whisk', 'belt'] }, { n: '탄산 와플', g: ['soda', 'grid'] }, { n: '마카롱 여왕의 탄산 파티', boss: 'queen', g: ['soda'] },
+  { n: '코팅 거품', g: ['whisk', 'coat'] }, { n: '탄산 차원문', g: ['soda', 'portal'] }, { n: '거품기 황금 젤리', g: ['whisk', 'goldrush'] }, { n: '탄산 촛불', g: ['soda', 'candles'] }, { n: '탄 설탕 마왕의 거품기', boss: 'boss3', g: ['whisk'] },
+  { n: '거품기 그림자', g: ['whisk', 'stalker'] }, { n: '탄산 쿠키 틀', g: ['soda', 'cookie'] }, { n: '거품 시럽 나선', g: ['whisk', 'spiral'] }, { n: '탄산 생크림', g: ['soda', 'pipe'] }, { n: '삼백사십 번째 왕좌: 디저트 여왕의 탄산 분수', boss: 'queen', g: ['whisk'] },
+  { n: '휘젓는 거인', g: ['whisk', 'giant'] }, { n: '탄산 롤케이크', g: ['soda', 'roll'] }, { n: '거품 와플', g: ['whisk', 'grid'] }, { n: '탄산 현상범', g: ['soda', 'bounty'] }, { n: '곰팡이 케이크의 거품 공장', boss: 'boss', g: ['soda'] },
+  { n: '거품기 보석 비', g: ['whisk', 'gemrain'] }, { n: '탄산 젤리', g: ['soda', 'jelly'] }, { n: '거품기 차원문', g: ['whisk', 'portal'] }, { n: '탄산 케이크 커팅', g: ['soda', 'slice'] }, { n: '초코 분수 대왕의 마지막 거품', boss: 'boss2', g: ['whisk'] },
+  { n: '단단한 거품', g: ['whisk', 'coat'] }, { n: '탄산 컨베이어', g: ['soda', 'belt'] }, { n: '거품기 촛불', g: ['whisk', 'candles'] }, { n: '탄산 황금 젤리', g: ['soda', 'goldrush'] }, { n: '탄 설탕 마왕의 마지막 탄산', boss: 'boss3', g: ['soda'] },
+  { n: '마지막 거품기', g: ['whisk', 'bounty'] }, { n: '왕좌로 가는 탄산길', g: ['soda', 'spiral'] }, { n: '거품 탑 계단', g: ['whisk', 'giant'] }, { n: '왕좌 앞 탄산 방울', g: ['soda'] }, { n: '삼백육십 번째 왕좌: 디저트 여왕의 거품 왕관', boss: 'queen', g: ['whisk'] }
 ];
 const DIFF_K = 0.85, stageDiff = n => (n - 1) * DIFF_K;      /* 스테이지마다 오르는 폭은 처음부터 끝까지 같아요. 전설 스킬을 얻으면 시원하게 밀고 나가는 게 맞아요 */
 const G = k => !!(B && B.g && B.g.includes(k));
@@ -1397,6 +1407,7 @@ function gimInit() {
   if (G('giant')) { B.rateK *= 0.45; B.hpK *= 2.3; } if (G('swarm')) { B.rateK *= 2.1; B.hpK *= 0.4; B.fspK *= 1.1; } if (G('fast')) { B.fspK *= 1.35; B.rateK *= 0.85; } if (G('ring')) B.rateK *= 0.7; if (G('bombs')) B.rateK *= 0.8;
   if (G('balls')) B.balls = Array.from({ length: B.floor > 40 ? 3 : 2 }, (_, i) => ({ rx: (i - 0.5) * 160, ry: -260 + i * 120, vx: (i % 2 ? -1 : 1) * 95, vy: 80 + i * 15, r: 16 }));
   if (G('mines')) B.mineOff = new Set();
+  if (G('soda')) B.sodaOff = new Set();
   if (G('candles')) B.candles = [];
   if (G('portal')) { B.ports = [{ x: 190, y: -150 }, { x: -200, y: 170 }]; B.rateK *= 0.6; }
   if (G('turret')) B.turs = [{ x: 210, y: 120, cd: 2 }, { x: -220, y: -140, cd: 3.5 }];
@@ -1409,6 +1420,8 @@ function hazard(o) { B.haz.push(o); if (o.k === 'c') B.telegraphs.push({ k: 'cir
 const MINE_C = 170, mineHash = (i, j) => (Math.imul(i, 83492791) ^ Math.imul(j, 2971215073 | 0)) >>> 0;
 function minePos(i, j) { const h = mineHash(i, j); if (h % 3 !== 0 || (i === 0 && j === 0)) return null; return [(i + 0.5) * MINE_C + (h % 71) - 35, (j + 0.5) * MINE_C + ((h >> 8) % 71) - 35]; }
 function jellyAt(x, y) { const C = 200, cx = Math.floor(x / C), cy = Math.floor(y / C); for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) { const h = (Math.imul(i, 2654435761) ^ Math.imul(j, 40503)) >>> 0; if (h % 3 !== 0) continue; const mx = (i + 0.5) * C + (h % 51) - 25, my = (j + 0.5) * C + ((h >> 8) % 51) - 25; if (Math.abs(x - mx) < 50 && Math.abs(y - my) < 40) return h; } return 0; }      /* 젤리 판: 칸마다 정해진 자리 */
+const SODA_C = 160;
+function sodaPos(i, j) { const h = (Math.imul(i, 1103515245) ^ Math.imul(j, 12345 + 2654435)) >>> 0; if (h % 2 !== 0 || (i === 0 && j === 0)) return null; return [(i + 0.5) * SODA_C + (h % 61) - 30, (j + 0.5) * SODA_C + ((h >> 8) % 61) - 30]; }      /* 탄산 방울: 칸마다 정해진 자리 */
 const BELT_C = 260, BELT_H = 80;
 function beltAt(y) { const j = Math.floor(y / BELT_C); return y - j * BELT_C < BELT_H ? (((j % 2) + 2) % 2 ? 1 : -1) : 0; }      /* 컨베이어 벨트: 가로 줄마다 번갈아 왼쪽·오른쪽 */
 function mudAt(x, y) { const C = 230, cx = Math.floor(x / C), cy = Math.floor(y / C); for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) { const h = (Math.imul(i, 73856093) ^ Math.imul(j, 19349663)) >>> 0; if (h % 5 > 1) continue; const mx = (i + 0.5) * C + (h % 61) - 30, my = (j + 0.5) * C + ((h >> 8) % 61) - 30; if ((x - mx) ** 2 + (y - my) ** 2 < 66 * 66) return true; } return false; }
@@ -1440,6 +1453,10 @@ function gimUpdate(dt) {
     t.cd -= dt; if (t.cd <= 0) { t.cd = 3.2; const dx = p.x - t.x, dy = p.y - t.y - 10, m = Math.hypot(dx, dy) || 1; B.foeShots.push({ x: t.x, y: t.y - 10, vx: dx / m * 135, vy: dy / m * 135, r: 6, dmg: 1, life: 4 }); if (!headless) fxAdd({ k: 'flash', x: t.x, y: t.y - 10, r: 12, life: 0.1, max: 0.1, col: '#FF8FA8' }); } }
   if (G('mud')) B.spdK = mudAt(p.x, p.y) ? 0.5 : 1;
   if (G('jelly')) { const on = !!jellyAt(p.x, p.y); B.spdK = on ? 1.55 : 1; if (on && !T.jon && !headless) { fxAdd({ k: 'ring', x: p.x, y: p.y, r: 6, to: 34, life: 0.25, max: 0.25, col: '#B6F08A', w: 4 }); sfx.tap(); } T.jon = on; }      /* 젤리 위에서는 통통 빨라져요 */
+  if (G('soda')) { const ci = Math.floor(p.x / SODA_C), cj = Math.floor(p.y / SODA_C); for (let j = cj - 1; j <= cj + 1; j++) for (let i = ci - 1; i <= ci + 1; i++) { const k = i + ',' + j; if (B.sodaOff.has(k)) continue; const m = sodaPos(i, j); if (!m || (p.x - m[0]) ** 2 + (p.y - m[1]) ** 2 >= 40 * 40) continue; B.sodaOff.add(k);      /* 밟으면 펑: 주변 적에게 큰 피해 */
+      for (const f of B.foes) { if (f.dead) continue; const dx = f.x - m[0], dy = f.y - m[1], d = Math.hypot(dx, dy) || 1; if (d < 120 + f.r) hurtFoe(f, FOES[f.type].big ? f.max * 0.04 : f.max * 0.4, null, dx / d, dy / d); }
+      if (!headless) { fxAdd({ k: 'ring', x: m[0], y: m[1], r: 10, to: 120, life: 0.35, max: 0.35, col: '#9FE8FF', w: 6 }); burst(m[0], m[1], '#FFFFFF', 10, 200); burst(m[0], m[1], '#9FE8FF', 10, 160); sfx.tap(); } } }
+  if (G('whisk') && every('wsk', 10)) { const a = Math.random() * 6.283, cx = p.x + Math.cos(a) * 170, cy = p.y + Math.sin(a) * 170, b0 = a + Math.PI - 1.4; for (let k = 0; k < 7; k++) hazard({ k: 'l', x: cx, y: cy, a: b0 + k * 0.45, len: 290, w: 18, t: 1.5 + k * 0.16 }); if (!headless) sfx.warn(); }      /* 거품기: 빗살이 차례로 쓸고 지나가요 */
   if (G('belt')) { const b = beltAt(p.y); if (b) p.x += b * 95 * dt; }      /* 벨트 위에서는 옆으로 밀려요 */
   if (G('cookie') && every('cok', 8)) { const cx = p.x, cy = p.y, h = 130; [[cx - h, cy - h, 0], [cx + h, cy - h, 1.5708], [cx + h, cy + h, 3.1416], [cx - h, cy + h, 4.7124]].forEach(([x, y, a]) => hazard({ k: 'l', x, y, a, len: 2 * h, w: 18, t: 1.3 })); hazard({ k: 'c', x: cx, y: cy, r: 90, t: 2.3 }); if (!headless) sfx.warn(); }      /* 쿠키 틀: 테두리 먼저, 가운데는 나중에 */
   if (G('pipe') && every('pip', 6)) { const a = Math.random() * 6.283, c = Math.cos(a), sn = Math.sin(a), off = (Math.random() < 0.5 ? -1 : 1) * rand(0, 40), sx = p.x - c * 300 - sn * off, sy = p.y - sn * 300 + c * off; for (let i = 0; i < 13; i++) hazard({ k: 'c', x: sx + c * i * 50, y: sy + sn * i * 50, r: 32, t: 1.1 + i * 0.08, cream: true }); if (!headless) sfx.warn(); }      /* 생크림 짜기: 한 줄로 차례차례 */
@@ -1468,6 +1485,8 @@ function gimUpdate(dt) {
 /* 바닥에 그리는 기믹: 꿀 늪, 울타리, 소용돌이 */
 function gimGround() {
   const p = B.p;
+  if (G('soda')) { const C = SODA_C; for (let j = Math.floor((p.y - vh) / C); j <= Math.floor((p.y + vh) / C); j++) for (let i = Math.floor((p.x - vw) / C); i <= Math.floor((p.x + vw) / C); i++) { if (B.sodaOff.has(i + ',' + j)) continue; const m = sodaPos(i, j); if (!m) continue; const mx = X(m[0]), my = Y(m[1]) + Math.round(Math.sin(B.t * 4 + i * 1.7 + j) * 1.5);      /* 통통 떠 있는 탄산 방울 */
+      R('rgba(14,6,20,.3)', mx - 6, Y(m[1]) + 10, 13, 3); pcircle(mx, my, 12, INK); putDisc(mx, my, 11, 11, '#9FE8FF', 12); pcircle(mx, my, 11, '#2FA8E0'); pcircle(mx, my, 9, '#CFF6FF'); R('#FFFFFF', mx - 5, my - 6, 3, 2); R('#FFFFFF', mx - 6, my - 4, 2, 2); if (Math.floor(B.t * 3 + i + j) % 3 === 0) R('#FFFFFF', mx + 4, my + 3, 1, 1); } }
   if (G('belt')) { const x0 = X(p.x - vw), wd = Math.round(vw * 2 / WP) + 4, bh = BELT_H / WP; for (let j = Math.floor((p.y - vh) / BELT_C); j <= Math.floor((p.y + vh) / BELT_C); j++) { const y0 = Y(j * BELT_C), dir = ((j % 2) + 2) % 2 ? 1 : -1;      /* 벨트: 줄무늬와 흘러가는 화살표 */
       R(INK, x0, y0 - 1, wd, bh + 2); R('#5A4A78', x0, y0, wd, bh); R('#7A6A9A', x0, y0 + 2, wd, 2); R('#7A6A9A', x0, y0 + bh - 4, wd, 2);
       const off = ((Math.round(B.t * 95 / WP * dir) % 24) + 24) % 24, sx = Math.floor((p.x - vw) / WP / 24) * 24 - pcx; for (let x = sx - 24 + off; x < x0 + wd; x += 24) for (let k = 0; k < 6; k++) { const ax = x + (dir > 0 ? k : 5 - k); R('#FFD86B', ax, y0 + bh / 2 - 6 + k, 2, 2); R('#FFD86B', ax, y0 + bh / 2 + 4 - k, 2, 2); } } }
