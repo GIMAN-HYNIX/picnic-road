@@ -196,7 +196,7 @@ VARIANTS.push(mkStepped('F', TR_F, [
 
 /* ---------- 굽기: 자세 → 관절 + 우비 자락 + 흔들리는 것들 + 칼 잔상 ---------- */
 function wSpring(s, target, k, c, dt) { const a = -k * (s.x - target) - c * s.v; s.v += a * dt; s.x += s.v * dt; }
-function wBake(V, bodyName) {
+let wBake = function (V, bodyName) {
   const B = W_BODY[bodyName], out = [], dt = 1 / 60;
   let cl = null, prev = null; const hat = { x: 0, v: 0 }, rf = { x: 0, v: 0 }, sh = { x: 0, v: 0 };
   for (let f = -40; f < V.N; f++) {
@@ -218,7 +218,7 @@ function wBake(V, bodyName) {
   }
   if (!V.stepped) return out;
   return out.map((F, f) => { const a = out[V.snap(f)], c = out[V.clothAt(f)]; return { S: a.S, smear: a.smear, cl: c.cl, hat: c.hat, rifle: c.rifle, sheath: c.sheath, f }; });
-}
+};
 // 칼 잔상: 직전 τ프레임 동안 칼끝이 지나간 자리를 초승달 모양으로
 function wSmear(samp, B, t, tau) {
   const n = 8, tips = [], inner = [];

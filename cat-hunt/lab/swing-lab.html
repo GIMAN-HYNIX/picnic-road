@@ -1,0 +1,214 @@
+<title>두 손 칼질 실험실</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  /* 비 오는 숲 한 가지 어두운 색으로 고정. 위에 조작 줄 → 한눈에 비교 격자 → 방식마다 큰 화면과 1·2·3타 컷 */
+  :root {
+    color-scheme: dark;
+    --bg: #0f1512; --panel: #17201c; --line: #2a3832; --ink: #e8e2d0; --dim: #97a399; --gold: #e2bd62; --moss: #3a5a44; --good: #8fc29a; --bad: #dc9c84;
+    --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    --num: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html { background: var(--bg); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 var(--sans); padding-block: 0 72px; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header.top { padding-block: 32px 20px; }
+  .hd { display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 28px; line-height: 1.25; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+  h2 { font-size: 20px; line-height: 1.3; margin: 0; text-wrap: balance; }
+  h3 { font-size: 14px; margin: 0; font-weight: 600; }
+  p { margin: 0; max-width: 64ch; }
+  .lead { color: var(--dim); }
+  .mine { border-left: 3px solid var(--gold); padding: 4px 0 4px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .mine b, .mine strong { color: var(--gold); font-weight: 600; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--gold); font-weight: 600; }
+
+  /* 조작 줄 */
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--bg); border-block: 1px solid var(--line); }
+  .bar .wrap { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding-block: 8px; }
+  .grp { display: flex; align-items: center; gap: 6px; }
+  .grp > span { font-size: 12px; color: var(--dim); }
+  button { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; cursor: pointer; line-height: 1.4; }
+  button:hover { border-color: var(--dim); }
+  button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .seg { display: flex; } .seg button { border-radius: 0; margin-left: -1px; } .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; } .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button[aria-pressed="true"] { position: relative; z-index: 1; }
+  #read { font: 12px var(--num); color: var(--dim); font-variant-numeric: tabular-nums; min-width: 17ch; }
+
+  canvas { image-rendering: pixelated; display: block; background: var(--moss); border-radius: 6px; max-width: 100%; }
+  section { padding-block: 34px 0; display: flex; flex-direction: column; gap: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px 16px; }
+  .tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .tile canvas { width: 100%; height: auto; }
+  .tile a { color: inherit; text-decoration: none; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .tile a:hover .nm { text-decoration: underline; }
+  .tile a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+  .let { font: 600 13px var(--num); color: var(--gold); }
+  .nm { font-weight: 600; }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+  .chip.pick { border-color: var(--gold); color: var(--gold); }
+  .chip.no { border-color: var(--bad); color: var(--bad); }
+
+  .var { border-top: 1px solid var(--line); padding-top: 26px; margin-top: 10px; gap: 18px; scroll-margin-top: 110px; }
+  .vhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .vtop { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px 28px; align-items: start; }
+  .vtop canvas { width: 100%; height: auto; }
+  .notes { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .notes p { color: var(--dim); }
+  .notes ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .notes li { padding-left: 20px; position: relative; }
+  .notes li::before { position: absolute; left: 0; font-weight: 700; }
+  .notes li.g::before { content: "+"; color: var(--good); } .notes li.b::before { content: "−"; color: var(--bad); }
+  .rows { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .row h3 b { color: var(--gold); font-weight: 600; margin-right: 8px; }
+  .scroll { overflow-x: auto; margin-top: 6px; } .scroll canvas { width: 100%; min-width: 720px; height: auto; }
+  .caps { display: grid; grid-template-columns: repeat(6, 1fr); min-width: 720px; font-size: 12px; color: var(--dim); text-align: center; margin-top: 4px; }
+  .todo { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+  .todo li::marker { color: var(--gold); }
+  @media (max-width: 760px) { .vtop { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 24px; } }
+</style>
+
+<header class="top"><div class="wrap hd">
+    <span class="eyebrow">방랑자 · 사냥칼 3타</span>
+    <h1>두 손 칼질 실험실</h1>
+    <p class="lead">지난 시안 다섯 개는 자세만 달랐고 만드는 방식은 같았어요. 이번엔 방식을 바꿨어요. 몸을 뼈대로 새로 짜서 허리가 꺾이고 가슴이 돌고, 두 손이 자루를 잡아요. 우비 자락은 천처럼 따로 흔들려요. 그 몸에 움직임을 주는 방법을 여섯 가지로 나눠 봤어요.</p>
+    <div class="mine">
+      <p><strong>내 생각부터.</strong> 게임에 넣기엔 <b>D 섞기</b>가 가장 낫고, 산나비 쪽 손그림 느낌을 원하면 <b>B 손그림식</b>이에요. 안무는 <b>E 발 바꿔 딛기</b>가 가장 사람 같아요. D 방식에 E의 발놀림을 얹는 조합도 돼요.</p>
+      <p>아쉬운 점도 그대로 적어요. 도형을 이어 그린 몸이라 손으로 찍은 픽셀 그림만큼 자연스럽진 않아요. 칼을 머리 위로 들 때 팔이 얼굴을 가려요. 아직 옆모습뿐이에요.</p>
+    </div>
+</div></header>
+
+<div class="bar"><div class="wrap">
+  <div class="grp"><button id="play" aria-pressed="true">멈춤</button><button id="prev" aria-label="한 장 뒤로">◀</button><button id="next" aria-label="한 장 앞으로">▶</button></div>
+  <div class="grp"><span>빠르기</span><div class="seg" id="speed"><button data-v="1" aria-pressed="true">1배</button><button data-v=".5">½</button><button data-v=".2">⅕</button><button data-v=".08">1/12</button></div></div>
+  <div class="grp"><span>체형</span><div class="seg" id="body"><button data-v="classic" aria-pressed="true">지금 비율</button><button data-v="human">사람 비율</button></div></div>
+  <div class="grp"><button id="smear" aria-pressed="true">칼 잔상</button><button id="bones" aria-pressed="false">뼈대 보기</button></div>
+  <span id="read"></span>
+</div></div>
+
+<main class="wrap">
+  <section>
+    <h2>한눈에 비교</h2>
+    <p class="lead">일곱 개가 같은 박자로 같이 돌아요. 이름을 누르면 아래 자세한 컷으로 가요. 한 장씩 넘겨 보려면 멈춘 뒤 ◀ ▶를 누르세요(키보드 ← →, 스페이스도 돼요).</p>
+    <div class="grid" id="grid"></div>
+  </section>
+  <div id="list"></div>
+  <section class="var">
+    <h2>못 한 것과 다음 일</h2>
+    <ul class="todo">
+      <li>AI로 그림 프레임을 뽑는 방식은 못 해 봤어요. 이 작업 환경에서 그림 생성 도구 실행이 막혀 있었어요. 로키가 쓰는 그림 생성 도구로 뽑은 프레임이 있으면 그걸 잘라 넣어 비교할 수 있어요.</li>
+      <li>우비는 이미 뒤로 넘긴 상태에서 시작해요. 평소 자세에서 자락을 젖히며 칼을 뽑는 동작은 방식을 고른 뒤에 붙일게요.</li>
+      <li>옆모습만 있어요. 앞·뒤 모습은 고른 방식으로 새로 짜야 해요. 가로베기는 앞·뒤에서 훨씬 잘 보일 거예요.</li>
+      <li>체형을 사람 비율로 바꾸면 걷기, 구르기, 총 쏘기도 같은 뼈대로 다시 맞춰야 해요.</li>
+      <li>맞는 순간 멈춤은 실제로는 적이 맞았을 때만 걸리게 해야 해요. 여기선 허공에도 걸어 뒀어요.</li>
+    </ul>
+  </section>
+</main>
+
+<script src="../js/core.js"></script>
+<script src="../js/hires.js"></script>
+<script src="../js/g-cat.js"></script>
+<script src="prev-man.js"></script>
+<script src="lab-body.js"></script>
+<script src="lab-motion.js"></script>
+<script src="lab-more.js"></script>
+<script>
+'use strict';
+const INFO = {
+  O: { name: '지난 시안 1 · 바른 검술', chip: '비교 기준', cls: '', how: '지난번에 보여 드린 방식이에요. 자세 네 개를 곡선으로 이었고, 몸통이 한 덩어리예요. 체형과 잔상 단추는 여기엔 안 먹어요.', good: [], bad: ['몸통이 통짜라 허리와 어깨가 따로 움직이지 않음', '우비가 모양만 바뀌고 흔들리지 않음', '예비동작과 베는 속도가 비슷해서 힘이 안 실림'] },
+  A: { name: '뼈대 곡선', chip: '괜찮음', cls: '', how: '뼈대에 열쇠 자세를 주고 곡선으로 이었어요. 1초에 60장이에요. 엉덩이가 먼저 나가고 가슴, 손, 칼날 순서로 조금씩 늦게 따라와요.', good: ['동작 사이가 가장 부드러움', '허리가 꺾이고 어깨가 돌아서 사람 몸처럼 보임'], bad: ['처음부터 끝까지 고르게 부드러워서 타격감이 약함', '물속에서 움직이는 것처럼 살짝 뜬 느낌'] },
+  B: { name: '손그림식 끊어 찍기', chip: '추천 2', cls: 'pick', how: 'A와 같은 안무에서 잘 나온 장면만 골라 1초에 12~15장으로 끊어 보여 줘요. 베는 순간은 칼 잔상 한 장으로 건너뛰고, 예비동작과 끝 자세는 길게 붙잡아요. 손으로 그리는 픽셀 게임이 쓰는 방식이에요.', good: ['자세가 또렷하게 읽히고 힘이 실림', '산나비 같은 손그림 느낌에 가장 가까움', '장수가 적어서 게임에 넣기 가벼움 (3타에 27장)'], bad: ['이어지는 느낌은 A보다 덜 부드러움', '우비도 같이 끊겨서 움직임'] },
+  C: { name: '용수철 물리', chip: '비추천', cls: 'no', how: '목표 자세만 던져 주고 몸이 용수철처럼 따라가게 했어요. 칼날이 목표를 지나쳤다가 되돌아와요.', good: ['출렁이는 맛이 있고 만드는 손이 덜 감'], bad: ['칼이 흐느적거려서 벤다는 느낌이 약함', '언제 맞는지 박자를 정확히 못 잡음', '몸 전체에 쓰기엔 무리. 우비, 모자, 등에 멘 총처럼 딸린 것에만 쓰는 게 맞음 (다른 방식들도 그 부분은 이걸 씀)'] },
+  D: { name: '섞기', chip: '추천 1', cls: 'pick', how: 'A의 뼈대 곡선을 바탕으로, 베는 구간만 두세 장으로 줄였어요. 맞는 순간 0.07초쯤 멈췄다가 잔떨림이 남아요.', good: ['예비동작은 부드럽고 베는 순간은 빠름', '멈춤 덕에 맞는 느낌이 남', '걷기, 구르기 같은 다른 동작과 이어 붙이기 쉬움'], bad: ['허공에 대고 멈추는 건 어색할 수 있음. 실제로는 적이 맞았을 때만 멈춰야 함', 'B만큼 자세가 또렷하진 않음'] },
+  E: { name: '발 바꿔 딛기', chip: '안무 추천', cls: 'pick', how: '실제 긴칼 검술처럼 벨 때마다 뒷발이 앞으로 지나 나가요. 내려베기, 올려베기, 찌르기예요. 움직임 방식은 D와 같아요.', good: ['걸음과 칼이 같이 가서 가장 사람 같음', '찌르기 마무리가 길고 시원함'], bad: ['3타에 73픽셀(키의 절반 남짓) 앞으로 나감. 기본 안무는 54픽셀. 조작감이 달라짐', '뛰어오르는 마무리보다 덜 화려함'] },
+  F: { name: '가로로 휩쓸기', chip: '아쉬움', cls: '', how: '가로베기 두 번에 웅크렸다 돌진 찌르기예요. B처럼 끊어 찍었어요.', good: ['웅크렸다 튀어 나가는 돌진 찌르기는 시원함'], bad: ['옆모습에서는 가로베기가 칼이 짧아졌다 길어지는 것으로만 보여서 약함', '가로베기는 앞·뒤 모습에서 써야 살아남'] },
+};
+const CAP = ['시작', '예비동작', '휘두름', '베는 순간', '지나감', '거두기'];
+const VB = {}; VARIANTS.forEach(v => { VB[v.id] = v; });
+const ORDER = ['O', 'A', 'B', 'C', 'D', 'E', 'F'], LOOP = 168, MOSS = '#3a5a44', GROUND = '#34503d';
+const st = { body: 'classic', smear: true, bones: false, play: !matchMedia('(prefers-reduced-motion: reduce)').matches, speed: 1, tick: 0 };
+const bakes = new Map(), sprites = new Map(); let jobs = [], total = 1;
+function frames(id) { const k = id + st.body; let b = bakes.get(k); if (!b) { b = wBake(VB[id], st.body); bakes.set(k, b); } return b; }
+function sprite(id, f) {
+  const V = VB[id]; f = Math.min(f, V.N - 1);
+  const k = id + '|' + (V.stepped ? V.snap(f) + '_' + V.clothAt(f) : f); let s = sprites.get(k);
+  if (!s) { s = wRender(frames(id)[f], { smear: st.smear }); sprites.set(k, s); }
+  return s;
+}
+function bones(g, S) {
+  const P = p => [W_OX + p[0] * W_S + .5, W_OY + p[1] * W_S + .5], line = (pts, col) => { g.strokeStyle = col; g.beginPath(); pts.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.stroke(); };
+  g.lineWidth = 1;
+  line([S.hF, S.kF, [S.aF[0], S.aF[1] - 2]], '#7fb0ff'); line([S.sF, S.eF, S.handF], '#7fb0ff');
+  line([S.hip, S.W, S.NK, S.head], '#fff2a8'); line([S.sF, S.sN], '#fff2a8'); line([S.hF, S.hN], '#fff2a8');
+  line([S.hN, S.kN, [S.aN[0], S.aN[1] - 2]], '#ff9a7a'); line([S.sN, S.eN, S.handN], '#ff9a7a');
+  line([S.handF, S.tip], '#ffffff');
+  g.fillStyle = '#fff2a8'; for (const p of [S.hip, S.W, S.NK, S.sN, S.sF, S.eN, S.eF, S.kN, S.kF]) { const q = P(p); g.fillRect(q[0] - 1.5, q[1] - 1.5, 3, 3); }
+}
+function drawPlayer(P) {
+  const g = P.g, f = Math.min(Math.floor(st.tick), P.V.N - 1), F = frames(P.id)[f], s = sprite(P.id, f);
+  g.fillStyle = MOSS; g.fillRect(0, 0, W_W, W_H); g.fillStyle = GROUND; g.fillRect(0, W_OY + 2, W_W, W_H - W_OY - 2);
+  const hx = F.S ? W_OX + F.S.hip[0] * W_S : W_OX + F.old.x + 4, air = F.S ? clamp((-2.2 - Math.max(F.S.aN[1], F.S.aF[1])) / 14, 0, 1) : 0;
+  g.fillStyle = 'rgba(10,16,14,.32)'; g.beginPath(); g.ellipse(hx, W_OY + 4, 28 - air * 10, 5 - air * 2, 0, 0, 6.3); g.fill();
+  g.drawImage(s.cv, s.x, s.y);
+  if (st.bones && F.S) bones(g, F.S);
+}
+const players = [], strips = [], CW = 160, CH = 208, CY = W_H - CH;
+function mkPlayer(cv, id) { const P = { id, V: VB[id], g: cv.getContext('2d'), cv, vis: true, last: -1 }; P.g.imageSmoothingEnabled = false; players.push(P); io.observe(cv); return P; }
+const io = new IntersectionObserver(es => { for (const e of es) { const P = players.find(p => p.cv === e.target); if (P) { P.vis = e.isIntersecting; P.last = -1; } } }, { rootMargin: '120px' });
+const grid = document.getElementById('grid'), list = document.getElementById('list');
+for (const id of ORDER) {
+  const I = INFO[id], V = VB[id];
+  const t = document.createElement('div'); t.className = 'tile';
+  t.innerHTML = `<canvas width="${W_W}" height="${W_H}" aria-label="${I.name} 3타 이어 치기"></canvas><a href="#v-${id}"><span class="let">${id === 'O' ? '기준' : id}</span><span class="nm">${I.name}</span><span class="chip ${I.cls}">${I.chip}</span></a>`;
+  grid.appendChild(t); mkPlayer(t.querySelector('canvas'), id);
+  const sec = document.createElement('section'); sec.className = 'var'; sec.id = 'v-' + id;
+  sec.innerHTML = `<div class="vhead"><span class="let">${id === 'O' ? '기준' : id}</span><h2>${I.name}</h2><span class="chip ${I.cls}">${I.chip}</span></div>
+    <div class="vtop"><canvas width="${W_W}" height="${W_H}" aria-label="${I.name} 크게 보기"></canvas><div class="notes"><p>${I.how}</p><ul>${I.good.map(x => `<li class="g">${x}</li>`).join('')}${I.bad.map(x => `<li class="b">${x}</li>`).join('')}</ul></div></div>
+    <div class="rows">${V.hits.map((h, c) => `<div class="row"><h3><b>${c + 1}타</b>${h.name}</h3><div class="scroll"><canvas width="${CW * 6}" height="${CH}" aria-label="${I.name} ${c + 1}타 컷 여섯 장"></canvas><div class="caps">${CAP.map(x => `<span>${x}</span>`).join('')}</div></div></div>`).join('')}</div>`;
+  list.appendChild(sec); mkPlayer(sec.querySelector('.vtop canvas'), id);
+  sec.querySelectorAll('.row canvas').forEach((cv, c) => { const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; strips.push({ id, g, cuts: V.hits[c].cuts }); });
+}
+function drawCut(S, i) {
+  const g = S.g, f = Math.min(S.cuts[i], VB[S.id].N - 1), F = frames(S.id)[f], s = sprite(S.id, f), hx = F.S ? W_OX + F.S.hip[0] * W_S : W_OX + F.old.x + 4, cx = Math.round(hx - CW / 2 + 22), x = i * CW;
+  g.save(); g.beginPath(); g.rect(x, 0, CW, CH); g.clip();
+  g.fillStyle = MOSS; g.fillRect(x, 0, CW, CH); g.fillStyle = GROUND; g.fillRect(x, W_OY + 2 - CY, CW, CH);
+  g.fillStyle = 'rgba(10,16,14,.32)'; g.beginPath(); g.ellipse(x + hx - cx, W_OY + 4 - CY, 26, 5, 0, 0, 6.3); g.fill();
+  g.drawImage(s.cv, x + s.x - cx, s.y - CY);
+  if (i) { g.fillStyle = 'rgba(15,21,18,.55)'; g.fillRect(x, 0, 2, CH); }
+  g.restore();
+}
+function queue() {
+  jobs = [];
+  for (const S of strips) for (let i = 0; i < 6; i++) jobs.push(() => drawCut(S, i));
+  for (const id of ORDER) for (let f = 0; f < VB[id].N; f++) jobs.push(() => sprite(id, f));
+  total = jobs.length; players.forEach(p => { p.last = -1; });
+}
+function reset() { sprites.clear(); queue(); }
+const read = document.getElementById('read');
+let lastTs = 0;
+function loop(ts) {
+  const dt = Math.min(.05, (ts - (lastTs || ts)) / 1000); lastTs = ts;
+  if (st.play) st.tick = (st.tick + dt * 60 * st.speed) % LOOP;
+  const f = Math.floor(st.tick), t0 = performance.now();
+  for (const P of players) if (P.vis && (P.last !== f || P.dirty)) { drawPlayer(P); P.last = f; P.dirty = false; }
+  while (jobs.length && performance.now() - t0 < 11) jobs.shift()();
+  read.textContent = (jobs.length ? '그리는 중 ' + Math.round((1 - jobs.length / total) * 100) + '% · ' : '') + String(f).padStart(3, ' ') + '장째 · ' + (f / 60).toFixed(2) + '초';
+  requestAnimationFrame(loop);
+}
+// 조작
+const $ = id => document.getElementById(id), playB = $('play');
+function setPlay(v) { st.play = v; playB.textContent = v ? '멈춤' : '재생'; playB.setAttribute('aria-pressed', v); }
+function step(d) { setPlay(false); st.tick = ((Math.floor(st.tick) + d) % LOOP + LOOP) % LOOP; }
+playB.addEventListener('click', () => setPlay(!st.play)); $('prev').addEventListener('click', () => step(-1)); $('next').addEventListener('click', () => step(1));
+function seg(id, fn) { const el = $(id); el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); fn(b.dataset.v); }); }
+seg('speed', v => { st.speed = +v; }); seg('body', v => { st.body = v; reset(); });
+function tog(id, key, after) { const b = $(id); b.addEventListener('click', () => { st[key] = !st[key]; b.setAttribute('aria-pressed', st[key]); after(); }); }
+tog('smear', 'smear', reset); tog('bones', 'bones', () => players.forEach(p => { p.dirty = true; }));
+addEventListener('keydown', e => {
+  if (e.target.closest('button, a, input')) { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; }
+  if (e.key === ' ') { e.preventDefault(); setPlay(!st.play); } else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); } else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+});
+setPlay(st.play); queue(); requestAnimationFrame(loop);
+</script>
