@@ -258,7 +258,9 @@ async function gStart(canvas) {
   await tick('숲을 심는 중', .05); WORLD.gen(7); gfxInit(); foesInit(); birdsInit();
   PL.x = WORLD.START[0]; PL.y = WORLD.START[1]; SO.x = PL.x + 38; SO.y = PL.y + 16; SO.flip = true; camUpdate(0, true);
   await tick('방랑자와 솔을 그리는 중', .2);
-  for (const d of ['r', 'l', 'd', 'u']) { for (let i = 0; i < 12; i++) manSpr('walk', i, d, {}); for (let i = 0; i < 4; i++) manSpr('idle', i, d, {}); }
+  for (const d of ['r', 'l', 'd', 'u']) { for (let i = 0; i < GAIT_N; i++) manSpr('walk', i, d, {}); for (let i = 0; i < 4; i++) manSpr('idle', i, d, {}); }
+  for (let c = 1; c <= 3; c++) { await tick('칼을 가는 중', .2 + c * .03); for (const d of ['r', 'l', 'd', 'u']) { for (let i = 0; i < KN_N; i++) manSpr('knife' + c, i, d, {}); for (let i = 0; i < KN_SUB; i++) manSpr('knife' + c + 'c', i, d, {}); } }
+  for (const d of ['r', 'l', 'd', 'u']) for (let i = 0; i < DG_N; i++) manSpr('dodge', i, d, {});
   for (let i = 0; i < 8; i++) for (const fl of [false, true]) { solSpr('trot', i, fl, {}); solSpr('walk', i, fl, {}); }
   const nx = WORLD.WW / 256, ny = Math.ceil(WORLD.WH / 256);
   for (let j = 0; j < ny; j++) { await tick('땅을 다지는 중', .3 + .7 * j / ny); for (let i = 0; i < nx; i++) WORLD.chunk(i, j); }

@@ -53,8 +53,8 @@ function pDodge() {
   GSFX.dodge(); noise(PL.x, PL.y, 120); drops(PL.x, PL.y, 2, 4, 50, '#9ab8d4', 60);
 }
 const KNF = [[.08, .09, .17, 1, 62, 22], [.07, .09, .17, 1, 62, 22], [.16, .1, .3, 2, 80, 44]];   // 준비 · 베기 · 거두기 · 피해 · 닿는 거리 · 내딛는 거리
-function pKnife(c) {
-  pUnload('knife'); PL.combo = c; PL.st = 'knife'; PL.t = 0; PL.swHit = false; PL.swOn = false; PL.sneak = false;
+function pKnife(c, chain) {
+  pUnload('knife'); PL.chain = !!chain; PL.combo = c; PL.st = 'knife'; PL.t = 0; PL.swHit = false; PL.swOn = false; PL.sneak = false;
   let a = IN.stick ? Math.atan2(IN.ay, IN.ax) : IN.mouseT < 2.5 && !V.touch ? Math.atan2(IN.cy + CAM.y - (PL.y - 40), IN.cx + CAM.x - PL.x) : IN.mx || IN.my ? Math.atan2(IN.my, IN.mx) : DIRA[PL.dir];
   let best = null, bd = 112; for (const f of FOES) if (f.live) { const d = dist(f, PL); if (d < bd && Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), a)) < 1.05) { bd = d; best = f; } }
   if (best) a = Math.atan2(best.y - PL.y, best.x - PL.x);
@@ -192,7 +192,7 @@ function pUpdate(dt) {
     if (t >= K[0] && !PL.swOn) { PL.swOn = true; GSFX.swish(PL.combo); part({ k: 'arc', x: PL.x, y: PL.y, a, c: PL.combo, sw: K[1], reach: K[4], life: K[1] + .14 }); if (PL.combo === 2) { ring(PL.x, PL.y, 12, .3, '#c4d8e8'); spray(PL.x, PL.y, 2, 5, a + Math.PI, 70, '#9ab8d4', 1.6); } }
     if (t >= K[0] + K[1] * .4 && !PL.swHit) { PL.swHit = true; pSlash(K); }
     if (t > K[0] + .03 && pTake('dodge') && PL.dodgeCd <= 0) return pDodge();
-    if (t >= K[0] + K[1] + .05 && PL.buf === 'knife' && PL.bufT > 0) { PL.buf = ''; return pKnife((PL.combo + 1) % 3); }
+    if (t >= K[0] + K[1] + .05 && PL.buf === 'knife' && PL.bufT > 0) { PL.buf = ''; return pKnife((PL.combo + 1) % 3, true); }
     if (t >= K[0] + K[1] + K[2]) { PL.st = 'move'; PL.comboT = .4; }
   } else if (st === 'hit') { pMove(0, 0, dt, 7); if (PL.t >= .26) PL.st = 'move'; }
   else if (st === 'down') {
@@ -213,10 +213,14 @@ function pUpdate(dt) {
 // 방랑자 그림: 상태 → 동작 · 프레임
 function pSprite() {
   const st = PL.st, cat = solCarryOpt(); let a = 'idle', fr = 0, dir = PL.dir, o = { cat };
-  if (st === 'move') { a = PL.gait; fr = a === 'idle' ? Math.floor(V.time * 2.2) % 4 : a === 'sneakIdle' ? Math.floor(V.time * 1.6) % 2 : Math.floor(PL.ph * 12) % 12; }
+  if (st === 'move') { a = PL.gait; fr = a === 'idle' ? Math.floor(V.time * 2.2) % 4 : a === 'sneakIdle' ? Math.floor(V.time * 1.6) % 2 : Math.floor(PL.ph * GAIT_N) % GAIT_N; }
   else if (st === 'aim') { a = 'aim'; o = pAimOpt(); }
-  else if (st === 'dodge') { a = 'dodge'; fr = Math.min(4, Math.floor(PL.t / .3 * 5)); }
-  else if (st === 'knife') { const K = KNF[PL.combo]; a = 'knife' + (PL.combo + 1); fr = PL.t < K[0] ? 0 : PL.t < K[0] + K[1] * .5 ? 1 : PL.t < K[0] + K[1] + .06 ? 2 : 3; }
+  else if (st === 'dodge') { a = 'dodge'; fr = Math.min(DG_N - 1, Math.floor(PL.t / .3 * DG_N)); }
+  else if (st === 'knife') {   // 시간 → 자세: 준비는 천천히 당기고, 베기는 앞에서 빠르고 끝에서 풀리고, 거두기는 느긋하게
+    const K = KNF[PL.combo], t = PL.t, ez = v => 1 - (1 - v) * (1 - v); let u;
+    if (t < K[0]) u = ez(t / K[0]); else if (t < K[0] + K[1]) u = 1 + 2 * ez((t - K[0]) / K[1]); else { const r = Math.min(1, (t - K[0] - K[1]) / K[2]); u = r < .4 ? 3 + ez(r / .4) : 4 + smooth((r - .4) / .6); }
+    fr = Math.round(u * KN_SUB); a = 'knife' + (PL.combo + 1) + (PL.chain && fr < KN_SUB ? 'c' : '');
+  }
   else if (st === 'hit') a = 'hit';
   else if (st === 'down') { a = 'down'; fr = PL.t > .6 ? 1 : 0; dir = dir === 'l' ? 'l' : 'r'; }
   else if (st === 'gather') { a = 'gather'; fr = PL.t > .3 && PL.t < .55 ? 1 : 0; }

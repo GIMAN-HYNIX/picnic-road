@@ -17,14 +17,24 @@ function solSet(st, sub) { SO.st = st; SO.sub = sub || ''; SO.t = 0; SO.at = 0; 
 function solFace(dx, dy) { if (Math.abs(dx) > Math.abs(dy) * .7) { SO.face = 's'; SO.flip = dx < 0; } else SO.face = dy > 0 ? 'd' : 'u'; }
 function solLook(tx) { SO.face = 's'; SO.flip = tx < SO.x; }
 function solPose(pose, fr, o) { SO.pose = pose; SO.fr = fr || 0; SO.o = o || {}; }
+// 방랑자 몸 뒤(화면에서 가려지는 자리)면 옆으로 비켜 선 자리를 돌려줌
+const solCovered = (x, y) => PL.st !== 'camp' && Math.abs(x - PL.x) < 38 && y < PL.y + 1 && y > PL.y - 112;
+function solClear(tx, ty) {
+  if (!solCovered(tx, ty)) return [tx, ty];
+  const sd = SO.x === PL.x ? SO.side || 1 : SO.x < PL.x ? -1 : 1;
+  for (const [x, y] of [[PL.x + sd * 54, ty], [PL.x - sd * 54, ty], [PL.x + sd * 40, PL.y + 10], [PL.x - sd * 40, PL.y + 10]]) if (WORLD.walkable(x, y)) return [x, y];
+  return [tx, ty];
+}
 // 목표로 감 (길찾기 + 장애물 비껴 가기). 닿으면 true
 function solGo(tx, ty, gait, dt, arrive, k) {
+  [tx, ty] = solClear(tx, ty);
   const d = Math.hypot(tx - SO.x, ty - SO.y); if (d <= (arrive || 10)) { SO.gait = ''; SO.vx = SO.vy = 0; return true; }
   SO.pathT -= dt;
   if (!SO.path || SO.pathT <= 0 || Math.hypot(tx - SO.ptx, ty - SO.pty) > 28) { SO.path = WORLD.path(SO.x, SO.y, tx, ty, false); SO.pi = 0; SO.pathT = .7; SO.ptx = tx; SO.pty = ty; SO.blocked = !SO.path; if (!SO.path) { SO.gait = ''; return false; } }
   let wp = SO.path[SO.pi]; while (wp && Math.hypot(wp[0] - SO.x, wp[1] - SO.y) < 9 && SO.pi < SO.path.length - 1) wp = SO.path[++SO.pi];
   if (!wp) return true;
-  const dx = wp[0] - SO.x, dy = wp[1] - SO.y, l = Math.hypot(dx, dy) || 1; let sp = SGAIT[gait][0] * (k || 1);
+  let dx = wp[0] - SO.x, dy = wp[1] - SO.y, l = Math.hypot(dx, dy) || 1; let sp = SGAIT[gait][0] * (k || 1);
+  if (solCovered(SO.x, SO.y) && SO.st !== 'under' && SO.st !== 'ask') { dx += (SO.x < PL.x ? -1 : 1) * l * 1.6; l = Math.hypot(dx, dy) || 1; sp = Math.max(sp, 120); }   // 방랑자 뒤를 지날 땐 옆으로 먼저 빠져나옴
   if (d < 26 && gait !== 'stalk') sp = Math.min(sp, 40 + d * 3);
   const q = 1 - Math.exp(-dt * 12); SO.vx += (dx / l * sp - SO.vx) * q; SO.vy += (dy / l * sp - SO.vy) * q;
   const n = WORLD.push(SO.x + SO.vx * dt, SO.y + SO.vy * dt, 5), moved = Math.hypot(n[0] - SO.x, n[1] - SO.y); SO.x = n[0]; SO.y = n[1];
@@ -94,7 +104,7 @@ const SOLST = {
     if (SO.sub === 'pause') { SO.gait = ''; solIdle(SO.pk); if (SO.t > SO.pd || d > 150) { SO.sub = ''; SO.pauseT = 7 + Math.random() * 10; } return; }
     SO.slotT -= dt; if (SO.slotT <= 0) { SO.slotT = 6 + Math.random() * 9; SO.slot = WORLD.terr(PL.x, PL.y) === 1 ? pick(['ahead', 'ahead', 'side']) : pick(['ahead', 'side', 'side', 'behind']); SO.side = Math.random() < .5 ? -1 : 1; }
     const hx = PL.hx, hy = PL.hy, a = SO.slot === 'ahead' ? 56 : SO.slot === 'behind' ? -44 : 6, b = (SO.slot === 'side' ? 34 : 14) * SO.side;
-    let tx = PL.x + hx * a - hy * b, ty = PL.y + hy * a + hx * b; if (!WORLD.walkable(tx, ty)) { tx = PL.x - hx * 30; ty = PL.y - hy * 30; }
+    let tx = PL.x + hx * a - hy * b, ty = PL.y + hy * a + hx * b; if (!WORLD.walkable(tx, ty)) { tx = PL.x - hx * 30; ty = PL.y - hy * 30; } [tx, ty] = solClear(tx, ty);
     const ds = Math.hypot(tx - SO.x, ty - SO.y), gait = PL.sneak ? (ds > 120 ? 'trot' : 'stalk') : ds > 150 || (PL.gait === 'run' && ds > 40) ? 'run' : ds > 20 ? 'trot' : 'walk';
     if (ds > 14) { solGo(tx, ty, gait, dt, 8); if (SO.blocked) return solSet('wait'); } else SO.gait = '';
     SO.pauseT -= dt;
@@ -104,8 +114,8 @@ const SOLST = {
   settle(dt) {
     const d = dist(SO, PL), moving = PL.st === 'move' && (PL.gait === 'walk' || PL.gait === 'run' || PL.gait === 'sneak'), s = SO.sub;
     if (moving && d > 70 && s !== 'stretch') { if (s === 'loaf' || s === 'sleep') { SO.sub = 'stretch'; SO.t = 0; } else return solSet('follow'); }
-    if (s === 'approach') { const sd = SO.x < PL.x ? -1 : 1; if (solGo(PL.x + sd * 32, PL.y + 10, d > 160 ? 'run' : d > 60 ? 'trot' : 'walk', dt, 9) || SO.t > 6) { if (SO.rubCd <= 0 && SO.bond >= .4 && Math.random() < .7) { SO.sub = 'rub'; SO.t = 0; SO.side = sd; SO.rubCd = 26; GSFX.trill(solPan(), .7); } else { SO.sub = 'sit'; SO.t = 0; SO.sitFor = 5 + Math.random() * 5; } } if (SO.gait) solMovePose(SO.bond >= .5 ? { tail: 'up' } : {}); else solIdle('stand'); if (SO.blocked) return solSet('wait'); }
-    else if (s === 'rub') { if (solGo(PL.x - SO.side * 30, PL.y + 9, 'walk', dt, 6) || SO.t > 3) { SO.sub = 'sit'; SO.t = 0; SO.sitFor = 5 + Math.random() * 4; SO.bond = Math.min(1, SO.bond + .005); } if (SO.gait) solMovePose({ tail: 'up', eye: 'half' }); }
+    if (s === 'approach') { const sd = SO.x < PL.x ? -1 : 1; if (solGo(PL.x + sd * 42, PL.y + 15, d > 160 ? 'run' : d > 60 ? 'trot' : 'walk', dt, 9) || SO.t > 6) { if (SO.rubCd <= 0 && SO.bond >= .4 && Math.random() < .7) { SO.sub = 'rub'; SO.t = 0; SO.side = sd; SO.rubCd = 26; GSFX.trill(solPan(), .7); } else { SO.sub = 'sit'; SO.t = 0; SO.sitFor = 5 + Math.random() * 5; } } if (SO.gait) solMovePose(SO.bond >= .5 ? { tail: 'up' } : {}); else solIdle('stand'); if (SO.blocked) return solSet('wait'); }
+    else if (s === 'rub') { if (solGo(PL.x - SO.side * 42, PL.y + 15, 'walk', dt, 6) || SO.t > 3) { SO.sub = 'sit'; SO.t = 0; SO.sitFor = 5 + Math.random() * 4; SO.bond = Math.min(1, SO.bond + .005); } if (SO.gait) solMovePose({ tail: 'up', eye: 'half' }); }
     else if (s === 'sit') {
       solLook(PL.x); const k = SO.t % 6; solPose('sit', 0, k > 4.2 && k < 5.6 ? { tilt: -.5, eye: 'half' } : SO.t > 2 && SO.t < 3 && SO.sitFor > 8 ? { yawn: 1, eye: 'shut' } : {});
       if (SO.t > SO.sitFor) { SO.t = 0; SO.at = 0; SO.sub = SO.wet > .25 ? 'groom' : Math.random() < .4 && WX.lv < 1.5 ? 'explore' : Math.random() < .3 ? 'scratch' : 'loaf'; if (SO.sub === 'explore') solPickPoi(); }
@@ -124,8 +134,8 @@ const SOLST = {
   alert(dt, foe) {
     if (foe) { SO.calm = 0; SO.lastFoe = foe; } else if ((SO.calm += dt) > 2) return solSet(PL.idleT > 1 ? 'settle' : 'follow', 'approach');
     const f = SO.lastFoe; if (!f) return solSet('follow');
-    const df = dist(SO, f), danger = f.live && (df < 135 || f.aware === 2), a = Math.atan2(PL.y - f.y, PL.x - f.x), tx = PL.x + Math.cos(a) * 30 + Math.cos(a + 1.57) * 20 * SO.side, ty = PL.y + Math.sin(a) * 30 + Math.sin(a + 1.57) * 20 * SO.side, ds = Math.hypot(tx - SO.x, ty - SO.y);
-    if (ds > (PL.sneak ? 22 : danger ? 30 : 64)) solGo(tx, ty, PL.sneak && ds < 110 ? 'stalk' : ds > 140 ? 'run' : 'trot', dt, 8); else SO.gait = '';
+    const df = dist(SO, f), danger = f.live && (df < 135 || f.aware === 2), a = Math.atan2(PL.y - f.y, PL.x - f.x), [tx, ty] = solClear(PL.x + Math.cos(a) * 30 + Math.cos(a + 1.57) * 20 * SO.side, PL.y + Math.sin(a) * 30 + Math.sin(a + 1.57) * 20 * SO.side), ds = Math.hypot(tx - SO.x, ty - SO.y);
+    if (ds > (solCovered(SO.x, SO.y) ? 10 : PL.sneak ? 22 : danger ? 30 : 64)) solGo(tx, ty, PL.sneak && ds < 110 ? 'stalk' : ds > 140 ? 'run' : 'trot', dt, 8); else SO.gait = '';
     if (SO.gait) solMovePose({ eye: 'wide', ear: danger ? 1 : 0 });
     else { solLook(f.x); if (danger) solPose('puff', Math.floor(SO.at * 6), { hiss: SO.at % 2.4 < .7 }); else if (PL.sneak) solPose('crouch', 0, { tw: 0 }); else solPose('alert', 0, { ear: SO.t > 1.2 ? 2 : 0 }); }
     SO.sndT -= dt; if (SO.sndT <= 0) { SO.sndT = danger ? 2.6 : 5; if (danger) GSFX.hiss(solPan(), .8); else GSFX.growl(solPan(), .7); }
@@ -169,7 +179,7 @@ const SOLST = {
     else if (s === 'wiggle') { solPose('crouch', Math.floor(SO.at * 9)); if (SO.t > .7) { SO.sub = 'dash'; SO.t = 0; const a = Math.atan2(fl.y - SO.y, fl.x - SO.x); let c = null, bd = 1e9; for (const q of WORLD.covers) { const dd = Math.hypot(q.x - fl.x, q.y - fl.y), ad = Math.abs(angDiff(Math.atan2(q.y - fl.y, q.x - fl.x), a)); if (dd > 50 && dd < 240 && ad < 1.3 && dd < bd && WORLD.walkable(q.x, q.y - 6)) { bd = dd; c = q; } } SO.hx = c ? c.x : fl.x + Math.cos(a) * 120; SO.hy = c ? c.y - 5 : fl.y + Math.sin(a) * 120; } }
     else if (s === 'dash') { if (d < 60) birdsScare(SO.x, SO.y, 200); const ok = solGo(SO.hx, SO.hy, 'run', dt, 10, 1.15); if (SO.gait) solMovePose({ eye: 'wide' }); if (ok || SO.t > 3 || SO.blocked) { SO.sub = 'gone'; SO.t = 0; SO.hidden = true; SO.n = Math.random() < .6 ? 1 : 0; SO.pd = 5 + Math.random() * 4; brushFerns(SO.x, SO.y, 200, 2); GSFX.rustle(.8); } }
     else if (s === 'gone') { if (SO.t > SO.pd) { SO.hidden = false; SO.sub = 'bring'; SO.t = 0; SO.preyCd = SO.n ? 90 : 45; } }
-    else if (s === 'bring') { const ok = solGo(PL.x + (SO.x < PL.x ? -22 : 22), PL.y + 8, SO.n ? 'trot' : 'walk', dt, 8); if (SO.gait) solMovePose(SO.n ? { prey: 1, tail: 'up' } : { tw: Math.sin(SO.at * 8) }); if (ok || SO.t > 12) { if (SO.n) { GITEMS.push({ k: 'bird', x: lerp(SO.x, PL.x, .5), y: lerp(SO.y, PL.y, .5) + 4, t: 0, z: 6, vz: 30 }); GSFX.mew(solPan()); SO.bond = Math.min(1, SO.bond + .03); say('솔이 선물을 물어 왔어요.'); hint('gift', '고양이는 고맙다는 뜻으로 잡은 것을 가져다줘요. 텐트에서 구워 같이 먹어요.'); } SO.sub = 'give'; SO.t = 0; } if (SO.blocked) return solSet('wait'); }
+    else if (s === 'bring') { const ok = solGo(PL.x + (SO.x < PL.x ? -42 : 42), PL.y + 8, SO.n ? 'trot' : 'walk', dt, 8); if (SO.gait) solMovePose(SO.n ? { prey: 1, tail: 'up' } : { tw: Math.sin(SO.at * 8) }); if (ok || SO.t > 12) { if (SO.n) { GITEMS.push({ k: 'bird', x: lerp(SO.x, PL.x, .5), y: lerp(SO.y, PL.y, .5) + 4, t: 0, z: 6, vz: 30 }); GSFX.mew(solPan()); SO.bond = Math.min(1, SO.bond + .03); say('솔이 선물을 물어 왔어요.'); hint('gift', '고양이는 고맙다는 뜻으로 잡은 것을 가져다줘요. 텐트에서 구워 같이 먹어요.'); } SO.sub = 'give'; SO.t = 0; } if (SO.blocked) return solSet('wait'); }
     else { solLook(PL.x); solPose('sit', 0, SO.n ? { tilt: -.5, eye: SO.t % 2 < .5 ? 'half' : 'open' } : { tail: 'out', tw: Math.sin(SO.at * 7) }); if (SO.t > 3) solSet('settle', 'sit'); }
   },
   ask(dt) {   // 안아 달라고 다리에 앞발을 올림
@@ -232,6 +242,11 @@ function solUpdate(dt) {
     else if (SO.preyCd <= 0 && SO.energy > .4 && WX.lv < 1.5) { const fl = birdsNear(SO.x, SO.y, 250); if (fl) { SO.flock = fl; solSet('prey', 'chatter'); solLook(fl.x); GSFX.chatter(solPan()); } }
   }
   SOLST[SO.st](dt, foe);
+  // 가만히 있는데 방랑자에게 가려졌으면 잠깐 뒤 옆으로 걸어 나옴 (자는 중이거나 사냥 · 숨기 중엔 그대로)
+  if (!SO.hidden && (!SO.gait || SO.st === 'settle') && SO.z <= 0 && solCovered(SO.x, SO.y) && (SO.st === 'follow' || SO.st === 'alert' || (SO.st === 'settle' && ['sit', 'groom', 'scratch', 'loaf'].includes(SO.sub)))) {
+    SO.covT = (SO.covT || 0) + dt;
+    if (SO.covT > .5) { SO.covT = 0; if (SO.st === 'settle') { SO.sub = 'approach'; SO.t = 0; } else if (SO.st === 'follow') { SO.sub = ''; SO.pauseT = 4; } }
+  } else if (!solCovered(SO.x, SO.y)) SO.covT = 0;
   const s2 = SO.st;
   SO.mood = s2 === 'alert' || s2 === 'hunt' ? 'alert' : s2 === 'flee' || s2 === 'hide' || s2 === 'return' ? 'scared' : SO.wet > .6 ? 'wet' : s2 === 'pet' || SO.sub === 'rub' || (s2 === 'prey' && SO.n) ? 'happy' : SO.sub === 'loaf' || SO.sub === 'sleep' || (s2 === 'camp' && SO.sub === 'dry') ? 'sleepy' : 'calm';
 }
