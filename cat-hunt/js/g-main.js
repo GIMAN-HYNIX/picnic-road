@@ -170,7 +170,7 @@ function drawSolFace(x, y, m) {
   if (m === 'sleepy') gText('z', x + 15, y - 2, { f: F7, c: '#c4d4e4' });
 }
 function drawHud() {
-  const g = V.g, y = 8; let x = 8;
+  const g = V.g, y = 8 + (V.safeT || 0); let x = 8;
   for (let i = 0; i < 10; i++) { const on = i < PL.hp, low = PL.hp <= 3 && Math.floor(V.time * 3) % 2; g.fillStyle = '#1c1618'; g.fillRect(x + i * 8, y, 7, 9); g.fillStyle = on ? (low ? '#e88a5a' : '#e6c36a') : '#3a3a44'; g.fillRect(x + i * 8 + 1, y + 1, 5, 7); if (on) { g.fillStyle = low ? '#f4b890' : '#fbe6a8'; g.fillRect(x + i * 8 + 1, y + 1, 5, 2); } }
   x += 86;
   for (let i = 0; i < 3; i++) { const on = WX.lv > i - .5; g.fillStyle = '#1c1618'; g.fillRect(x + i * 7 + 1, y, 3, 2); g.fillRect(x + i * 7, y + 2, 5, 6); g.fillRect(x + i * 7 + 1, y + 8, 3, 1); g.fillStyle = on ? '#9ac4e8' : '#3a3a44'; g.fillRect(x + i * 7 + 2, y + 1, 1, 2); g.fillRect(x + i * 7 + 1, y + 3, 3, 4); }
@@ -185,7 +185,7 @@ function drawUi() {
     else if (SO.carryT < 5 || SO.cst === 'squirm') drawKey('E', (SO.mode === 'arms' ? '배낭에 태우기' : '품에 안기') + ' · 길게 내려놓기', PL.x - cx, PL.y - cy - 136);
   }
   if (PL.st === 'move' && IN.tHold > .12 && !PL.tUsed) { const x = Math.round(PL.x - cx), yy = Math.round(PL.y - cy) + 8; g.fillStyle = '#1c1618'; g.fillRect(x - 17, yy, 34, 5); g.fillStyle = '#e6c36a'; g.fillRect(x - 16, yy + 1, Math.round(32 * clamp(IN.tHold / .9, 0, 1)), 3); gText('텐트', x, yy + 7, { al: 'center', sh: '#1c1618' }); }
-  let by = H - 12;
+  let by = H - 12 - (V.safeB || 0);
   if (V.touch && W < 700) by = H - Math.round(gTouchButtons()[0].r * 5.4);   // 좁은 터치 화면: 단추 위로 올림
   if (UI.open || UI.bag > 0) {   // 가방 10칸
     const x0 = Math.round((W - 198) / 2), y0 = by - 20;

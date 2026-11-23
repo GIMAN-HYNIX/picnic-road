@@ -12,6 +12,7 @@ function gResize() {
   V.w = Math.ceil(dw / sd); V.h = Math.ceil(dh / sd); V.k = sd % 1 ? sd * 2 : 1; V.css = sd / dpr;
   V.cvs.width = V.w; V.cvs.height = V.h; V.g.imageSmoothingEnabled = false;
   V.out.width = V.w * V.k; V.out.height = V.h * V.k; V.og.imageSmoothingEnabled = false;
+  const cs = getComputedStyle(document.documentElement); V.safeT = Math.round((parseFloat(cs.paddingTop) || 0) / V.css); V.safeB = Math.round((parseFloat(cs.paddingBottom) || 0) / V.css);   // 휴대폰 위아래 막대만큼 표시를 안쪽으로
   V.out.style.width = V.w * V.css + 'px'; V.out.style.height = V.h * V.css + 'px'; V.out.style.imageRendering = V.k > 1 ? 'auto' : 'pixelated';
 }
 
