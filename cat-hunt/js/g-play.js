@@ -73,13 +73,22 @@ function pSlash(K) {
   brushFerns(PL.x + Math.cos(PL.swA) * 30, PL.y + Math.sin(PL.swA) * 30, Math.cos(PL.swA) * 100, 1.4);
   if (bushCut(K[4])) { V.shake = Math.max(V.shake, 1.5); if (!any) { GSFX.slash(); noise(PL.x, PL.y, 120); } }
 }
+// 쳐낸 덤불은 시간이 지나면 한 단계씩 다시 자람 (임시: 한 단계에 120초). 방랑자가 가까이 있으면 기다림 → 덤불 속에 갇히지 않음
+const BUSHCUT = [], BUSH_GROW = 120;
+function bushGrow(dt) {
+  for (let i = BUSHCUT.length - 1; i >= 0; i--) {
+    const p = BUSHCUT[i]; p.grow -= dt; if (p.grow > 0) continue;
+    if (Math.hypot(p.x - PL.x, p.y - PL.y) < 110) { p.grow = 4; continue; }
+    p.cut--; p.bv = .8; if (p.cut > 0) p.grow = BUSH_GROW; else BUSHCUT.splice(i, 1);
+  }
+}
 // 칼이 닿는 덤불을 한 단계씩 쳐냄. 두 번 쳐내면 성글어져서 헤치고 지나갈 수 있음 (다 없어지지는 않음)
 function bushCut(reach) {
   let hit = false;
   WORLD.near(PL.x, PL.y, reach + 40, p => {
     if (p.t !== 'bush' || p.cut >= 2) return; const dx = p.x - PL.x, dy = p.y - 6 - PL.y, d = Math.hypot(dx, dy);
     if (d > reach + 12 || (d > 30 && Math.abs(angDiff(Math.atan2(dy, dx), PL.swA)) > 1.15)) return;
-    p.cut++; p.bv = 1.4; hit = true; GSFX.rustle(1.4); leafBurst(p.x, p.y - 12, 9, PL.swA);
+    p.cut++; p.grow = BUSH_GROW; if (!BUSHCUT.includes(p)) BUSHCUT.push(p); p.bv = 1.4; hit = true; GSFX.rustle(1.4); leafBurst(p.x, p.y - 12, 9, PL.swA);
     if (p.cut >= 2) hint('bush2', '덤불이 성글어졌어요. 이제 손으로 헤치면서 지나갈 수 있어요.', 5);
   });
   return hit;

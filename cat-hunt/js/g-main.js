@@ -36,7 +36,7 @@ function gUpdate(dt) {
   pUpdate(dt); solUpdate(dt); for (const f of FOES) foeUpdate(f, dt); globsUpdate(dt); birdsUpdate(dt);
   for (const it of GITEMS) { it.t += dt; if (it.z > 0 || it.vz > 0) { it.vz -= 520 * dt; it.z += it.vz * dt; if (it.z <= 0) { it.z = 0; it.vz = 0; } } }
   for (const f of WORLD.forage) if (f.re > 0) { f.re -= dt; if (f.re <= 0) f.n = f.t === 'berry' ? 3 : 1; }
-  gParts(dt);
+  gParts(dt); bushGrow(dt);
   for (let i = 0; i < 4; i++) if (Math.random() < WX.lv * .5 + .1) ring(CAM.x + Math.random() * V.w, CAM.y + Math.random() * V.h, 2 + Math.random() * 3, .24, '#9ab4d4');
   if (MSG.t > 0) MSG.t -= dt; if (MSG.ht > 0) MSG.ht -= dt; if (UI.bag > 0) UI.bag -= dt;
   let bd = 1e9; for (let i = 0; i < WORLD.BROOK.length; i++) bd = Math.min(bd, Math.hypot(WORLD.BROOK[i][0] - PL.x, WORLD.BROOK[i][1] - PL.y)); GSFX.brook(1 - bd / 420);
