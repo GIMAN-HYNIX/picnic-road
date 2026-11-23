@@ -203,18 +203,18 @@ function drawHud() {
   if (UI.ammoT > 0) for (let i = 0; i < 8; i++) { g.fillStyle = '#1c1618'; g.fillRect(8 + i * 6, y + 13, 5, 9); g.fillStyle = i < PL.ammo ? '#e2c25a' : '#3a3a44'; g.fillRect(9 + i * 6, y + 14, 3, 7); if (i < PL.ammo) { g.fillStyle = '#8a6a20'; g.fillRect(9 + i * 6, y + 19, 3, 2); } }
 }
 function drawUi() {
-  const g = V.g, cx = CAM.x, cy = CAM.y, W = V.w, H = V.h, tg = UI.prompt;
+  const g = V.g, cx = CAM.x, cy = CAM.y, W = V.hw, H = V.hh, tg = UI.prompt, hs = V.hs;
   if (PL.st === 'move' && tg) {
-    if (tg.k === 'forage') drawKey('E', '따기', tg.f.x - cx, tg.f.y - cy - (tg.f.t === 'berry' ? 56 : 36));
-    else if (tg.k === 'sol') { const x = (SO.mode === 'under' ? PL.x : SO.x) - cx, yy = (SO.mode === 'under' ? PL.y : SO.y) + 9 - cy; drawKey('E', SO.st === 'ask' ? '길게 눌러 안기' : '쓰다듬기 · 길게 안기', x, yy); if (IN.eHold > .08) { g.fillStyle = '#1c1618'; g.fillRect(Math.round(x) - 13, Math.round(yy) + 14, 26, 4); g.fillStyle = '#e6c36a'; g.fillRect(Math.round(x) - 12, Math.round(yy) + 15, Math.round(24 * clamp(IN.eHold / .42, 0, 1)), 2); } }
-    else if (SO.carryT < 5 || SO.cst === 'squirm') drawKey('E', (SO.mode === 'arms' ? '배낭에 태우기' : '품에 안기') + ' · 길게 내려놓기', PL.x - cx, PL.y - cy - 136);
+    if (tg.k === 'forage') drawKey('E', '따기', (tg.f.x - cx) / hs, (tg.f.y - cy - (tg.f.t === 'berry' ? 56 : 36)) / hs - 8);
+    else if (tg.k === 'sol') { const x = ((SO.mode === 'under' ? PL.x : SO.x) - cx) / hs, yy = ((SO.mode === 'under' ? PL.y : SO.y) + 9 - cy) / hs; drawKey('E', SO.st === 'ask' ? '길게 눌러 안기' : '쓰다듬기 · 길게 안기', x, yy); if (IN.eHold > .08) { g.fillStyle = '#1c1618'; g.fillRect(Math.round(x) - 13, Math.round(yy) + 14, 26, 4); g.fillStyle = '#e6c36a'; g.fillRect(Math.round(x) - 12, Math.round(yy) + 15, Math.round(24 * clamp(IN.eHold / .42, 0, 1)), 2); } }
+    else if (SO.carryT < 5 || SO.cst === 'squirm') drawKey('E', (SO.mode === 'arms' ? '배낭에 태우기' : '품에 안기') + ' · 길게 내려놓기', (PL.x - cx) / hs, (PL.y - cy - 136) / hs - 8);
   }
-  if (PL.st === 'move' && IN.tHold > .12 && !PL.tUsed) { const x = Math.round(PL.x - cx), yy = Math.round(PL.y - cy) + 8; g.fillStyle = '#1c1618'; g.fillRect(x - 17, yy, 34, 5); g.fillStyle = '#e6c36a'; g.fillRect(x - 16, yy + 1, Math.round(32 * clamp(IN.tHold / .9, 0, 1)), 3); gText('텐트', x, yy + 7, { al: 'center', sh: '#1c1618' }); }
+  if (PL.st === 'move' && IN.tHold > .12 && !PL.tUsed) { const x = Math.round((PL.x - cx) / hs), yy = Math.round((PL.y - cy) / hs) + 5; g.fillStyle = '#1c1618'; g.fillRect(x - 17, yy, 34, 5); g.fillStyle = '#e6c36a'; g.fillRect(x - 16, yy + 1, Math.round(32 * clamp(IN.tHold / .9, 0, 1)), 3); gText('텐트', x, yy + 7, { al: 'center', sh: '#1c1618' }); }
   let by = H - 12 - (V.safeB || 0);
   if (V.touch && W < 700) by = H - Math.round(gTouchButtons()[0].r * 5.4);   // 좁은 터치 화면: 단추 위로 올림
   if (UI.open || UI.bag > 0) {   // 가방 10칸
     const x0 = Math.round((W - 198) / 2), y0 = by - 20;
-    for (let i = 0; i < 10; i++) { const x = x0 + i * 20; if (V.touch && IN.p.any && Math.abs(IN.cx - x - 9) < 10 && Math.abs(IN.cy - y0 - 9) < 12) UI.sel = i; g.fillStyle = 'rgba(16,18,24,.78)'; g.fillRect(x, y0, 18, 18); g.fillStyle = UI.open && UI.sel === i ? '#e6c36a' : '#5a5448'; g.fillRect(x, y0, 18, 1); g.fillRect(x, y0 + 17, 18, 1); g.fillRect(x, y0, 1, 18); g.fillRect(x + 17, y0, 1, 18); if (BAG[i]) { const s = WORLD.SP.item[BAG[i]]; g.drawImage(s.c, x + 1, y0 + 1); } }
+    for (let i = 0; i < 10; i++) { const x = x0 + i * 20; if (V.touch && IN.p.any && Math.abs(IN.cx / hs - x - 9) < 10 && Math.abs(IN.cy / hs - y0 - 9) < 12) UI.sel = i; g.fillStyle = 'rgba(16,18,24,.78)'; g.fillRect(x, y0, 18, 18); g.fillStyle = UI.open && UI.sel === i ? '#e6c36a' : '#5a5448'; g.fillRect(x, y0, 18, 1); g.fillRect(x, y0 + 17, 18, 1); g.fillRect(x, y0, 1, 18); g.fillRect(x + 17, y0, 1, 18); if (BAG[i]) { const s = WORLD.SP.item[BAG[i]]; g.drawImage(s.c, x + 1, y0 + 1); } }
     by = y0 - 4;
     if (UI.open) { const k = UI.sel >= 0 ? BAG[UI.sel] : null, L = gWrap(k ? ITEM[k].n + ' — ' + ITEM[k].d : UI.sel >= 0 ? '빈칸이에요.' : '가방 ' + BAG.filter(Boolean).length + ' / 10 · 숫자 1~0으로 살펴봐요 · Tab으로 닫기', W - 16); L.forEach((t, i) => gText(t, W / 2, by - 12 * (L.length - i) + 1, { al: 'center', sh: '#1c1618' })); by -= 12 * L.length + 3; }
   }
@@ -230,7 +230,7 @@ function drawUi() {
 const HELP = [['이동', 'WASD · 방향키'], ['달리기', 'Shift (소리가 커요)'], ['살금살금', 'C (켜고 끄기)'], ['구르기', 'Space · X'], ['칼', '마우스 왼쪽 · J · Z (3연속)'], ['총', '오른쪽 누른 채 겨누고 왼쪽으로 발사 (K + J)'],
   ['솔 보내기 · 부르기', 'Q'], ['줍기 · 쓰다듬기', 'E (솔 곁에서 길게: 안기)'], ['텐트', 'T 길게'], ['가방', 'Tab'], ['도움말 · 소리', 'H · M'], ['시험용', 'F2 총알 · F3 물그림자 · F4 비 · F6 온전한 드롭 · F7 버섯']];
 function drawHelp() {
-  const g = V.g, W = V.w, H = V.h, pw = Math.min(W - 16, 430), ph = 64 + HELP.length * 13, x0 = Math.round((W - pw) / 2), y0 = Math.max(4, Math.round((H - ph) / 2));
+  const g = V.g, W = V.hw, H = V.hh, pw = Math.min(W - 16, 430), ph = 64 + HELP.length * 13, x0 = Math.round((W - pw) / 2), y0 = Math.max(4, Math.round((H - ph) / 2));
   g.fillStyle = 'rgba(8,10,14,.5)'; g.fillRect(0, 0, W, H); g.fillStyle = 'rgba(18,22,28,.94)'; g.fillRect(x0, y0, pw, ph); g.fillStyle = '#5a5448'; g.fillRect(x0, y0, pw, 1); g.fillRect(x0, y0 + ph - 1, pw, 1); g.fillRect(x0, y0, 1, ph); g.fillRect(x0 + pw - 1, y0, 1, ph);
   gText('비 오는 숲', x0 + 14, y0 + 11, { f: F11B, c: '#e6c36a' }); gText('1막 젖은 길 · 시험판', x0 + 14 + gTextW('비 오는 숲', F11B) + 8, y0 + 13, { c: '#a89c84' });
   HELP.forEach((r, i) => { const y = y0 + 32 + i * 13; gText(r[0], x0 + 14, y, { c: i === HELP.length - 1 ? '#8a8272' : '#c4d4e4' }); gText(r[1], x0 + 122, y, { c: i === HELP.length - 1 ? '#8a8272' : '#f1e9d6' }); });
@@ -245,8 +245,10 @@ function gFrame(ts) {
   else if (V.hitstop > 0) V.hitstop -= dt;
   else if (V.slow > 0) { V.slow -= dt; gUpdate(dt * .35); }   // 마지막 일격 · 처치 뒤 잠깐 느리게
   else gUpdate(dt);
-  camUpdate(dt); drawWorld(); drawFx(); drawSky(); drawHud(); drawUi();
-  if (!UI.help && !V.touch && !document.hasFocus() && Math.floor(ts / 600) % 2) gText('화면을 한 번 누르면 키보드가 켜져요', V.w / 2, V.h - 34, { al: 'center', c: '#e6c36a', sh: '#1c1618' });
+  camUpdate(dt); drawWorld(); drawFx(); drawSky();
+  V.g.save(); V.g.scale(V.hs, V.hs); drawHud(); drawUi();   // 글자 · 단추는 멀리 보는 만큼 다시 키워서 그림
+  if (!UI.help && !V.touch && !document.hasFocus() && Math.floor(ts / 600) % 2) gText('화면을 한 번 누르면 키보드가 켜져요', V.hw / 2, V.hh - 34, { al: 'center', c: '#e6c36a', sh: '#1c1618' });
+  V.g.restore();
   V.og.drawImage(V.cvs, 0, 0, V.w * V.k, V.h * V.k);
   IN.p = {};
   if (!V.manual) requestAnimationFrame(gFrame);
@@ -254,7 +256,7 @@ function gFrame(ts) {
 async function gStart(canvas) {
   V.out = canvas; V.og = canvas.getContext('2d'); V.cvs = document.createElement('canvas'); V.g = V.cvs.getContext('2d');
   gResize(); addEventListener('resize', gResize); gInput();
-  const tick = (s, u) => new Promise(r => { const g = V.g; g.fillStyle = '#12161c'; g.fillRect(0, 0, V.w, V.h); gText(s, V.w / 2, V.h / 2 - 8, { f: F11, al: 'center' }); g.fillStyle = '#3a3a44'; g.fillRect(V.w / 2 - 60, V.h / 2 + 12, 120, 3); g.fillStyle = '#e6c36a'; g.fillRect(V.w / 2 - 60, V.h / 2 + 12, Math.round(120 * u), 3); V.og.drawImage(V.cvs, 0, 0, V.w * V.k, V.h * V.k); setTimeout(r, 0); });
+  const tick = (s, u) => new Promise(r => { const g = V.g, w = V.hw, h = V.hh; g.fillStyle = '#12161c'; g.fillRect(0, 0, V.w, V.h); g.save(); g.scale(V.hs, V.hs); gText(s, w / 2, h / 2 - 8, { f: F11, al: 'center' }); g.fillStyle = '#3a3a44'; g.fillRect(w / 2 - 60, h / 2 + 12, 120, 3); g.fillStyle = '#e6c36a'; g.fillRect(w / 2 - 60, h / 2 + 12, Math.round(120 * u), 3); g.restore(); V.og.drawImage(V.cvs, 0, 0, V.w * V.k, V.h * V.k); setTimeout(r, 0); });
   await tick('숲을 심는 중', .05); WORLD.gen(7); gfxInit(); foesInit(); birdsInit();
   PL.x = WORLD.START[0]; PL.y = WORLD.START[1]; SO.x = PL.x + 38; SO.y = PL.y + 16; SO.flip = true; camUpdate(0, true);
   await tick('방랑자와 솔을 그리는 중', .2);

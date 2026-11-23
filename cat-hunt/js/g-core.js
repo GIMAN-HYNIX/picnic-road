@@ -3,17 +3,17 @@
    비 오는 숲 · 1막 시험판 — 화면, 입력, 그림 창고, 글자, 알갱이
    내부 화면은 짧은 변이 540쯤 되도록 잡고(1080p에서 딱 2배) 정수 · 반정수 배율로만 키움
    ========================================================= */
-const V = { w: 960, h: 540, cvs: null, g: null, out: null, og: null, k: 1, css: 1, time: 0, shake: 0, sx: 0, sy: 0, hitstop: 0, touch: false, flash: 0, kx: 0, ky: 0, slow: 0 };
+const V = { w: 960, h: 540, cvs: null, g: null, out: null, og: null, k: 1, css: 1, time: 0, shake: 0, sx: 0, sy: 0, hitstop: 0, touch: false, flash: 0, kx: 0, ky: 0, slow: 0, far: 2, hs: 2, hw: 480, hh: 270 };   // far: 멀리 보는 배율 · hs: 화면 표시(글자 · 단추)를 키우는 배율
 const CAM = { x: 0, y: 0 };
 function gResize() {
   const dpr = window.devicePixelRatio || 1, dw = Math.max(320, Math.round(innerWidth * dpr)), dh = Math.max(240, Math.round(innerHeight * dpr));
-  const want = Math.min(dw / (dw < dh ? 520 : 880), dh / 500);
+  const want = Math.min(dw / (dw < dh ? 520 : 880), dh / 500) / V.far;
   let sd = 1, best = 9; for (const c of [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8]) { const e = Math.abs(Math.log(c / Math.max(1, want))); if (e < best) { best = e; sd = c; } }
-  V.w = Math.ceil(dw / sd); V.h = Math.ceil(dh / sd); V.k = sd % 1 ? sd * 2 : 1; V.css = sd / dpr;
+  V.w = Math.ceil(dw / sd); V.h = Math.ceil(dh / sd); V.hw = Math.ceil(V.w / V.hs); V.hh = Math.ceil(V.h / V.hs); V.k = 1;   // 멀리 보는 화면은 점이 작아서 반정수 배율도 그대로 키움 (두 배로 그렸다 줄이면 너무 무거움) V.css = sd / dpr;
   V.cvs.width = V.w; V.cvs.height = V.h; V.g.imageSmoothingEnabled = false;
   V.out.width = V.w * V.k; V.out.height = V.h * V.k; V.og.imageSmoothingEnabled = false;
-  const cs = getComputedStyle(document.documentElement); V.safeT = Math.round((parseFloat(cs.paddingTop) || 0) / V.css); V.safeB = Math.round((parseFloat(cs.paddingBottom) || 0) / V.css);   // 휴대폰 위아래 막대만큼 표시를 안쪽으로
-  V.out.style.width = V.w * V.css + 'px'; V.out.style.height = V.h * V.css + 'px'; V.out.style.imageRendering = V.k > 1 ? 'auto' : 'pixelated';
+  const cs = getComputedStyle(document.documentElement); V.safeT = Math.round((parseFloat(cs.paddingTop) || 0) / V.css / V.hs); V.safeB = Math.round((parseFloat(cs.paddingBottom) || 0) / V.css / V.hs);   // 휴대폰 위아래 막대만큼 표시를 안쪽으로
+  V.out.style.width = V.w * V.css + 'px'; V.out.style.height = V.h * V.css + 'px'; V.out.style.imageRendering = 'pixelated';
 }
 
 /* ---------- 입력: 키보드 · 마우스 · 패드 · 터치를 한 가지 '동작'으로 모음 ---------- */
@@ -21,6 +21,7 @@ const IN = { mx: 0, my: 0, run: false, aim: false, cx: 0, cy: 0, mouseT: 9, ax: 
 const press = k => { IN.p[k] = true; };
 function gInput() {
   const el = V.out, pos = e => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * V.w, (e.clientY - r.top) / r.height * V.h]; };
+  const posH = e => { const q = pos(e); return [q[0] / V.hs, q[1] / V.hs]; };   // 터치 단추는 화면 표시 좌표로
   const MAP = { Space: 'dodge', KeyX: 'dodge', KeyJ: 'knife', KeyZ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7' };
   // 다른 쪽 안에 끼워져 돌아갈 때(아티팩트 등): 화면을 눌러도 글쇠가 이 창으로 안 들어오는 일이 없도록 누를 때마다 초점을 가져옴
   const grab = () => { try { window.focus(); if (document.activeElement !== el) el.focus({ preventScroll: true }); } catch (e) {} };
@@ -42,14 +43,14 @@ function gInput() {
   const tb = (x, y) => { for (const b of gTouchButtons()) if (Math.hypot(x - b.x, y - b.y) < b.r + 6) return b; return null; };
   el.addEventListener('touchstart', e => {
     e.preventDefault(); V.touch = true; GSFX.init(); IN.p.any = true;
-    for (const t of e.changedTouches) { const [x, y] = pos(t), b = tb(x, y); if (b) { IN.tch.btn[t.identifier] = b.k; press('t_' + b.k); } else if (x < V.w * .5 && IN.tch.id < 0) { IN.tch.id = t.identifier; IN.tch.sx = IN.tch.x = x; IN.tch.sy = IN.tch.y = y; } }
+    for (const t of e.changedTouches) { const [x, y] = posH(t), b = tb(x, y); if (b) { IN.tch.btn[t.identifier] = b.k; press('t_' + b.k); } else if (x < V.hw * .5 && IN.tch.id < 0) { IN.tch.id = t.identifier; IN.tch.sx = IN.tch.x = x; IN.tch.sy = IN.tch.y = y; } }
   }, { passive: false });
-  el.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === IN.tch.id) [IN.tch.x, IN.tch.y] = pos(t); }, { passive: false });
+  el.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === IN.tch.id) [IN.tch.x, IN.tch.y] = posH(t); }, { passive: false });
   const tend = e => { for (const t of e.changedTouches) { if (t.identifier === IN.tch.id) IN.tch.id = -1; const k = IN.tch.btn[t.identifier]; if (k) { press('tu_' + k); delete IN.tch.btn[t.identifier]; } } };
   el.addEventListener('touchend', tend); el.addEventListener('touchcancel', tend);
 }
 function gTouchButtons() {
-  const w = V.w, h = V.h, r = Math.max(22, Math.min(34, w * .045));
+  const w = V.hw, h = V.hh, r = Math.max(22, Math.min(34, w * .045));
   return [{ k: 'knife', x: w - r * 1.6, y: h - r * 3.6, r, t: '칼' }, { k: 'dodge', x: w - r * 3.9, y: h - r * 1.7, r, t: '구르기' }, { k: 'gun', x: w - r * 1.6, y: h - r * 1.3, r, t: '총' },
     { k: 'sol', x: w - r * 3.9, y: h - r * 4.1, r: r * .8, t: '솔' }, { k: 'e', x: w - r * 6, y: h - r * 2.8, r: r * .8, t: 'E' }, { k: 'tent', x: w - r * 1.3, y: r * 1.4, r: r * .7, t: '텐트' }, { k: 'bag', x: w - r * 3.1, y: r * 1.4, r: r * .7, t: '가방' }, { k: 'sneak', x: w - r * 6, y: h - r * .9, r: r * .7, t: '살금' }];
 }
