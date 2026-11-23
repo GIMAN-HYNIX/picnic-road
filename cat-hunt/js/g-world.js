@@ -59,16 +59,17 @@ const WORLD = (() => {
       for (let y = 120; y < WH - 150; y += 88) for (const x of [34 + k * 74, WW - 34 - k * 74]) { const X = x + R() * 36, Y = y + R() * 50 + k * 40; if (free(X, Y, 30)) add('tree', X, Y, { v: (R() * 4) | 0 }); }
     }
     add('tree', 1250, 372, { v: 4 });   // 북쪽의 아주 큰 나무
-    for (let i = 0, n = 0; i < 1400 && n < 52; i++) { const x = 190 + R() * (WW - 380), y = 230 + R() * (WH - 520); if (free(x, y, 44) && far(x, y, 150, 'tree')) { add('tree', x, y, { v: (R() * 4) | 0 }); n++; } }
-    for (let i = 0; i < 300; i++) { const x = 140 + R() * (WW - 280), y = 160 + R() * (WH - 300); if (free(x, y, 30) && far(x, y, 62)) add('sap', x, y, { v: (R() * 2) | 0 }); if (props.filter(p => p.t === 'sap').length > 34) break; }
+    for (let i = 0, n = 0; i < 1400 && n < 52; i++) { const x = 190 + R() * (WW - 380), y = 230 + R() * (WH - 520); if (free(x, y, 44) && far(x, y, 150, 'tree')) { add('tree', x, y, { v: (R() * 4) | 0, rn: 1 }); n++; } }
+    for (let i = 0; i < 300; i++) { const x = 140 + R() * (WW - 280), y = 160 + R() * (WH - 300); if (free(x, y, 30) && far(x, y, 62)) add('sap', x, y, { v: (R() * 2) | 0, rn: 1 }); if (props.filter(p => p.t === 'sap').length > 34) break; }
     for (let i = 0; i < 400; i++) {   // 바위: 개울가에 많이
       const nb = i < 160, x = nb ? lerp(1860, 2500, R()) : 130 + R() * (WW - 260), y = nb ? R() * 1300 : 150 + R() * (WH - 300), bd = fs(fBrook, x, y);
-      if (nb ? (bd > BW + 6 && bd < BW + 60 && fs(fTrail, x, y) > TW + 20) : free(x, y, 26)) if (far(x, y, 46)) add('rock', x, y, { v: (R() * 3) | 0 });
+      if (nb ? (bd > BW + 6 && bd < BW + 60 && fs(fTrail, x, y) > TW + 20) : free(x, y, 26)) if (far(x, y, 46)) add('rock', x, y, { v: (R() * 3) | 0, rn: 1 });
       if (props.filter(p => p.t === 'rock').length > 52) break;
     }
     for (const [x, y, f] of [[770, 1330, 0], [1420, 1420, 1], [1040, 980, 0], [1660, 760, 1], [520, 1220, 0], [2140, 1160, 1], [1500, 300, 0]]) add('log', x, y, { flip: f });
     for (const [x, y] of [[860, 1600], [1700, 1100], [1050, 560], [2320, 900], [460, 1360]]) add('stump', x, y);
     for (const [x, y] of [[470, 1520], [1640, 1440], [1930, 1330], [1120, 1270], [1350, 480], [2200, 300], [760, 1010]]) add('berry', x, y, { n: 3 });
+    prune();
     for (let i = 0; i < 500; i++) { const x = 130 + R() * (WW - 260), y = 150 + R() * (WH - 290); if (free(x, y, 22) && far(x, y, 54)) add('bush', x, y, { v: (R() * 2) | 0 }); if (props.filter(p => p.t === 'bush').length > 44) break; }
     // 버섯: 큰 나무 밑동 옆
     const trees = props.filter(p => p.t === 'tree' && p.x > 200 && p.x < WW - 200 && p.y > 240 && p.y < WH - 160);
@@ -82,22 +83,41 @@ const WORLD = (() => {
     for (const p of PUD) if (p.home) for (let k = 0; k < 7; k++) { const a = R() * TAU, x = p.x + Math.cos(a) * (p.rx + 7), y = p.y + Math.sin(a) * (p.ry + 5); if (Math.sin(a) < .5 && far(x, y, 14)) add('reed', x, y, { v: (R() * 2) | 0 }); }
   }
   const TR = [22, 27, 33, 39, 54];   // 나무 굵기
+  // 물건 하나의 충돌 모양: 원 [x, y, r] 또는 가로 캡슐 [x, y, r, 반길이]
+  function shape(p) {
+    if (p.t === 'tree') return [p.x, p.y - 4, TR[p.v] * .8]; if (p.t === 'sap') return [p.x, p.y - 2, 5];
+    if (p.t === 'rock') { const r = [9, 15, 24][p.v]; return [p.x, p.y - r * .35, r]; }
+    if (p.t === 'stump') return [p.x, p.y - 6, 15]; if (p.t === 'log') return [p.x, p.y - 9, 10, 44]; if (p.t === 'berry') return [p.x, p.y - 6, 13];
+    return null;
+  }
+  function gap(a, b) { const dx = Math.max(0, Math.abs(a[0] - b[0]) - (a[3] || 0) - (b[3] || 0)); return Math.hypot(dx, a[1] - b[1]) - a[2] - b[2]; }
+  // 레이아웃 정리: 아무 데나 뿌린 나무 · 묘목 · 바위가 다른 장애물과 겹치거나, 방랑자가 못 지나갈 만큼(지름 18) 좁은 틈을 만들면 뺌
+  // 손으로 놓은 통나무 · 그루터기 · 산딸기 · 가장자리 나무는 그대로 두고, 작은 것부터 뺌
+  function prune() {
+    const rank = { sap: 0, rock: 1, tree: 2 }, cand = props.filter(p => p.rn).sort((a, b) => rank[a.t] - rank[b.t] || b.v - a.v), dead = new Set();
+    for (const p of cand) {
+      const a = shape(p);
+      for (const q of props) {
+        if (q === p || dead.has(q)) continue; const b = shape(q); if (!b) continue;
+        const d = gap(a, b), fixed = !q.rn && q.t !== 'tree';
+        if (fixed ? d < 22 : d > -4 && d < 22 && (q.rn ? rank[q.t] >= rank[p.t] : true)) { dead.add(p); break; }
+      }
+    }
+    props = props.filter(p => !dead.has(p));
+  }
   function index() {
     solids = []; forage = []; covers = [];
     for (const p of props) {
-      if (p.t === 'tree') { p.r = TR[p.v] * .8; solids.push({ x: p.x, y: p.y - 4, r: p.r, p }); }
-      else if (p.t === 'sap') solids.push({ x: p.x, y: p.y - 2, r: 5, p });
-      else if (p.t === 'rock') { p.r = [9, 15, 24][p.v]; solids.push({ x: p.x, y: p.y - p.r * .35, r: p.r, p }); }
-      else if (p.t === 'stump') solids.push({ x: p.x, y: p.y - 6, r: 15, p });
-      else if (p.t === 'log') for (let k = -2; k <= 2; k++) solids.push({ x: p.x + k * 22, y: p.y - 9, r: 10, p, low: 1 });
-      else if (p.t === 'berry') { solids.push({ x: p.x, y: p.y - 6, r: 13, p, low: 1 }); forage.push(p); }
+      const sh = shape(p);
+      if (sh) { const o = { x: sh[0], y: sh[1], r: sh[2], p }; if (sh[3]) o.hl = sh[3]; if (p.t === 'log' || p.t === 'berry') o.low = 1; if (p.t === 'tree' || p.t === 'rock') p.r = sh[2]; solids.push(o); }
+      if (p.t === 'berry') forage.push(p);
       else if (p.t === 'shroom') forage.push(p);
       else if (p.t === 'fern' || p.t === 'bush') covers.push(p);
     }
     buckets = new Map(); sbuckets = new Map();
     const put = (M, k, v) => { let a = M.get(k); if (!a) M.set(k, a = []); a.push(v); };
     for (const p of props) put(buckets, (p.y >> 8) * 64 + (p.x >> 8), p);
-    for (const s of solids) for (let j = (s.y - s.r) >> 7; j <= (s.y + s.r) >> 7; j++) for (let i = (s.x - s.r) >> 7; i <= (s.x + s.r) >> 7; i++) put(sbuckets, j * 64 + i, s);
+    for (const s of solids) for (let j = (s.y - s.r) >> 7; j <= (s.y + s.r) >> 7; j++) for (let i = (s.x - s.r - (s.hl || 0)) >> 7; i <= (s.x + s.r + (s.hl || 0)) >> 7; i++) put(sbuckets, j * 64 + i, s);
     // 솔의 길찾기 격자: 0 갈 수 있음 · 1 막힘 · 2 물 (솔은 물을 건너지 않음)
     nav = new Uint8Array(NW * NH);
     for (let j = 0; j < NH; j++) for (let i = 0; i < NW; i++) {
@@ -110,11 +130,24 @@ const WORLD = (() => {
     }
   }
   function near(M, x, y, r, sh, fn) { for (let j = (y - r) >> sh; j <= (y + r) >> sh; j++) for (let i = (x - r) >> sh; i <= (x + r) >> sh; i++) { const a = M.get(j * 64 + i); if (a) for (const o of a) fn(o); } }
-  function hitSolid(x, y, r) { let h = null; near(sbuckets, x, y, r + 60, 7, s => { if (!h && Math.hypot(s.x - x, s.y - y) < s.r + r) h = s; }); return h; }
+  // 장애물에서 가장 가까운 점: 원은 가운데, 통나무(가로 캡슐)는 선분 위의 점
+  const cpx = (s, x) => s.hl ? clamp(x, s.x - s.hl, s.x + s.hl) : s.x;
+  function hitSolid(x, y, r) { let h = null; near(sbuckets, x, y, r + 60, 7, s => { if (!h && Math.hypot(cpx(s, x) - x, s.y - y) < s.r + r) h = s; }); return h; }
+  const inB = (x, y) => [clamp(x, 70, WW - 70), clamp(y, 96, WH - 216)];
   // 원을 장애물 밖으로 밀어냄 (미끄러지듯 비껴 감)
-  function push(x, y, r) {
-    for (let it = 0; it < 2; it++) near(sbuckets, x, y, r + 60, 7, s => { const dx = x - s.x, dy = y - s.y, d = Math.hypot(dx, dy), m = s.r + r; if (d < m && d > .001) { x = s.x + dx / d * m; y = s.y + dy / d * m; } });
-    return [clamp(x, 70, WW - 70), clamp(y, 96, WH - 216)];
+  // 원래 자리(ox, oy)를 주면: 나무와 맵 가장자리 사이처럼 풀 수 없는 구석에서는 파고들거나 뒤로 튕기지 않고 제자리에 머묾
+  function push(x, y, r, ox, oy) {
+    const ix = x, iy = y;
+    for (let it = 0; it < 4; it++) {
+      let hit = false;
+      [x, y] = inB(x, y);
+      near(sbuckets, x, y, r + 60, 7, s => { const qx = cpx(s, x), dx = x - qx, dy = y - s.y, d = Math.hypot(dx, dy), m = s.r + r; if (d < m) { hit = true; if (d > .001) { x = qx + dx / d * m; y = s.y + dy / d * m; } else y = s.y + m; } });
+      if (!hit) break;
+    }
+    [x, y] = inB(x, y);
+    if (ox == null) return [x, y];
+    const bad = hitSolid(x, y, r - .5) || (x - ox) * (ix - ox) + (y - oy) * (iy - oy) < 0;
+    return bad && !hitSolid(ox, oy, r - .5) ? inB(ox, oy) : [x, y];
   }
   // 총알: 나무 · 바위에 막히는 거리 (낮은 것은 넘어감)
   function ray(x, y, dx, dy, max) {
@@ -372,6 +405,6 @@ const WORLD = (() => {
     for (const p of props) if (p.t === 'tree') { const r = TR[p.v]; for (let j = Math.max(0, ((p.y - 130) / FS) | 0); j <= Math.min(FH - 1, ((p.y + 130) / FS) | 0); j++) for (let i = Math.max(0, ((p.x - 150) / FS) | 0); i <= Math.min(FW - 1, ((p.x + 150) / FS) | 0); i++) { const dd = Math.hypot(i * FS - p.x, (j * FS - p.y) * 1.5) - r, o = j * FW + i; if (dd < fTree[o]) fTree[o] = dd; } }
     index(); sprites();
   }
-  return { WW, WH, CHK, PUD, START, BRIDGE, TRAIL, BROOK, TR, SP, gen, chunk, terr, wet, push, hitSolid, ray, path, walkable, clearLine, nearestOpen, onBridge, hasChunk: (cx, cy) => chunks.has(cy * 64 + cx),
+  return { WW, WH, CHK, PUD, START, BRIDGE, TRAIL, BROOK, TR, SP, gen, chunk, terr, wet, push, hitSolid, ray, path, walkable, clearLine, nearestOpen, onBridge, navAt: (x, y) => { const i = (x / NS) | 0, j = (y / NS) | 0; return i < 0 || j < 0 || i >= NW || j >= NH ? 1 : nav[j * NW + i]; }, hasChunk: (cx, cy) => chunks.has(cy * 64 + cx),
     near: (x, y, r, fn) => near(buckets, x, y, r, 8, fn), get props() { return props; }, get forage() { return forage; }, get covers() { return covers; }, get solids() { return solids; } };
 })();

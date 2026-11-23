@@ -21,7 +21,7 @@ const IN = { mx: 0, my: 0, run: false, aim: false, cx: 0, cy: 0, mouseT: 9, ax: 
 const press = k => { IN.p[k] = true; };
 function gInput() {
   const el = V.out, pos = e => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * V.w, (e.clientY - r.top) / r.height * V.h]; };
-  const MAP = { Space: 'dodge', KeyJ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7' };
+  const MAP = { Space: 'dodge', KeyJ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7', F8: 'f8' };
   addEventListener('keydown', e => {
     if (e.repeat) { if (MAP[e.code] || e.code.startsWith('Arrow')) e.preventDefault(); return; }
     IN.keys[e.code] = true; IN.p.any = true; GSFX.init();

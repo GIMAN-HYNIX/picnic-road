@@ -29,6 +29,7 @@ function gUpdate(dt) {
   if (p.bag) { UI.open = !UI.open; UI.sel = -1; } for (let i = 0; i < 10; i++) if (p['n' + i]) { UI.open = true; UI.sel = (i + 9) % 10; }
   if (p.esc) UI.open = false;
   if (p.f2) { PL.ammo = 8; say('총알을 채웠어요. (시험용)'); } if (p.f4) { WX.target = (WX.target + 1) % 3; WX.t = 0; say(['안개비', '보슬비', '장대비'][WX.target] + ' (시험용)'); }
+  if (p.f8) { DBG.col = !DBG.col; say(DBG.col ? '충돌 보기 켬 (시험용)' : '충돌 보기 끔 (시험용)', 1.2); }
   if (p.f6) { DBG.intact = true; say('다음 사냥에서 온전한 냄비가 나와요. (시험용)'); } if (p.f7) { bagAdd('shroom'); UI.bag = 2; }
   if (p.f3) { const f = FOES.find(q => !q.live && q.st !== 'dissolve') || FOES[0], a = DIRA[PL.dir], n = WORLD.nearestOpen(PL.x + Math.cos(a) * 170, PL.y + Math.sin(a) * 130, true) || [PL.x + 150, PL.y]; f.x = n[0]; f.y = n[1]; f.hp = f.mhp; f.stag = 0; f.re = 0; f.aware = 0; f.st = 'emerge'; f.t = 0; f.tx = f.x; f.ty = f.y; f.hx = f.x; f.hy = f.y; say('물그림자를 불렀어요. (시험용)'); }
   if (p.sol && PL.st !== 'camp' && PL.st !== 'down' && PL.st !== 'tent') solCommand();
@@ -95,6 +96,25 @@ function drawWorld() {
     if (p.t === 'tree' || p.t === 'sap') { const beh = q => p.y > q.y && p.y - q.y < s.h - 30 && Math.abs(p.x - q.x) < (p.t === 'tree' ? WORLD.TR[p.v] + 14 : 26); p.fa = lerp(p.fa == null ? 1 : p.fa, beh(PL) || (SO.mode === 'free' && beh(SO)) || FOES.some(f => f.live && beh(f)) ? .4 : 1, Math.min(1, V.dt * 8)); al = p.fa; }
     if (p.flip) { g.save(); g.translate(Math.round(p.x - cx), 0); g.scale(-1, 1); g.drawImage(s.c, -s.ox, Math.round(p.y - cy) - s.oy); g.restore(); } else gDraw(s, p.x, p.y, al);
   }
+}
+// 시험용 충돌 보기 (F8): 빨강 = 막힘, 주황 = 낮은 장애물(총알은 넘어감), 파랑 칸 = 솔이 못 가는 물, 회색 칸 = 솔이 못 가는 곳, 노랑 = 방랑자
+function drawCollision() {
+  const g = V.g, cx = CAM.x, cy = CAM.y, NS = 16, nav = WORLD.navAt;
+  for (let y = Math.floor(cy / NS) * NS; y < cy + V.h; y += NS) for (let x = Math.floor(cx / NS) * NS; x < cx + V.w; x += NS) {
+    const v = nav(x + NS / 2, y + NS / 2); if (!v) continue;
+    g.fillStyle = v === 2 ? 'rgba(80,150,255,.22)' : 'rgba(160,160,160,.18)'; g.fillRect(x - cx, y - cy, NS - 1, NS - 1);
+  }
+  const circ = (x, y, r, col) => { g.strokeStyle = col; g.beginPath(); g.arc(Math.round(x - cx) + .5, Math.round(y - cy) + .5, r, 0, TAU); g.stroke(); };
+  g.lineWidth = 1;
+  for (const s of WORLD.solids) if (s.x > cx - 120 && s.x < cx + V.w + 120 && s.y > cy - 80 && s.y < cy + V.h + 80) {
+    const col = s.low ? '#ffb040' : '#ff4a4a';
+    if (!s.hl) { circ(s.x, s.y, s.r, col); continue; }
+    const x0 = Math.round(s.x - s.hl - cx) + .5, x1 = Math.round(s.x + s.hl - cx) + .5, y = Math.round(s.y - cy) + .5;
+    g.strokeStyle = col; g.beginPath(); g.arc(x0, y, s.r, Math.PI / 2, Math.PI * 1.5); g.lineTo(x1, y - s.r); g.arc(x1, y, s.r, -Math.PI / 2, Math.PI / 2); g.closePath(); g.stroke();
+  }
+  circ(PL.x, PL.y, 9, '#ffe24a');
+  if (SO.mode === 'free') circ(SO.x, SO.y, 5, '#ffe24a');
+  if (CAMP.on) circ(CAMP.x, CAMP.y, 0, '#fff');
 }
 function drawMan() {
   if (PL.inv > 0 && PL.st !== 'hit' && PL.st !== 'down' && Math.floor(V.time * 14) % 2) return;
@@ -203,7 +223,7 @@ function drawUi() {
   if (UI.help) drawHelp();
 }
 const HELP = [['이동', 'WASD · 방향키'], ['달리기', 'Shift (소리가 커요)'], ['살금살금', 'C (켜고 끄기)'], ['구르기', 'Space'], ['칼', '마우스 왼쪽 · J (3연속)'], ['총', '오른쪽 누른 채 겨누고 왼쪽으로 발사 (K + J)'],
-  ['솔 보내기 · 부르기', 'Q'], ['줍기 · 쓰다듬기', 'E (솔 곁에서 길게: 안기)'], ['텐트', 'T 길게'], ['가방', 'Tab'], ['도움말 · 소리', 'H · M'], ['시험용', 'F2 총알 · F3 물그림자 · F4 비 · F6 온전한 드롭 · F7 버섯']];
+  ['솔 보내기 · 부르기', 'Q'], ['줍기 · 쓰다듬기', 'E (솔 곁에서 길게: 안기)'], ['텐트', 'T 길게'], ['가방', 'Tab'], ['도움말 · 소리', 'H · M'], ['시험용', 'F2 총알 · F3 물그림자 · F4 비 · F6 온전한 드롭 · F7 버섯 · F8 충돌']];
 function drawHelp() {
   const g = V.g, W = V.w, H = V.h, pw = Math.min(W - 16, 430), ph = 64 + HELP.length * 13, x0 = Math.round((W - pw) / 2), y0 = Math.max(4, Math.round((H - ph) / 2));
   g.fillStyle = 'rgba(8,10,14,.5)'; g.fillRect(0, 0, W, H); g.fillStyle = 'rgba(18,22,28,.94)'; g.fillRect(x0, y0, pw, ph); g.fillStyle = '#5a5448'; g.fillRect(x0, y0, pw, 1); g.fillRect(x0, y0 + ph - 1, pw, 1); g.fillRect(x0, y0, 1, ph); g.fillRect(x0 + pw - 1, y0, 1, ph);
@@ -219,7 +239,7 @@ function gFrame(ts) {
   if (UI.help) { V.ht = (V.ht || 0) + dt; V.time += dt; if (IN.p.any && !IN.p.help) UI.help = false; gParts(dt); }
   else if (V.hitstop > 0) V.hitstop -= dt;
   else gUpdate(dt);
-  camUpdate(dt); drawWorld(); drawFx(); drawSky(); drawHud(); drawUi();
+  camUpdate(dt); drawWorld(); if (DBG.col) drawCollision(); drawFx(); drawSky(); drawHud(); drawUi();
   V.og.drawImage(V.cvs, 0, 0, V.w * V.k, V.h * V.k);
   IN.p = {};
   if (!V.manual) requestAnimationFrame(gFrame);

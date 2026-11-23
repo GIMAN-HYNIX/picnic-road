@@ -6,7 +6,7 @@
    드롭: 없음 84% · 훼손된 물건 15% · 온전한 물건 1% (첫 사냥만 훼손된 냄비 확정)
    ========================================================= */
 const WX = { lv: 1, target: 1, t: 0, i: 0, seq: [1, 2, 0, 1, 2, 1, 0], dur: 46 };
-const DBG = { intact: false };
+const DBG = { intact: false, col: false };
 const GLOBS = [], BIRDS = [], FLOCKS = [{ x: 1780, y: 1380, away: 0 }, { x: 610, y: 1440, away: 0 }, { x: 1250, y: 470, away: 0 }];
 const CAMP = { on: false, x: 0, y: 0, fx: 0, fy: 0, sx: 0, sy: 0, seatX: 0, seatY: 0, eat: 0, cap: 0, ate: false, last: null, t: 0, tick: 0, glow: 0 };
 let POTFOE = null;
@@ -41,14 +41,14 @@ function foeDrop(f) {
   if (PL.kills === 1) hint('drop', '물그림자는 물로 돌아가요. 운이 좋으면 물건이 남아요. 지나가면 주워요.', 8);
 }
 function foeMove(f, tx, ty, sp, dt) {
-  const dx = tx - f.x, dy = ty - f.y, l = Math.hypot(dx, dy) || 1, ox = f.x, oy = f.y, n = WORLD.push(f.x + dx / l * sp * dt, f.y + dy / l * sp * dt, 11 * f.k);
+  const dx = tx - f.x, dy = ty - f.y, l = Math.hypot(dx, dy) || 1, ox = f.x, oy = f.y, n = WORLD.push(f.x + dx / l * sp * dt, f.y + dy / l * sp * dt, 11 * f.k, f.x, f.y);
   f.x = n[0]; f.y = n[1]; if (Math.abs(dx) > 4) f.flip = dx < 0;
   f.tr += Math.hypot(f.x - ox, f.y - oy); if (f.tr > 18) { f.tr = 0; decal(f.x + (Math.random() - .5) * 6, f.y + 2, 4 + Math.random() * 3, 26); }
   return l;
 }
 function foeUpdate(f, dt) {
   f.t += dt; f.flash -= dt; f.cd -= dt; f.mT -= dt; const s = f.st, dp = dist(f, PL), quiet = PL.st === 'camp' || PL.st === 'down' || PL.st === 'tent';
-  if (f.kx || f.ky) { const n = WORLD.push(f.x + f.kx * dt, f.y + f.ky * dt, 11 * f.k); f.x = n[0]; f.y = n[1]; const e = Math.exp(-dt * 9); f.kx *= e; f.ky *= e; if (Math.hypot(f.kx, f.ky) < 6) f.kx = f.ky = 0; }
+  if (f.kx || f.ky) { const n = WORLD.push(f.x + f.kx * dt, f.y + f.ky * dt, 11 * f.k, f.x, f.y); f.x = n[0]; f.y = n[1]; const e = Math.exp(-dt * 9); f.kx *= e; f.ky *= e; if (Math.hypot(f.kx, f.ky) < 6) f.kx = f.ky = 0; }
   if (s === 'gone') { f.live = false; f.re -= dt; if (f.re <= 0 && !f.grad && dp > 520) { f.hp = f.mhp; f.x = f.hx; f.y = f.hy; f.aware = 0; f.stag = 0; f.wT = 5; f.st = 'dormant'; } return; }
   if (s === 'dormant') {
     f.live = false;
@@ -81,7 +81,7 @@ function foeUpdate(f, dt) {
     if (f.t < .46) { f.la = Math.atan2(PL.y - f.y, PL.x - f.x); f.flip = PL.x < f.x; }
     if (f.t >= .62) { foeSet(f, 'lunge'); f.vx = Math.cos(f.la) * 640; f.vy = Math.sin(f.la) * 640; GSFX.lunge(foePan(f)); }
   } else if (s === 'lunge') {
-    const n = WORLD.push(f.x + f.vx * dt, f.y + f.vy * dt, 11 * f.k); f.x = n[0]; f.y = n[1]; f.tr += 640 * dt; if (f.tr > 14) { f.tr = 0; decal(f.x, f.y + 2, 6, 20); drops(f.x, f.y, 8, 1, 40); }
+    const n = WORLD.push(f.x + f.vx * dt, f.y + f.vy * dt, 11 * f.k, f.x, f.y); f.x = n[0]; f.y = n[1]; f.tr += 640 * dt; if (f.tr > 14) { f.tr = 0; decal(f.x, f.y + 2, 6, 20); drops(f.x, f.y, 8, 1, 40); }
     if (!f.hitDone && dp < 25 * f.k) f.hitDone = pHurt(1, f.x, f.y);
     if (SO.mode === 'free' && !SO.hidden && SO.z === 0 && SO.st !== 'flee' && Math.hypot(SO.x - f.x, SO.y - f.y) < 26) solDodgeHop(f);
     if (f.t >= .26) { foeSet(f, 'recover'); f.cd = 1.2 + Math.random() * .6; }

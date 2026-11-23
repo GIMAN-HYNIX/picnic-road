@@ -26,7 +26,8 @@ const DIRA = { r: 0, l: Math.PI, u: -Math.PI / 2, d: Math.PI / 2 };
 function pMove(tx, ty, dt, resp) {
   const k = 1 - Math.exp(-dt * resp); PL.vx += (tx - PL.vx) * k; PL.vy += (ty - PL.vy) * k;
   if (!tx && !ty && Math.hypot(PL.vx, PL.vy) < 7) PL.vx = PL.vy = 0;
-  const ox = PL.x, oy = PL.y; let n = WORLD.push(PL.x + PL.vx * dt, PL.y + PL.vy * dt, 9); n = campPush(n[0], n[1], 9);
+  const ox = PL.x, oy = PL.y; let n = WORLD.push(PL.x + PL.vx * dt, PL.y + PL.vy * dt, 9, ox, oy); n = campPush(n[0], n[1], 9);
+  if (WORLD.hitSolid(n[0], n[1], 8) && !WORLD.hitSolid(ox, oy, 8)) n = [ox, oy];   // 텐트와 나무 사이에 끼면 제자리
   PL.x = n[0]; PL.y = n[1]; return Math.hypot(PL.x - ox, PL.y - oy);
 }
 function pSteps(moved) {

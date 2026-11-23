@@ -27,7 +27,7 @@ function solGo(tx, ty, gait, dt, arrive, k) {
   const dx = wp[0] - SO.x, dy = wp[1] - SO.y, l = Math.hypot(dx, dy) || 1; let sp = SGAIT[gait][0] * (k || 1);
   if (d < 26 && gait !== 'stalk') sp = Math.min(sp, 40 + d * 3);
   const q = 1 - Math.exp(-dt * 12); SO.vx += (dx / l * sp - SO.vx) * q; SO.vy += (dy / l * sp - SO.vy) * q;
-  const n = WORLD.push(SO.x + SO.vx * dt, SO.y + SO.vy * dt, 5), moved = Math.hypot(n[0] - SO.x, n[1] - SO.y); SO.x = n[0]; SO.y = n[1];
+  const n = WORLD.push(SO.x + SO.vx * dt, SO.y + SO.vy * dt, 5, SO.x, SO.y), moved = Math.hypot(n[0] - SO.x, n[1] - SO.y); SO.x = n[0]; SO.y = n[1];
   SO.gait = gait; SO.ph = (SO.ph + moved / SGAIT[gait][1]) % 1; solFace(SO.vx, SO.vy); brushFerns(SO.x, SO.y, SO.vx, .3);
   return false;
 }
