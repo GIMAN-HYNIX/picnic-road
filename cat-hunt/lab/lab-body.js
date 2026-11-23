@@ -82,7 +82,8 @@ function clInit(S) {
 function clStep(cl, S, dt, grav = 460, drag = 2.6) {
   const P = cl.P, O = cl.O, rt = clRoots(S), k = Math.exp(-drag * dt);
   for (let i = CL_C; i < P.length; i++) {
-    const p = P[i], o = O[i], vx = (p[0] - o[0]) * k, vy = (p[1] - o[1]) * k;
+    const p = P[i], o = O[i]; let vx = (p[0] - o[0]) * k, vy = (p[1] - o[1]) * k; const sp = Math.hypot(vx, vy);
+    if (sp > 4.5) { vx *= 4.5 / sp; vy *= 4.5 / sp; }   // 장면이 크게 건너뛸 때 천이 튀어 엉키지 않게
     o[0] = p[0]; o[1] = p[1]; p[0] += vx; p[1] += vy + grav * dt * dt;
   }
   for (let c = 0; c < CL_C; c++) { O[c][0] = P[c][0]; O[c][1] = P[c][1]; P[c][0] = rt[c][0]; P[c][1] = rt[c][1]; }
@@ -97,9 +98,16 @@ function clStep(cl, S, dt, grav = 460, drag = 2.6) {
       if (c + 1 < CL_C && r > 0) link(i, i + 1, clW(r), .7);
       if (r + 1 < CL_R && c + 1 < CL_C) { link(i, i + CL_C + 1, Math.hypot(CL_SEG, (clW(r) + clW(r + 1)) / 2 + .3), .25); link(i + 1, i + CL_C, Math.hypot(CL_SEG, (clW(r) + clW(r + 1)) / 2 - .3), .25); }
     }
+    // 자락이 뒤집히거나 한 줄로 뭉치지 않게: 가운데 줄을 기준으로 뒷줄은 뒤쪽, 앞줄은 앞쪽에 있게 함
+    for (let r = 1; r < CL_R; r++) {
+      const m = P[r * CL_C + 1], pm = P[(r - 1) * CL_C + 1], dx = m[0] - pm[0], dy = m[1] - pm[1], l = Math.hypot(dx, dy) || 1, nx = dy / l, ny = -dx / l, w = clW(r) * .55;
+      for (const [c, sg] of [[0, -1], [2, 1]]) { const q = P[r * CL_C + c], s = ((q[0] - m[0]) * nx + (q[1] - m[1]) * ny) * sg; if (s < w) { const kk = (w - s) * sg * .5; q[0] += nx * kk; q[1] += ny * kk; } }
+    }
     // 몸을 뚫고 앞으로 넘어가지 않게: 등줄기(엉덩이–어깨 선)보다 조금 앞까지만
+    const top = Math.min(rt[0][1], rt[2][1]) - 1.5;   // 자락이 어깨 위로 솟아 머리 위에 서 버리지 않게
     for (let i = CL_C; i < P.length; i++) {
-      const p = P[i], c = i % CL_C, t = clamp((p[1] - SC[1]) / (hip[1] - SC[1] || 1), 0, 1.6), bx = SC[0] + (hip[0] - SC[0]) * Math.min(t, 1) + (c - 1) * 2.2 + 1.5;
+      const p = P[i], c = i % CL_C; if (p[1] < top) p[1] += (top - p[1]) * .7;
+      const t = clamp((p[1] - SC[1]) / (hip[1] - SC[1] || 1), 0, 1.6), bx = SC[0] + (hip[0] - SC[0]) * Math.min(t, 1) + (c - 1) * 2.2 - 1.6;
       if (p[0] > bx) p[0] += (bx - p[0]) * .6;
       if (p[1] > -1) p[1] = -1;
     }

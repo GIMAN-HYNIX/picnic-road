@@ -1,6 +1,6 @@
 <!doctype html><meta charset=utf8><body style="margin:0;background:#3a5a44">
 <script src="../js/core.js"></script><script src="../js/hires.js"></script><script src="../js/g-cat.js"></script><script src="prev-man.js"></script>
-<script src="lab-body.js"></script><script src="lab-motion.js"></script><script src="lab-more.js"></script>
+<script src="lab-body.js"></script><script src="lab-motion.js"></script><script src="lab-b5.js"></script><script src="lab-more.js"></script>
 <canvas id=c></canvas>
 <script>
 // ?v=A&body=classic&fr=0,5,10&cols=8&bones=1
@@ -10,5 +10,5 @@ if(q.get('cuts'))frs=V.hits.flatMap(h=>h.cuts);const cw=+(q.get('cw')||W_W),cx0=
 const cv=document.getElementById('c'),rows=Math.ceil(frs.length/cols);cv.width=cols*cw*Z;cv.height=rows*W_H*Z;const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.fillStyle='#3a5a44';g.fillRect(0,0,cv.width,cv.height);
 let worst=0;
 frs.forEach((f,i)=>{const F=frames[Math.min(f,frames.length-1)];if(F.S)worst=Math.max(worst,F.S.over);const c=wRenderFull(F);const cx=fol?Math.round(W_OX+(F.S?F.S.hip[0]*2:F.old.x)-cw/2+24):cx0;const x=(i%cols)*cw*Z,y=Math.floor(i/cols)*W_H*Z;g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x,y+(W_OY+1)*Z,cw*Z,1);g.drawImage(c,cx,0,cw,W_H,x,y,cw*Z,W_H*Z);g.fillStyle='#fff';g.font='14px sans-serif';g.fillText('f'+f+(F.S&&F.S.over>0?' OVER '+F.S.over.toFixed(1):''),x+6,y+16);});
-const t0=performance.now();for(let i=0;i<20;i++)wRender(frames[i*3]);console.log('ms/frame',((performance.now()-t0)/20).toFixed(1));console.log('worst over',worst.toFixed(2),'frames',frames.length);
+const t0=performance.now();for(let i=0;i<20;i++)wRender(frames[Math.min(i*3,frames.length-1)]);console.log('ms/frame',((performance.now()-t0)/20).toFixed(1));console.log('worst over',worst.toFixed(2),'frames',frames.length);
 </script>

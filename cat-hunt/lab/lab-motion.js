@@ -148,7 +148,7 @@ function mkStepped(id, T, list, hits) {
     id, N: n, stepped: true, pose: f => poseOf(idx(f)), snap: f => start[idx(f)],
     clothAt: f => { const i = idx(f), s = start[i], len = list[i][1], k = Math.floor((f - s) / 4); return Math.min(s + len - 1, s + k * 4 + 3); },
     smearAt: f => { const i = idx(f); return list[i][3] ? { samp: smSamp(i), t: list[i][0], tau: list[i][3] } : null; },
-    hits: hits.map(h => ({ name: h.name, cuts: h.cuts.map(srcToF) })),
+    hits: hits.map(h => ({ name: h.name, caps: h.caps, cuts: h.cuts.map(srcToF) })),
   };
 }
 // C · 스프링: 목표 자세를 순서대로 던지고 용수철이 따라감. 발과 앞으로 나가는 거리는 곡선 그대로(발이 미끄러지지 않게)
