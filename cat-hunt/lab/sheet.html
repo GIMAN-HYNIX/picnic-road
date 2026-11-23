@@ -1,0 +1,14 @@
+<!doctype html><meta charset=utf8><body style="margin:0;background:#3a5a44">
+<script src="../js/core.js"></script><script src="../js/hires.js"></script><script src="../js/g-cat.js"></script><script src="prev-man.js"></script>
+<script src="lab-body.js"></script><script src="lab-motion.js"></script><script src="lab-more.js"></script>
+<canvas id=c></canvas>
+<script>
+// ?v=A&body=classic&fr=0,5,10&cols=8&bones=1
+const q=new URLSearchParams(location.search),V=VARIANTS.find(v=>v.id===(q.get('v')||'A')),body=q.get('body')||'classic',cols=+(q.get('cols')||8),Z=+(q.get('z')||2);
+const frames=wBake(V,body);let frs=q.get('fr')?q.get('fr').split(',').map(Number):null;if(!frs){const st=+(q.get('step')||4),a=+(q.get('from')||0),b=+(q.get('to')||V.N-1);frs=[];for(let f=a;f<=b;f+=st)frs.push(f);}
+if(q.get('cuts'))frs=V.hits.flatMap(h=>h.cuts);const cw=+(q.get('cw')||W_W),cx0=+(q.get('cx')||0),fol=q.get('follow');
+const cv=document.getElementById('c'),rows=Math.ceil(frs.length/cols);cv.width=cols*cw*Z;cv.height=rows*W_H*Z;const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.fillStyle='#3a5a44';g.fillRect(0,0,cv.width,cv.height);
+let worst=0;
+frs.forEach((f,i)=>{const F=frames[Math.min(f,frames.length-1)];worst=Math.max(worst,F.S.over);const c=wRender(F);const cx=fol?Math.round(W_OX+F.S.hip[0]*2-cw/2+24):cx0;const x=(i%cols)*cw*Z,y=Math.floor(i/cols)*W_H*Z;g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x,y+(W_OY+1)*Z,cw*Z,1);g.drawImage(c,cx,0,cw,W_H,x,y,cw*Z,W_H*Z);g.fillStyle='#fff';g.font='14px sans-serif';g.fillText('f'+f+(F.S.over>0?' OVER '+F.S.over.toFixed(1):''),x+6,y+16);});
+console.log('worst over',worst.toFixed(2),'frames',frames.length);
+</script>
