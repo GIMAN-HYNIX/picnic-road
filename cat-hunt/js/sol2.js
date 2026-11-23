@@ -35,9 +35,10 @@ function s2SelOut(pb) {
 function softBake(W, H, ox, oy, k, fn) { const pb = hiBake(W, H, ox, oy, R => { R.scl(k); fn(R); }, SOFT); s2SelOut(pb); return pb; }
 
 /* ---------- 부품 ---------- */
-const s2Stripe = (x, y) => (y < -13 && mod(x + Math.sin(y * .7) * 1.4, 4.4) < 1.5 ? 0 : -1);
+const s2Stripe = (x, y) => (y < -23.4 + Math.sin(x * .4) * .4 || (y < -13 && mod(x + Math.sin(y * .7) * 1.4, 4.4) < 1.5) ? 0 : -1);
 function s2Eye(R, x, y, kind) {
   const pal = { L: '#2a1c18', G: '#9cc850', g: '#c8e47a', P: '#141010', w: '#fffaf0' };
+  if (S2.HI) { const big = kind === 'half' ? ['LLLLLLL', '.GgGPL.', '..LLL..'] : ['.LLLLL.', 'LwgGPPL', 'LGGGPGL', '.LLGGL.']; R.stamp(x, y, big, pal, 3, 1); return; }
   const rows = kind === 'shut' ? ['.LLL.', 'L...L'] : kind === 'half' ? ['LLLL', 'GgPG'] : kind === 'wide' ? ['.LLL.', 'LwgGL', 'LGPGL', '.GGG.'] : ['.LLL', 'LwgP', '.GGP'];
   R.stamp(x, y, rows, pal, 2, 1);
 }
@@ -51,6 +52,7 @@ function s2Head(R, hx, hy, o = {}) {
     R.P([[hx - 3.2, hy - 3.6], [hx - 2.6, hy - 10], [hx + .6, hy - 4.6]], FURD, { g: 'earF' });
     R.P([[hx - .4, hy - 4.4], [hx + 1.6, hy - 10.4], [hx + 2.3, hy - 9.3], [hx + 2.9, hy - 10.1], [hx + 4.2, hy - 4]], FUR, { g: 'earN', ol: 1 });
     R.P([[hx + .7, hy - 5], [hx + 1.8, hy - 8.4], [hx + 3.1, hy - 4.8]], PINK, { g: 'earIn', cast: 0 });
+    if (S2.HI) { R.W(hx + 1.3, hy - 5.1, hx + 1.9, hy - 7.6, '#efe6dc'); R.W(hx + 2.2, hy - 5, hx + 2.7, hy - 7.1, '#efe6dc'); }
   }
   R.E(hx, hy, 6.7, 5.8, 0, FUR, R.pat({ g: 'head', alts: [STR], alt: (x, y) => (y < hy - 2.2 && x < hx + 2.4 && Math.abs(mod(x - hx + 10, 2.4) - 1.2) < .42 ? 0 : -1) }));
   R.E(hx - .6, hy + 2.8, 4.8, 3.4, 0, FUR, R.pat({ g: 'head', alts: [STR], alt: (x, y) => (Math.abs(y - (hy + 2.2 + (x - hx) * .22)) < .45 && x < hx + 1 ? 0 : -1) }));
@@ -81,6 +83,7 @@ function s2Leg(R, sx, sy, px, py, r1, r2, far, front, g, lift = 0) {
   R.K2(sx, sy, jx, jy, r1, (r1 + r2) / 2, pal, band);
   R.K2(jx, jy, px, py - 1.1 - lift, (r1 + r2) / 2, r2, pal, R.pat({ g, alts: [far ? STRD : STR], alt: (x, y) => (mod(y + 40, 3.4) < 1 ? 0 : -1), ...(far ? { b: -.1 } : { ol: 2 }) }));
   R.E(px + .6, py - .9 - lift, 2.2, 1.15, 0, far ? WHTD : WHT, { g: g + 'p', ...(far ? { b: -.1 } : {}) });
+  if (S2.HI && !far) { R.DL(px + 1.7, py - 1.7 - lift, px + 1.7, py - .5 - lift, '#8a8276'); R.DL(px + .5, py - 1.9 - lift, px + .5, py - .4 - lift, '#8a8276'); }
 }
 
 /* ---------- 자세 ---------- */
@@ -95,7 +98,7 @@ function sol2Walk(R, s = {}) {
   R.E(6.4, -17.4 + bob, 8.6, 7.8, 0, FUR, R.pat({ g: 'body', alts: [STR], alt: s2Stripe }));
   R.E(-10, -15.6 + bob, 6.6, 7.4, 0, FUR, R.pat({ g: 'body', alts: [STR], alt: (x, y) => (mod(x * .8 + y * .5 + 20, 4) < 1.3 ? 0 : -1) }));
   R.E(1, -11.4 + bob, 9.4, 2.6, 0, WHT, { g: 'belly' });
-  R.E(11.6, -15.6 + bob, 3.8, 5.6, -.3, WHT, { g: 'chest' });
+  R.E(11.8, -14.6 + bob, 3.6, 4.8, -.3, WHT, { g: 'chest' });
   s2Leg(R, 9.4, -15 + bob, 10.6 + sw(0), 0, 2.5, 1.8, false, true, 'nf', lf(0));
   s2Leg(R, -7, -10 + bob, -11.4 + sw(Math.PI), 0, 2.7, 1.7, false, false, 'nh', lf(Math.PI));
   R.K2(11, -21 + bob, 15.4, -26.6 + bob, 4.6, 4, FUR, R.pat({ g: 'neck', alts: [STR], alt: (x, y) => (mod(x - y * .6 + 40, 4) < 1.2 ? 0 : -1) }));
@@ -160,5 +163,30 @@ AB.sol1 = function (bg = '#56698a') {
   pb.d.fill(C(bg)); pb.ellipse(ox - 4, oy, 40, 3.4, mix(bg, '#1e2a44', .45));
   pbOver(pb, hiBake(W, H, ox, oy, R => { R.scl(3.2); catSideHi(R, { pose: 'stand' }); }, ED));
   grain(pb, .04, 3);
+  return pb;
+};
+
+/* ---------- 고밀도 시안: 픽셀 2배, 두 톤 셀 명암 + 잉크 선 + 털결 톱니 ---------- */
+const HT2 = edPal('#3c4a26');
+const S3 = { FUR: CP.F, FURD: HT2(mix('#978672', '#2a2038', .2)), STR: CP.S, STRD: HT2(mix('#544a40', '#2a2038', .2)), WHT: CP.W, WHTD: ['#b4aca2', '#dcd4c8'], PINK: CP.EAR, RED: HT2('#b8402e'), REDD: HT2('#8a2a1e') };
+function withHi(fn) { const keep = Object.assign({}, S2); Object.assign(S2, S3, { HI: true }); try { return fn(); } finally { for (const k of Object.keys(S2)) delete S2[k]; Object.assign(S2, keep); } }
+// 털결: 서로 다른 색이 맞닿은 곳을 톱니처럼 끊음 (위 색이 아래로 1~2칸 처지고, 앞 색이 뒤로 1칸 밀림)
+const S3_KEEP = new Set([INK, '#2a1c18', '#9cc850', '#c8e47a', '#141010', '#fffaf0', '#b8605c', '#e08a86', '#f4b0aa', '#3a2220', '#cac4ba', '#bcb6ac', '#8a8276', '#efe6dc', '#9a8a80'].map(C));
+function furComb(pb, seed) {
+  const W = pb.w, H = pb.h, src = new Uint32Array(pb.d), d = pb.d, ok = i => (src[i] >>> 24) && !S3_KEEP.has(src[i]);
+  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
+    const i = y * W + x; if (!ok(i)) continue;
+    const up = i - W, rt = i + 1;
+    if (ok(up) && src[up] !== src[i] && hash2(x * 1.31 + seed, y * .71) < .45) { d[i] = src[up]; if (hash2(x + 7.3, y + seed) < .4 && ok(i + W) && src[i + W] === src[i]) d[i + W] = src[up]; continue; }
+    if (ok(rt) && src[rt] !== src[i] && hash2(x * .73, y * 1.29 + seed) < .35) d[i] = src[rt];
+  }
+}
+AB.sol3 = function (bg = '#56698a') {
+  const W = 256, H = 184, k = 3.4, ox = 134, oy = 168, pb = new PB(W, H);
+  pb.d.fill(C(bg)); pb.ellipse(ox - 8, oy, 80, 6.8, mix(bg, '#1e2a44', .45));
+  const L = withHi(() => hiBake(W, H, ox, oy, R => { R.scl(k); sol2Walk(R, {}); }, Object.assign({}, ED, { cel: [.24, .9] })));
+  furComb(L, 3);
+  pbOver(pb, L);
+  grain(pb, .025, 3);
   return pb;
 };
