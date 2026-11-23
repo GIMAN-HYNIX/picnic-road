@@ -9,6 +9,7 @@
    ========================================================= */
 const PL = { x: 0, y: 0, vx: 0, vy: 0, dir: 'd', st: 'move', t: 0, ph: 0, gait: 'idle', sneak: false, hp: 10, walked: 0, ammo: 8, inv: 0, combo: 0, comboT: 0, swA: 0, swHit: false, aimA: 0, steady: 0, kneel: false,
   bolt: 0, boltSnd: 0, recoil: 0, buf: '', bufT: 0, dodgeCd: 0, dvx: 0, dvy: 0, hidden: false, hx: 0, hy: 1, idleT: 0, lock: null, eT: 0, eUsed: true, tUsed: false, arg: null, done: 0, hurtT: 0, kills: 0 };
+const GHOSTS = [];   // 칼을 휘두를 때 남는 잔상
 const BAG = new Array(10).fill(null), GITEMS = [], FOES = [];
 const UI = { bag: 0, sel: -1, help: true, ammoT: 0, prompt: null, fade: 0, tent: 0 };
 const ITEM = {
@@ -51,18 +52,32 @@ function pDodge() {
   const l = Math.hypot(dx, dy); PL.dvx = dx / l; PL.dvy = dy / l; PL.st = 'dodge'; PL.t = 0; PL.sneak = false; PL.kneel = false;
   GSFX.dodge(); noise(PL.x, PL.y, 120); drops(PL.x, PL.y, 2, 4, 50, '#9ab8d4', 60);
 }
-const KNF = [[.06, .1, .16, 1, 58, 16], [.06, .1, .16, 1, 58, 16], [.1, .12, .26, 2, 72, 30]];   // 준비 · 베기 · 거두기 · 피해 · 닿는 거리 · 내딛는 거리
+const KNF = [[.08, .09, .17, 1, 62, 22], [.07, .09, .17, 1, 62, 22], [.16, .1, .3, 2, 80, 44]];   // 준비 · 베기 · 거두기 · 피해 · 닿는 거리 · 내딛는 거리
 function pKnife(c) {
-  pUnload('knife'); PL.combo = c; PL.st = 'knife'; PL.t = 0; PL.swHit = false; PL.sneak = false;
+  pUnload('knife'); PL.combo = c; PL.st = 'knife'; PL.t = 0; PL.swHit = false; PL.swOn = false; PL.sneak = false;
   let a = IN.stick ? Math.atan2(IN.ay, IN.ax) : IN.mouseT < 2.5 && !V.touch ? Math.atan2(IN.cy + CAM.y - (PL.y - 40), IN.cx + CAM.x - PL.x) : IN.mx || IN.my ? Math.atan2(IN.my, IN.mx) : DIRA[PL.dir];
   let best = null, bd = 112; for (const f of FOES) if (f.live) { const d = dist(f, PL); if (d < bd && Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), a)) < 1.05) { bd = d; best = f; } }
   if (best) a = Math.atan2(best.y - PL.y, best.x - PL.x);
   PL.swA = a; PL.dir = dir4(Math.cos(a), Math.sin(a), PL.dir);
 }
+// 칼이 닿은 자리: 별 모양 불꽃, 베인 금, 베는 쪽으로 튀는 물
+function pImpact(f) {
+  const fin = PL.combo === 2, a = PL.swA, x = f.x, y = f.y, z = 16 * f.k, dead = f.st === 'dissolve';
+  f.sq = fin ? 1 : .7; f.sqA = a;
+  part({ k: 'spark', x, y, z, a: Math.random() * TAU, r: fin ? 30 : 20, n: fin ? 8 : 6, life: fin ? .2 : .14 });
+  part({ k: 'cut', x, y, z, a: fin ? a : a + (PL.combo === 1 ? -1 : 1) * 1.2, r: fin ? 46 : 32, life: fin ? .2 : .14 });
+  spray(x, y, z, fin ? 18 : 10, a, fin ? 260 : 170, '#d4ecfa'); spray(x, y, z, fin ? 8 : 4, a, 110, '#ffffff', 2.4);
+  if (fin || dead) { ring(x, y, 20 * f.k, .3, '#e4f2fc'); ring(x, y, 34 * f.k, .45, '#a8d0e8'); }
+}
 function pSlash(K) {
-  let any = false;
-  for (const f of FOES) { if (!f.live) continue; const d = dist(f, PL); if (d < K[4] + 16 * f.k && (d < 30 || Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), PL.swA)) < 1.15)) { foeHurt(f, K[3], PL.swA, PL.combo === 2 ? 240 : 130, 'knife'); any = true; } }
-  if (any) { V.hitstop = PL.combo === 2 ? .09 : .05; V.shake = Math.max(V.shake, PL.combo === 2 ? 5 : 2.5); GSFX.slash(); noise(PL.x, PL.y, 160); }
+  let any = false, kill = false;
+  for (const f of FOES) { if (!f.live) continue; const d = dist(f, PL); if (d < K[4] + 16 * f.k && (d < 30 || Math.abs(angDiff(Math.atan2(f.y - PL.y, f.x - PL.x), PL.swA)) < 1.15)) { foeHurt(f, K[3], PL.swA, PL.combo === 2 ? 340 : 170, 'knife'); any = true; if (f.st === 'dissolve') kill = true; pImpact(f); } }
+  if (any) {   // 손맛: 잠깐 멈춤 · 베는 쪽으로 화면이 밀림 · 마지막 일격이나 처치는 잠깐 느려짐
+    const fin = PL.combo === 2, ca = Math.cos(PL.swA), sa = Math.sin(PL.swA);
+    V.hitstop = fin ? .14 : .075; V.shake = Math.max(V.shake, fin ? 5 : 2); V.kx += ca * (fin ? 9 : 5); V.ky += sa * (fin ? 7 : 4);
+    if (fin || kill) V.slow = kill && fin ? .34 : .2; if (fin) V.flash = Math.max(V.flash, .035);
+    GSFX.slash(); noise(PL.x, PL.y, 160);
+  }
   brushFerns(PL.x + Math.cos(PL.swA) * 30, PL.y + Math.sin(PL.swA) * 30, Math.cos(PL.swA) * 100, 1.4);
 }
 function pAimAngle(oy) {   // 오른쪽 막대 > 마우스 > 자동(가장 가까운 물그림자)
@@ -170,8 +185,12 @@ function pUpdate(dt) {
     if (PL.t >= .3) { PL.st = 'move'; PL.dodgeCd = .2; PL.vx *= .25; PL.vy *= .25; drops(PL.x, PL.y, 2, 3, 40, '#9ab8d4', 50); GSFX.step('grass', 1); }
   } else if (st === 'knife') {
     const K = KNF[PL.combo], t = PL.t, a = PL.swA;
-    if (t >= K[0] && t < K[0] + K[1]) pMove(Math.cos(a) * K[5] / K[1], Math.sin(a) * K[5] / K[1], dt, 80); else pMove(0, 0, dt, 30);
-    if (t >= K[0] && !PL.swHit) { PL.swHit = true; GSFX.swish(PL.combo); part({ k: 'arc', x: PL.x, y: PL.y - 38, a, c: PL.combo, life: .15 }); pSlash(K); }
+    // 준비: 몸을 살짝 뒤로 뺌 → 베기: 앞부분에 몰아서 훅 내디딤 → 거두기
+    if (t < K[0]) { const b = PL.combo === 2 ? 46 : 26; pMove(-Math.cos(a) * b, -Math.sin(a) * b, dt, 40); }
+    else if (t < K[0] + K[1]) { const u = (t - K[0]) / K[1], v = K[5] / K[1] * 2 * (1 - u); pMove(Math.cos(a) * v, Math.sin(a) * v, dt, 90); GHOSTS.push({ s: pSprite(), x: PL.x, y: PL.y, t: 0 }); if (GHOSTS.length > 5) GHOSTS.shift(); }
+    else pMove(0, 0, dt, 30);
+    if (t >= K[0] && !PL.swOn) { PL.swOn = true; GSFX.swish(PL.combo); part({ k: 'arc', x: PL.x, y: PL.y, a, c: PL.combo, sw: K[1], reach: K[4], life: K[1] + .14 }); if (PL.combo === 2) { ring(PL.x, PL.y, 12, .3, '#c4d8e8'); spray(PL.x, PL.y, 2, 5, a + Math.PI, 70, '#9ab8d4', 1.6); } }
+    if (t >= K[0] + K[1] * .4 && !PL.swHit) { PL.swHit = true; pSlash(K); }
     if (t > K[0] + .03 && pTake('dodge') && PL.dodgeCd <= 0) return pDodge();
     if (t >= K[0] + K[1] + .05 && PL.buf === 'knife' && PL.bufT > 0) { PL.buf = ''; return pKnife((PL.combo + 1) % 3); }
     if (t >= K[0] + K[1] + K[2]) { PL.st = 'move'; PL.comboT = .4; }

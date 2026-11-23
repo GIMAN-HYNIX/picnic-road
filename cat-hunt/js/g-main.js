@@ -21,7 +21,8 @@ function camUpdate(dt, snap) {
   const gx = tx + CAMV.lx - V.w / 2, gy = ty + CAMV.ly - V.h / 2, k = snap ? 1 : 1 - Math.exp(-dt * 9);
   CAMV.x += (gx - CAMV.x) * k; CAMV.y += (gy - CAMV.y) * k;
   V.shake *= Math.exp(-dt * 14); if (V.shake < .3) V.shake = 0; V.sx = (Math.random() - .5) * 2 * V.shake; V.sy = (Math.random() - .5) * 2 * V.shake;
-  CAM.x = Math.round(clamp(CAMV.x, 0, Math.max(0, WORLD.WW - V.w)) + V.sx); CAM.y = Math.round(clamp(CAMV.y, 0, Math.max(0, WORLD.WH - V.h)) + V.sy);
+  const ke = Math.exp(-dt * 16); V.kx *= ke; V.ky *= ke; if (Math.hypot(V.kx, V.ky) < .4) V.kx = V.ky = 0;   // 베는 쪽으로 밀렸다 돌아옴
+  CAM.x = Math.round(clamp(CAMV.x, 0, Math.max(0, WORLD.WW - V.w)) + V.sx + V.kx); CAM.y = Math.round(clamp(CAMV.y, 0, Math.max(0, WORLD.WH - V.h)) + V.sy + V.ky);
 }
 function gUpdate(dt) {
   const p = IN.p; V.time += dt; wxUpdate(dt);
@@ -99,6 +100,7 @@ function drawWorld() {
 function drawMan() {
   if (PL.inv > 0 && PL.st !== 'hit' && PL.st !== 'down' && Math.floor(V.time * 14) % 2) return;
   const s = pSprite(), bob = PL.st === 'aim' && Math.hypot(PL.vx, PL.vy) > 8 && Math.floor(PL.ph * 4) % 2 ? 1 : 0;
+  for (let i = GHOSTS.length - 1; i >= 0; i--) { const q = GHOSTS[i]; if (V.hitstop <= 0) q.t += V.dt; if (q.t > .14) { GHOSTS.splice(i, 1); continue; } V.g.globalAlpha = .34 * (1 - q.t / .14); V.g.drawImage(gWhite(q.s), Math.round(q.x - CAM.x) - q.s.ox, Math.round(q.y - CAM.y) - q.s.oy); V.g.globalAlpha = 1; }
   gDraw(s, PL.x, PL.y + bob);
   if (PL.hurtT > .38) { V.g.globalAlpha = .7; V.g.drawImage(gWhite(s), Math.round(PL.x - CAM.x) - s.ox, Math.round(PL.y - CAM.y) - s.oy); V.g.globalAlpha = 1; }
 }
@@ -110,9 +112,12 @@ function drawFoe(f) {
   else if (st === 'recover') { a = 'recover'; fr = t > .4 ? 1 : 0; } else if (st === 'spit') { a = 'spit'; fr = t < .3 ? 0 : t < .55 ? 1 : 2; }
   else if (st === 'hit') { a = 'hit'; fr = 0; } else if (st === 'stagger') { a = 'stagger'; fr = Math.floor(V.time * 9) % 4; } else if (st === 'pause') jx = Math.floor(V.time * 24) % 2 ? 1 : -1;
   else if (st === 'dissolve') { a = 'dissolve'; fr = Math.min(4, Math.floor(t / .6 * 5)); }
+  if (V.hitstop > 0 && f.flash > 0) jx += Math.floor(V.hitstop * 60) % 2 ? 2 : -2;   // 멈춘 동안 부르르 떪
   const s = foeSpr(a, fr, f.flip, f.k), g = V.g, x = Math.round(f.x + jx - CAM.x) - s.ox, y = Math.round(f.y - CAM.y) - s.oy;
-  g.globalAlpha = .9; g.drawImage(s.c, x, y); g.globalAlpha = 1;
-  if (f.flash > 0) { g.globalAlpha = .85; g.drawImage(gWhite(s), x, y); g.globalAlpha = 1; }
+  if (f.sq > 0) {   // 맞으면 납작하게 눌렸다가 펴짐 (발밑 기준)
+    const q = f.sq, w = Math.round(s.w * (1 + q * .26)), h = Math.round(s.h * (1 - q * .22)), X = Math.round(f.x + jx - CAM.x - s.ox * w / s.w), Y = Math.round(f.y - CAM.y - s.oy * h / s.h);
+    g.globalAlpha = .9; g.drawImage(s.c, X, Y, w, h); g.globalAlpha = 1; if (f.flash > 0) { g.globalAlpha = .85; g.drawImage(gWhite(s), X, Y, w, h); g.globalAlpha = 1; }
+  } else { g.globalAlpha = .9; g.drawImage(s.c, x, y); g.globalAlpha = 1; if (f.flash > 0) { g.globalAlpha = .85; g.drawImage(gWhite(s), x, y); g.globalAlpha = 1; } }
   if (st === 'notice') gText('!', f.x - CAM.x, f.y - CAM.y - 52 * f.k, { f: F11B, c: '#fff2b0', sh: '#1c1618', al: 'center' });
   else if (st === 'pause') gText('?', f.x - CAM.x, f.y - CAM.y - 52 * f.k, { f: F11B, c: '#c4e2f4', sh: '#1c1618', al: 'center' });
 }
@@ -123,8 +128,28 @@ function drawFx() {
     if (pt.k === 'drop') { g.fillStyle = pt.c; g.fillRect(x, y, 2, u > .6 ? 1 : 2); }
     else if (pt.k === 'smoke') { g.globalAlpha = .5 * (1 - u); g.fillStyle = '#d8dce0'; const s = Math.round(pt.s * (1 + u * 2)); g.fillRect(x - (s >> 1), y - (s >> 1), s, s); g.globalAlpha = 1; }
     else if (pt.k === 'arc') {   // 칼이 지나간 자리
-      const R = pt.c === 2 ? 58 : 46, sp = pt.c === 2 ? .5 : 1.15, dir = pt.c === 1 ? -1 : 1, a0 = pt.a - sp * dir, n = 26; g.fillStyle = u < .5 ? '#ffffff' : '#c4e2f4'; g.globalAlpha = 1 - u * .8;
-      for (let i = 0; i <= n; i++) { const q = i / n; if (q > u * 2.2 + .25) break; const a = a0 + sp * 2 * dir * q, w = Math.round(1 + Math.sin(q * Math.PI) * (pt.c === 2 ? 4 : 3)), r = R + (pt.c === 2 ? q * 14 : 0); g.fillRect(Math.round(x + Math.cos(a) * r - w / 2), Math.round(y + Math.sin(a) * r * .8 - w / 2), w, w); }
+      // 방랑자를 따라다니는 초승달 꼴 궤적: 칼끝 쪽이 두껍고 꼬리로 갈수록 가늘어지며 뒤에서부터 사라짐
+      const px = Math.round(PL.x - cx), py = Math.round(PL.y - 38 - cy), ez = v => 1 - (1 - v) * (1 - v), hd = ez(clamp(pt.t / pt.sw, 0, 1)), tl = ez(clamp((pt.t - pt.sw * .5) / (pt.life - pt.sw * .5), 0, 1)), fade = 1 - tl * .5;
+      if (pt.c === 2) {   // 찌르기: 앞으로 뻗는 창 모양
+        const ca = Math.cos(pt.a), sa = Math.sin(pt.a) * .85, r0 = 16, r1 = r0 + (pt.reach + 6) * hd, rs = r0 + (r1 - r0) * tl;
+        for (let r = rs; r <= r1; r += 1) { const ld = (r - rs) / Math.max(1, r1 - rs), w = 1 + 8 * Math.sin(Math.min(1, ld * 1.08) * Math.PI * .86), X = px + ca * r, Y = py + sa * r; g.globalAlpha = .55 * fade; g.fillStyle = '#b4dcf6'; g.fillRect(Math.round(X - w / 2), Math.round(Y - w / 2), Math.ceil(w), Math.ceil(w)); if (w > 3) { g.globalAlpha = fade; g.fillStyle = '#ffffff'; g.fillRect(Math.round(X - w / 4), Math.round(Y - w / 4), Math.ceil(w / 2), Math.ceil(w / 2)); } }
+        if (hd >= 1 && tl < .6) { g.globalAlpha = 1 - tl; gRingPx(PL.x + ca * r1, PL.y - 38 + sa * r1, 5 + tl * 16, (5 + tl * 16) * .8, '#ffffff'); }
+      } else {
+        const dir = pt.c === 1 ? -1 : 1, span = 2.7, a0 = pt.a - span / 2 * dir, R = pt.reach - 4, n = 72;
+        for (let i = Math.floor(tl * n); i <= hd * n; i++) {
+          const q = i / n, a = a0 + span * dir * q, ld = (q - tl) / Math.max(.02, hd - tl), w = 1 + 12 * Math.pow(ld, 1.4) * (.35 + .65 * Math.sin(q * Math.PI)), ca = Math.cos(a), sa = Math.sin(a) * .8;
+          g.globalAlpha = .5 * fade; g.fillStyle = '#b4dcf6'; for (let r = R - w; r < R - 2; r += 1.5) g.fillRect(Math.round(px + ca * r), Math.round(py + sa * r), 2, 2);
+          g.globalAlpha = fade; g.fillStyle = '#ffffff'; for (let r = R - Math.min(w, 3.5); r <= R; r += 1) g.fillRect(Math.round(px + ca * r), Math.round(py + sa * r), 2, 2);
+        }
+      }
+      g.globalAlpha = 1;
+    } else if (pt.k === 'spark') {   // 맞은 자리의 별 모양 불꽃
+      const r0 = pt.r * u * .95, r1 = pt.r * (.4 + u * .7), s = u < .45 ? 2 : 1; g.fillStyle = u < .5 ? '#ffffff' : '#d4ecfa';
+      for (let i = 0; i < pt.n; i++) { const a = pt.a + i * TAU / pt.n, L = i % 2 ? .62 : 1, ca = Math.cos(a), sa = Math.sin(a) * .85; for (let r = r0 * L; r <= r1 * L; r += 1.5) g.fillRect(Math.round(x + ca * r), Math.round(y + sa * r), s, s); }
+      if (u < .3) { const c = Math.round(pt.r * .3 * (1 - u * 2)); g.fillRect(x - c, y - c, c * 2, c * 2); }
+    } else if (pt.k === 'cut') {   // 베인 금
+      const L = pt.r * Math.min(1, u * 5), ca = Math.cos(pt.a), sa = Math.sin(pt.a) * .85, w = u < .35 ? 3 : u < .7 ? 2 : 1; g.fillStyle = '#ffffff'; g.globalAlpha = u < .6 ? 1 : 1 - (u - .6) * 2;
+      for (let r = -L; r <= L; r += 1) { const th = Math.max(1, Math.round(w * (1 - Math.abs(r) / (pt.r + 1)))); g.fillRect(Math.round(x + ca * r - th / 2), Math.round(y + sa * r - th / 2), th, th); }
       g.globalAlpha = 1;
     } else if (pt.k === 'tracer') { g.globalAlpha = 1 - u; g.strokeStyle = '#fff6c8'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + .5, y + .5); g.lineTo(Math.round(pt.x2 - cx) + .5, Math.round(pt.y2 - cy) + .5); g.stroke(); g.globalAlpha = 1; }
     else if (pt.k === 'flash') { g.fillStyle = u < .5 ? '#fffbe0' : '#ffc860'; for (let i = 0; i < 9; i++) { const w = 7 - Math.abs(i - 3) * 1.4; g.fillRect(Math.round(x + Math.cos(pt.a) * i * 2.4 - w / 2), Math.round(y + Math.sin(pt.a) * i * 2.4 - w / 2), Math.max(1, Math.round(w)), Math.max(1, Math.round(w))); } }
@@ -202,14 +227,14 @@ function drawUi() {
   if (UI.fade > 0) { g.fillStyle = `rgba(8,10,14,${UI.fade.toFixed(3)})`; g.fillRect(0, 0, W, H); }
   if (UI.help) drawHelp();
 }
-const HELP = [['이동', 'WASD · 방향키'], ['달리기', 'Shift (소리가 커요)'], ['살금살금', 'C (켜고 끄기)'], ['구르기', 'Space'], ['칼', '마우스 왼쪽 · J (3연속)'], ['총', '오른쪽 누른 채 겨누고 왼쪽으로 발사 (K + J)'],
+const HELP = [['이동', 'WASD · 방향키'], ['달리기', 'Shift (소리가 커요)'], ['살금살금', 'C (켜고 끄기)'], ['구르기', 'Space · X'], ['칼', '마우스 왼쪽 · J · Z (3연속)'], ['총', '오른쪽 누른 채 겨누고 왼쪽으로 발사 (K + J)'],
   ['솔 보내기 · 부르기', 'Q'], ['줍기 · 쓰다듬기', 'E (솔 곁에서 길게: 안기)'], ['텐트', 'T 길게'], ['가방', 'Tab'], ['도움말 · 소리', 'H · M'], ['시험용', 'F2 총알 · F3 물그림자 · F4 비 · F6 온전한 드롭 · F7 버섯']];
 function drawHelp() {
   const g = V.g, W = V.w, H = V.h, pw = Math.min(W - 16, 430), ph = 64 + HELP.length * 13, x0 = Math.round((W - pw) / 2), y0 = Math.max(4, Math.round((H - ph) / 2));
   g.fillStyle = 'rgba(8,10,14,.5)'; g.fillRect(0, 0, W, H); g.fillStyle = 'rgba(18,22,28,.94)'; g.fillRect(x0, y0, pw, ph); g.fillStyle = '#5a5448'; g.fillRect(x0, y0, pw, 1); g.fillRect(x0, y0 + ph - 1, pw, 1); g.fillRect(x0, y0, 1, ph); g.fillRect(x0 + pw - 1, y0, 1, ph);
   gText('비 오는 숲', x0 + 14, y0 + 11, { f: F11B, c: '#e6c36a' }); gText('1막 젖은 길 · 시험판', x0 + 14 + gTextW('비 오는 숲', F11B) + 8, y0 + 13, { c: '#a89c84' });
   HELP.forEach((r, i) => { const y = y0 + 32 + i * 13; gText(r[0], x0 + 14, y, { c: i === HELP.length - 1 ? '#8a8272' : '#c4d4e4' }); gText(r[1], x0 + 122, y, { c: i === HELP.length - 1 ? '#8a8272' : '#f1e9d6' }); });
-  if (Math.floor(V.time * 2) % 2) gText(V.touch ? '화면을 누르면 시작해요' : '아무 글쇠나 누르면 시작해요', x0 + pw / 2, y0 + ph - 20, { al: 'center', c: '#e6c36a' });
+  if (Math.floor(V.time * 2) % 2) gText(V.touch ? '화면을 누르면 시작해요' : document.hasFocus() ? '아무 글쇠나 누르면 시작해요' : '화면을 한 번 누르면 시작해요', x0 + pw / 2, y0 + ph - 20, { al: 'center', c: '#e6c36a' });
 }
 
 /* ---------- 한 프레임 ---------- */
@@ -218,8 +243,10 @@ function gFrame(ts) {
   if (IN.p.help) { UI.help = !UI.help; V.ht = 0; }
   if (UI.help) { V.ht = (V.ht || 0) + dt; V.time += dt; if (IN.p.any && !IN.p.help) UI.help = false; gParts(dt); }
   else if (V.hitstop > 0) V.hitstop -= dt;
+  else if (V.slow > 0) { V.slow -= dt; gUpdate(dt * .35); }   // 마지막 일격 · 처치 뒤 잠깐 느리게
   else gUpdate(dt);
   camUpdate(dt); drawWorld(); drawFx(); drawSky(); drawHud(); drawUi();
+  if (!UI.help && !V.touch && !document.hasFocus() && Math.floor(ts / 600) % 2) gText('화면을 한 번 누르면 키보드가 켜져요', V.w / 2, V.h - 34, { al: 'center', c: '#e6c36a', sh: '#1c1618' });
   V.og.drawImage(V.cvs, 0, 0, V.w * V.k, V.h * V.k);
   IN.p = {};
   if (!V.manual) requestAnimationFrame(gFrame);

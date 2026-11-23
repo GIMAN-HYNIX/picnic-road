@@ -3,7 +3,7 @@
    비 오는 숲 · 1막 시험판 — 화면, 입력, 그림 창고, 글자, 알갱이
    내부 화면은 짧은 변이 540쯤 되도록 잡고(1080p에서 딱 2배) 정수 · 반정수 배율로만 키움
    ========================================================= */
-const V = { w: 960, h: 540, cvs: null, g: null, out: null, og: null, k: 1, css: 1, time: 0, shake: 0, sx: 0, sy: 0, hitstop: 0, touch: false, flash: 0 };
+const V = { w: 960, h: 540, cvs: null, g: null, out: null, og: null, k: 1, css: 1, time: 0, shake: 0, sx: 0, sy: 0, hitstop: 0, touch: false, flash: 0, kx: 0, ky: 0, slow: 0 };
 const CAM = { x: 0, y: 0 };
 function gResize() {
   const dpr = window.devicePixelRatio || 1, dw = Math.max(320, Math.round(innerWidth * dpr)), dh = Math.max(240, Math.round(innerHeight * dpr));
@@ -21,7 +21,10 @@ const IN = { mx: 0, my: 0, run: false, aim: false, cx: 0, cy: 0, mouseT: 9, ax: 
 const press = k => { IN.p[k] = true; };
 function gInput() {
   const el = V.out, pos = e => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * V.w, (e.clientY - r.top) / r.height * V.h]; };
-  const MAP = { Space: 'dodge', KeyJ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7' };
+  const MAP = { Space: 'dodge', KeyX: 'dodge', KeyJ: 'knife', KeyZ: 'knife', KeyQ: 'sol', KeyF: 'sol', KeyC: 'sneak', ControlLeft: 'sneak', Tab: 'bag', KeyI: 'bag', KeyH: 'help', F1: 'help', KeyM: 'mute', Escape: 'esc', KeyE: 'e', KeyR: 'r', KeyT: 't', KeyG: 'g', F2: 'f2', F3: 'f3', F4: 'f4', F6: 'f6', F7: 'f7' };
+  // 다른 쪽 안에 끼워져 돌아갈 때(아티팩트 등): 화면을 눌러도 글쇠가 이 창으로 안 들어오는 일이 없도록 누를 때마다 초점을 가져옴
+  const grab = () => { try { window.focus(); if (document.activeElement !== el) el.focus({ preventScroll: true }); } catch (e) {} };
+  addEventListener('pointerdown', grab, true); addEventListener('mousedown', grab, true); addEventListener('touchstart', grab, { capture: true, passive: true });
   addEventListener('keydown', e => {
     if (e.repeat) { if (MAP[e.code] || e.code.startsWith('Arrow')) e.preventDefault(); return; }
     IN.keys[e.code] = true; IN.p.any = true; GSFX.init();
@@ -29,7 +32,7 @@ function gInput() {
     if (/^Digit\d$/.test(e.code)) press('n' + e.code[5]);
     if (e.code.startsWith('Arrow')) e.preventDefault();
   });
-  addEventListener('keyup', e => { IN.keys[e.code] = false; if (e.code === 'KeyE') press('eUp'); if (e.code === 'KeyK') press('fireUp'); });
+  addEventListener('keyup', e => { IN.keys[e.code] = false; if (e.code === 'KeyE') press('eUp'); if (e.code === 'KeyK') press('fireUp'); if (MAP[e.code] || e.code.startsWith('Arrow')) e.preventDefault(); });
   addEventListener('blur', () => { IN.keys = {}; IN.mb = [false, false, false]; });
   el.addEventListener('mousemove', e => { [IN.cx, IN.cy] = pos(e); IN.mouseT = 0; });
   el.addEventListener('mousedown', e => { GSFX.init(); IN.p.any = true; [IN.cx, IN.cy] = pos(e); IN.mouseT = 0; IN.mb[e.button] = true; if (e.button === 0) press('lmb'); e.preventDefault(); });
@@ -112,6 +115,8 @@ const gTextW = (str, f) => textMask(str, f || F9).w;
 const PARTS = [], DECALS = [];
 function part(o) { if (PARTS.length < 700) PARTS.push(Object.assign({ z: 0, vx: 0, vy: 0, vz: 0, t: 0, life: .5 }, o)); }
 function drops(x, y, z, n, sp, col, up) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = sp * (.4 + Math.random() * .8); part({ k: 'drop', x, y, z, vx: Math.cos(a) * v, vy: Math.sin(a) * v * .5, vz: (up || 90) * (.5 + Math.random()), life: .5 + Math.random() * .3, c: col || '#a8d0e8' }); } }
+// 한쪽으로 튀는 물방울 (베인 쪽으로 흩어짐)
+function spray(x, y, z, n, a, sp, col, wide) { for (let i = 0; i < n; i++) { const aa = a + (Math.random() - .5) * (wide || 1.1), v = sp * (.45 + Math.random()); part({ k: 'drop', x, y, z, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v * .6, vz: 50 + Math.random() * 130, life: .45 + Math.random() * .3, c: col || '#a8d0e8' }); } }
 function ring(x, y, r, life, col) { part({ k: 'ring', x, y, r, life: life || .35, c: col || '#9ab4d4' }); }
 function decal(x, y, r, life) { if (DECALS.length > 220) DECALS.shift(); DECALS.push({ x, y, r, t: 0, life }); }
 function gParts(dt) {

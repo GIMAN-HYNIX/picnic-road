@@ -25,7 +25,7 @@ const foePan = f => clamp((f.x - PL.x) / 420, -1, 1);
 function foeHurt(f, dmg, ang, kb, src) {
   if (!f.live || f.st === 'dissolve') return;
   let m = 1; if (f.aware === 0 && src !== 'cat') { m = 3; say('기습!', 1.2); } else if (f.stag > 0 && src !== 'cat') m = 2;
-  f.hp -= dmg * m; f.flash = .1; f.kx = Math.cos(ang) * kb; f.ky = Math.sin(ang) * kb; if (src !== 'cat') f.aware = 2;
+  f.hp -= dmg * m; f.flash = .12; f.kx = Math.cos(ang) * kb; f.ky = Math.sin(ang) * kb; if (src !== 'cat') f.aware = 2;
   drops(f.x, f.y, 16 * f.k, src === 'cat' ? 4 : 10, 90, '#a8d0e8', 110); GSFX.splash(foePan(f), src === 'cat' ? .35 : .8);
   if (f.hp <= 0) { foeSet(f, 'dissolve'); f.kx *= .4; f.ky *= .4; GSFX.dissolve(foePan(f)); V.shake = Math.max(V.shake, 4); }
   else if (src !== 'cat') { if (src === 'knife' && PL.combo === 2) f.stag = Math.max(f.stag, 1.2); foeSet(f, 'hit'); }
@@ -47,7 +47,7 @@ function foeMove(f, tx, ty, sp, dt) {
   return l;
 }
 function foeUpdate(f, dt) {
-  f.t += dt; f.flash -= dt; f.cd -= dt; f.mT -= dt; const s = f.st, dp = dist(f, PL), quiet = PL.st === 'camp' || PL.st === 'down' || PL.st === 'tent';
+  f.t += dt; f.flash -= dt; if (f.sq > 0) f.sq = Math.max(0, f.sq - dt * 5); f.cd -= dt; f.mT -= dt; const s = f.st, dp = dist(f, PL), quiet = PL.st === 'camp' || PL.st === 'down' || PL.st === 'tent';
   if (f.kx || f.ky) { const n = WORLD.push(f.x + f.kx * dt, f.y + f.ky * dt, 11 * f.k); f.x = n[0]; f.y = n[1]; const e = Math.exp(-dt * 9); f.kx *= e; f.ky *= e; if (Math.hypot(f.kx, f.ky) < 6) f.kx = f.ky = 0; }
   if (s === 'gone') { f.live = false; f.re -= dt; if (f.re <= 0 && !f.grad && dp > 520) { f.hp = f.mhp; f.x = f.hx; f.y = f.hy; f.aware = 0; f.stag = 0; f.wT = 5; f.st = 'dormant'; } return; }
   if (s === 'dormant') {
